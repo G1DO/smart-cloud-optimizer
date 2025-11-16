@@ -1,30 +1,11 @@
-# --- Python ---
+# Virtual environment
+venv/
+
+# Python cache
 __pycache__/
 *.pyc
-*.pyo
-*.pyd
 
-# --- Virtual environment ---
-venv/
-env/
-
-# --- AWS Credentials (NEVER UPLOAD) ---
+# AWS credentials (ممنوع)
 .aws/
-credentials
-credentials.txt
-*.credentials
-
-# --- Environment files ---
-.env
 *.env
-
-# --- Editor settings ---
-.vscode/
-.idea/
-
-# --- OS Junk files ---
-.DS_Store
-Thumbs.db
-
-# --- Logs ---
-*.log
+credentials
