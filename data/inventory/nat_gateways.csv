@@ -1,0 +1,1 @@
+account_id,region,nat_gateway_id,vpc_id,subnet_id,state,connectivity_type,allocation_id,private_ip,public_ip,create_time,tags

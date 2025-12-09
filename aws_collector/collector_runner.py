@@ -12,6 +12,9 @@ from .cost_collector import CostCollector
 from .cw_collector import CloudWatchCollector
 from .pricing_collector import PricingCollector
 from .ec2_collector import EC2Collector
+from .collect_cloudfront import CloudFrontCollector
+from .collect_nat_gateways import NATGatewayCollector
+from .collect_load_balancers import LoadBalancerCollector
 
 
 class CollectorRunner:
@@ -31,6 +34,9 @@ class CollectorRunner:
         self.cw_collector = CloudWatchCollector(self.config)
         self.pricing_collector = PricingCollector(self.config)
         self.ec2_collector = EC2Collector(self.config)
+        self.cloudfront_collector = CloudFrontCollector(self.config)
+        self.nat_collector = NATGatewayCollector(self.config)
+        self.lb_collector = LoadBalancerCollector(self.config)
     
     def _load_previous_inventory(self):
         """Load inventory from previous collection if available"""
@@ -264,6 +270,80 @@ class CollectorRunner:
             print(f"    [WARN] Failed to list S3 buckets: {e}")
         
         print(f"  ✓ Collected S3 metrics for {s3_count} buckets")
+        
+        # Collect CloudFront metrics
+        print(f"\n  [CloudFront] Collecting metrics for {month_key}...")
+        try:
+            cloudfront_distributions = self.cloudfront_collector.list_distributions()
+            cloudfront_count = 0
+            for dist in cloudfront_distributions:
+                try:
+                    metrics = self.cloudfront_collector.get_metrics(
+                        dist['distribution_id'],
+                        start_date,
+                        end_date
+                    )
+                    self.cloudfront_collector.save_metrics_csv(metrics, month_key)
+                    cloudfront_count += 1
+                except Exception as e:
+                    print(f"    [WARN] Failed to collect CloudFront metrics for {dist['distribution_id']}: {e}")
+            print(f"  ✓ Collected CloudFront metrics for {cloudfront_count} distributions")
+        except Exception as e:
+            print(f"  [WARN] Failed to collect CloudFront metrics: {e}")
+        
+        # Collect NAT Gateway metrics
+        print(f"\n  [NAT Gateways] Collecting metrics for {month_key}...")
+        try:
+            nat_gateways = self.nat_collector.list_nat_gateways()
+            nat_count = 0
+            for nat in nat_gateways:
+                try:
+                    metrics = self.nat_collector.get_metrics(
+                        nat['nat_gateway_id'],
+                        nat['region'],
+                        start_date,
+                        end_date
+                    )
+                    self.nat_collector.save_metrics_csv(metrics, month_key)
+                    nat_count += 1
+                except Exception as e:
+                    print(f"    [WARN] Failed to collect NAT Gateway metrics for {nat['nat_gateway_id']}: {e}")
+            print(f"  ✓ Collected NAT Gateway metrics for {nat_count} gateways")
+        except Exception as e:
+            print(f"  [WARN] Failed to collect NAT Gateway metrics: {e}")
+        
+        # Collect Load Balancer metrics
+        print(f"\n  [Load Balancers] Collecting metrics for {month_key}...")
+        try:
+            load_balancers = self.lb_collector.list_load_balancers()
+            alb_count = 0
+            nlb_count = 0
+            for lb in load_balancers:
+                try:
+                    if lb['type'] == 'application':
+                        metrics = self.lb_collector.get_alb_metrics(
+                            lb['lb_arn'],
+                            lb['region'],
+                            start_date,
+                            end_date
+                        )
+                        self.lb_collector.save_alb_metrics_csv(metrics, month_key)
+                        alb_count += 1
+                    elif lb['type'] == 'network':
+                        metrics = self.lb_collector.get_nlb_metrics(
+                            lb['lb_arn'],
+                            lb['region'],
+                            start_date,
+                            end_date
+                        )
+                        self.lb_collector.save_nlb_metrics_csv(metrics, month_key)
+                        nlb_count += 1
+                except Exception as e:
+                    print(f"    [WARN] Failed to collect Load Balancer metrics for {lb['lb_arn']}: {e}")
+            print(f"  ✓ Collected ALB metrics for {alb_count} load balancers")
+            print(f"  ✓ Collected NLB metrics for {nlb_count} load balancers")
+        except Exception as e:
+            print(f"  [WARN] Failed to collect Load Balancer metrics: {e}")
         
         metrics_time = (datetime.now() - metrics_start).total_seconds()
         print(f"\n[Metrics] ✓ Completed {month_key} in {metrics_time:.1f}s")
