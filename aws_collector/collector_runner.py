@@ -138,7 +138,7 @@ class CollectorRunner:
                     end_date
                 )
                 self.cw_collector.save_csv(
-                    metrics, 'ec2', month_key, instance['instance_id']
+                    metrics, 'ec2', instance['instance_id']
                 )
                 ec2_count += 1
             except Exception as e:
@@ -166,7 +166,7 @@ class CollectorRunner:
                     end_date
                 )
                 self.cw_collector.save_csv(
-                    metrics, 'ebs', month_key, volume['volume_id']
+                    metrics, 'ebs', volume['volume_id']
                 )
                 ebs_count += 1
             except Exception as e:
@@ -200,7 +200,7 @@ class CollectorRunner:
                             end_date
                         )
                         self.cw_collector.save_csv(
-                            metrics, 'lambda', month_key, func['FunctionName']
+                            metrics, 'lambda', func['FunctionName']
                         )
                         lambda_count += 1
                     except Exception as e:
@@ -236,7 +236,7 @@ class CollectorRunner:
                             end_date
                         )
                         self.cw_collector.save_csv(
-                            metrics, 'rds', month_key, db['DBInstanceIdentifier']
+                            metrics, 'rds', db['DBInstanceIdentifier']
                         )
                         rds_count += 1
                     except Exception as e:
@@ -261,7 +261,7 @@ class CollectorRunner:
                         end_date
                     )
                     self.cw_collector.save_csv(
-                        metrics, 's3', month_key, bucket['Name']
+                        metrics, 's3', bucket['Name']
                     )
                     s3_count += 1
                 except Exception as e:
@@ -276,6 +276,7 @@ class CollectorRunner:
         try:
             cloudfront_distributions = self.cloudfront_collector.list_distributions()
             cloudfront_count = 0
+            cloudfront_rows = 0
             for dist in cloudfront_distributions:
                 try:
                     metrics = self.cloudfront_collector.get_metrics(
@@ -283,11 +284,19 @@ class CollectorRunner:
                         start_date,
                         end_date
                     )
-                    self.cloudfront_collector.save_metrics_csv(metrics, month_key)
+                    # Count rows before saving
+                    metrics_data = metrics.get('metrics', {})
+                    timestamps = set()
+                    for metric_name, datapoints in metrics_data.items():
+                        for dp in datapoints:
+                            if 'Timestamp' in dp:
+                                timestamps.add(dp['Timestamp'])
+                    cloudfront_rows += len(timestamps)
+                    self.cloudfront_collector.save_metrics_csv(metrics)
                     cloudfront_count += 1
                 except Exception as e:
                     print(f"    [WARN] Failed to collect CloudFront metrics for {dist['distribution_id']}: {e}")
-            print(f"  ✓ Collected CloudFront metrics for {cloudfront_count} distributions")
+            print(f"  ✓ Collected CloudFront metrics for {cloudfront_count} distributions ({cloudfront_rows} rows added)")
         except Exception as e:
             print(f"  [WARN] Failed to collect CloudFront metrics: {e}")
         
@@ -296,6 +305,7 @@ class CollectorRunner:
         try:
             nat_gateways = self.nat_collector.list_nat_gateways()
             nat_count = 0
+            nat_rows = 0
             for nat in nat_gateways:
                 try:
                     metrics = self.nat_collector.get_metrics(
@@ -304,11 +314,19 @@ class CollectorRunner:
                         start_date,
                         end_date
                     )
-                    self.nat_collector.save_metrics_csv(metrics, month_key)
+                    # Count rows before saving
+                    metrics_data = metrics.get('metrics', {})
+                    timestamps = set()
+                    for metric_name, datapoints in metrics_data.items():
+                        for dp in datapoints:
+                            if 'Timestamp' in dp:
+                                timestamps.add(dp['Timestamp'])
+                    nat_rows += len(timestamps)
+                    self.nat_collector.save_metrics_csv(metrics)
                     nat_count += 1
                 except Exception as e:
                     print(f"    [WARN] Failed to collect NAT Gateway metrics for {nat['nat_gateway_id']}: {e}")
-            print(f"  ✓ Collected NAT Gateway metrics for {nat_count} gateways")
+            print(f"  ✓ Collected NAT Gateway metrics for {nat_count} gateways ({nat_rows} rows added)")
         except Exception as e:
             print(f"  [WARN] Failed to collect NAT Gateway metrics: {e}")
         
@@ -318,6 +336,8 @@ class CollectorRunner:
             load_balancers = self.lb_collector.list_load_balancers()
             alb_count = 0
             nlb_count = 0
+            alb_rows = 0
+            nlb_rows = 0
             for lb in load_balancers:
                 try:
                     if lb['type'] == 'application':
@@ -327,7 +347,15 @@ class CollectorRunner:
                             start_date,
                             end_date
                         )
-                        self.lb_collector.save_alb_metrics_csv(metrics, month_key)
+                        # Count rows before saving
+                        metrics_data = metrics.get('metrics', {})
+                        timestamps = set()
+                        for metric_name, datapoints in metrics_data.items():
+                            for dp in datapoints:
+                                if 'Timestamp' in dp:
+                                    timestamps.add(dp['Timestamp'])
+                        alb_rows += len(timestamps)
+                        self.lb_collector.save_alb_metrics_csv(metrics)
                         alb_count += 1
                     elif lb['type'] == 'network':
                         metrics = self.lb_collector.get_nlb_metrics(
@@ -336,12 +364,20 @@ class CollectorRunner:
                             start_date,
                             end_date
                         )
-                        self.lb_collector.save_nlb_metrics_csv(metrics, month_key)
+                        # Count rows before saving
+                        metrics_data = metrics.get('metrics', {})
+                        timestamps = set()
+                        for metric_name, datapoints in metrics_data.items():
+                            for dp in datapoints:
+                                if 'Timestamp' in dp:
+                                    timestamps.add(dp['Timestamp'])
+                        nlb_rows += len(timestamps)
+                        self.lb_collector.save_nlb_metrics_csv(metrics)
                         nlb_count += 1
                 except Exception as e:
                     print(f"    [WARN] Failed to collect Load Balancer metrics for {lb['lb_arn']}: {e}")
-            print(f"  ✓ Collected ALB metrics for {alb_count} load balancers")
-            print(f"  ✓ Collected NLB metrics for {nlb_count} load balancers")
+            print(f"  ✓ Collected ALB metrics for {alb_count} load balancers ({alb_rows} rows added)")
+            print(f"  ✓ Collected NLB metrics for {nlb_count} load balancers ({nlb_rows} rows added)")
         except Exception as e:
             print(f"  [WARN] Failed to collect Load Balancer metrics: {e}")
         
@@ -430,10 +466,10 @@ class CollectorRunner:
         print(f"Total time: {overall_time/60:.1f} minutes ({overall_time:.1f}s)")
         print(f"End time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         print("\nData saved to:")
-        print("  - Cost data: data/cost/YYYY-MM/")
-        print("  - Metrics: data/metrics/{service}/YYYY-MM/")
-        print("  - Pricing: data/pricing/YYYY-MM.json")
-        print("  - Inventory: data/inventory/")
+        print("  - Cost data: data/cost/*_consolidated.csv")
+        print("  - Metrics: data/metrics/{service}/{service}_metrics_consolidated.csv")
+        print("  - Pricing: data/pricing/pricing_consolidated.csv")
+        print("  - Inventory: data/inventory/*.csv")
         print("=" * 60)
 
 

@@ -333,14 +333,13 @@ class CloudWatchCollector:
             'metrics': metrics
         }
     
-    def save_csv(self, data: Dict, service: str, month_key: str, resource_id: str):
+    def save_csv(self, data: Dict, service: str, resource_id: str):
         """
-        Save metrics data to CSV file
+        Save metrics data to consolidated CSV file
         
         Args:
             data: Data dictionary to save
             service: Service name (ec2, ebs, lambda, rds, s3)
-            month_key: Month key (YYYY-MM)
             resource_id: Resource identifier (instance_id, volume_id, etc.)
         """
         # Save directly to consolidated file in service subdirectory

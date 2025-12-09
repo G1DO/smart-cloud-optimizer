@@ -24,34 +24,43 @@ All collected data is stored in the `data/` folder:
 ```
 data/
 ├── cost/
-│   └── YYYY-MM/              # Monthly cost data (CSV)
-│       ├── daily_cost_consolidated.csv
-│       ├── service_cost_consolidated.csv
-│       ├── usage_type_cost_consolidated.csv
-│       └── anomalies_consolidated.csv
+│   ├── daily_cost_consolidated.csv
+│   ├── service_cost_consolidated.csv
+│   ├── usage_type_cost_consolidated.csv
+│   └── anomalies_consolidated.csv
 ├── metrics/
-│   ├── ec2/                  # EC2 metrics (consolidated CSV)
-│   ├── ebs/                  # EBS metrics (consolidated CSV)
-│   ├── lambda/               # Lambda metrics (consolidated CSV)
-│   ├── rds/                  # RDS metrics (consolidated CSV)
-│   ├── s3/                   # S3 metrics (consolidated CSV)
-│   ├── cloudfront/YYYY-MM/   # CloudFront metrics by month (CSV)
-│   │   └── cloudfront_metrics.csv
-│   ├── nat/YYYY-MM/          # NAT Gateway metrics by month (CSV)
-│   │   └── nat_metrics.csv
-│   ├── alb/YYYY-MM/          # ALB metrics by month (CSV)
-│   │   └── alb_metrics.csv
-│   └── nlb/YYYY-MM/          # NLB metrics by month (CSV)
-│       └── nlb_metrics.csv
+│   ├── ec2/
+│   │   └── ec2_metrics_consolidated.csv
+│   ├── ebs/
+│   │   └── ebs_metrics_consolidated.csv
+│   ├── lambda/
+│   │   └── lambda_metrics_consolidated.csv
+│   ├── rds/
+│   │   └── rds_metrics_consolidated.csv
+│   ├── s3/
+│   │   └── s3_metrics_consolidated.csv
+│   ├── cloudfront/
+│   │   └── cloudfront_metrics_consolidated.csv
+│   ├── nat/
+│   │   └── nat_metrics_consolidated.csv
+│   ├── alb/
+│   │   └── alb_metrics_consolidated.csv
+│   └── nlb/
+│       └── nlb_metrics_consolidated.csv
 ├── pricing/
-│   └── pricing_consolidated.csv  # Pricing data (consolidated CSV)
+│   └── pricing_consolidated.csv
 └── inventory/
-    ├── ec2_instances.csv      # EC2 instances (collected once)
-    ├── ebs_volumes.csv        # EBS volumes (collected once)
-    ├── regions_consolidated.csv  # AWS regions (collected once)
-    ├── cloudfront.csv         # CloudFront distributions (collected once)
-    ├── nat_gateways.csv       # NAT Gateways (collected once)
-    └── load_balancers.csv     # Load Balancers (collected once)
+    ├── ec2_instances.csv
+    ├── ebs_volumes.csv
+    ├── rds_instances.csv
+    ├── lambda_functions.csv
+    ├── s3_buckets.csv
+    ├── load_balancers.csv
+    ├── nat_gateways.csv
+    ├── cloudfront.csv
+    ├── regions_consolidated.csv
+    ├── volumes_consolidated.csv
+    └── instances_consolidated.csv
 ```
 
 ## Usage
@@ -122,21 +131,48 @@ cost_collector.collect_month("2024-10-01", "2024-10-31")
 - RDS pricing
 
 ### Inventory
-- EC2 instances (all regions)
-- EBS volumes (all regions)
-- AWS regions list
-- CloudFront distributions
-- NAT Gateways (all regions)
-- Load Balancers (ALB + NLB, all regions)
+- EC2 instances (all regions) → `data/inventory/ec2_instances.csv`
+- EBS volumes (all regions) → `data/inventory/ebs_volumes.csv`
+- RDS instances (all regions) → `data/inventory/rds_instances.csv`
+- Lambda functions (all regions) → `data/inventory/lambda_functions.csv`
+- S3 buckets → `data/inventory/s3_buckets.csv`
+- AWS regions list → `data/inventory/regions_consolidated.csv`
+- CloudFront distributions → `data/inventory/cloudfront.csv`
+- NAT Gateways (all regions) → `data/inventory/nat_gateways.csv`
+- Load Balancers (ALB + NLB, all regions) → `data/inventory/load_balancers.csv`
+
+## Consolidated CSV Format
+
+All metrics are saved to **consolidated CSV files** that contain the complete time-series history:
+
+- **One CSV file per service** (e.g., `ec2_metrics_consolidated.csv`)
+- **All timestamps included** - Each row has a timestamp column
+- **Append-only** - New data is appended to existing files
+- **No monthly folders** - All data in one file for easy ML training
+
+### Example: EC2 Metrics CSV Structure
+
+```csv
+account_id,region,timestamp,instance_id,CPUUtilization_average,CPUUtilization_maximum,NetworkIn_average,NetworkOut_average,...
+131471595343,us-east-1,2024-08-01T00:00:00,i-1234567890abcdef0,45.2,78.5,1024000,2048000,...
+131471595343,us-east-1,2024-08-01T01:00:00,i-1234567890abcdef0,42.1,75.3,1056000,2100000,...
+131471595343,us-east-1,2024-08-02T00:00:00,i-1234567890abcdef0,48.5,82.1,1100000,2200000,...
+```
+
+This format enables:
+- **Time-series analysis** - All historical data in chronological order
+- **ML model training** - Easy to load and process with pandas
+- **Cost optimization** - Identify patterns across multiple months
+- **Forecasting** - Build predictive models on complete historical data
 
 ## Month-by-Month Collection
 
 The collector automatically splits the last 5 months into monthly chunks to comply with AWS API limits:
 
-- Cost Explorer: Fetches one month at a time
-- CloudWatch: Fetches metrics for each month separately
-- Pricing: Takes monthly snapshots
-- Inventory: Collected once (doesn't change frequently)
+- **Cost Explorer**: Fetches one month at a time, appends to consolidated CSVs
+- **CloudWatch**: Fetches metrics for each month separately, appends to consolidated CSVs
+- **Pricing**: Takes monthly snapshots, appends to consolidated CSV
+- **Inventory**: Collected once (doesn't change frequently)
 
 ## Configuration
 

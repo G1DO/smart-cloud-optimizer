@@ -2,13 +2,13 @@
 Load Balancers Collector
 Collects ALB and NLB inventory and CloudWatch metrics
 """
-import pandas as pd
+import csv
 from pathlib import Path
 from typing import List, Dict
 from datetime import datetime
 
 from .config import AWSConfig, DATA_DIR
-from .date_utils import get_datetime_range, get_month_key
+from .date_utils import get_datetime_range
 
 
 class LoadBalancerCollector:
@@ -76,25 +76,28 @@ class LoadBalancerCollector:
         """
         load_balancers = self.list_load_balancers()
         
+        inventory_dir = DATA_DIR / "inventory"
+        inventory_dir.mkdir(parents=True, exist_ok=True)
+        filepath = inventory_dir / "load_balancers.csv"
+        
         if load_balancers:
-            df = pd.DataFrame(load_balancers)
-            inventory_dir = DATA_DIR / "inventory"
-            inventory_dir.mkdir(parents=True, exist_ok=True)
-            filepath = inventory_dir / "load_balancers.csv"
-            df.to_csv(filepath, index=False)
+            fieldnames = list(load_balancers[0].keys())
+            with open(filepath, 'w', newline='') as f:
+                writer = csv.DictWriter(f, fieldnames=fieldnames)
+                writer.writeheader()
+                writer.writerows(load_balancers)
             print(f"  ✓ Saved {len(load_balancers)} Load Balancers to {filepath.name}")
             return filepath
         else:
             # Create empty file with headers
-            inventory_dir = DATA_DIR / "inventory"
-            inventory_dir.mkdir(parents=True, exist_ok=True)
-            filepath = inventory_dir / "load_balancers.csv"
-            df = pd.DataFrame(columns=[
+            fieldnames = [
                 'account_id', 'region', 'lb_arn', 'lb_name', 'type', 'scheme',
                 'dns_name', 'state', 'vpc_id', 'security_groups', 'subnets',
                 'canonical_hosted_zone_id', 'created_time'
-            ])
-            df.to_csv(filepath, index=False)
+            ]
+            with open(filepath, 'w', newline='') as f:
+                writer = csv.DictWriter(f, fieldnames=fieldnames)
+                writer.writeheader()
             print(f"  ✓ Created empty inventory file {filepath.name}")
             return filepath
     
@@ -235,127 +238,185 @@ class LoadBalancerCollector:
             'metrics': metrics_data
         }
     
-    def save_alb_metrics_csv(self, data: Dict, month_key: str):
+    def save_alb_metrics_csv(self, data: Dict):
         """
-        Save ALB metrics to CSV file
+        Save ALB metrics to consolidated CSV file
         
         Args:
             data: Metrics data dictionary
-            month_key: Month key (YYYY-MM)
         """
-        metrics_dir = DATA_DIR / "metrics" / "alb" / month_key
-        metrics_dir.mkdir(parents=True, exist_ok=True)
-        filepath = metrics_dir / "alb_metrics.csv"
+        import csv
         
+        # Save directly to consolidated file in service subdirectory
+        service_dir = DATA_DIR / "metrics" / "alb"
+        service_dir.mkdir(parents=True, exist_ok=True)
+        consolidated_file = service_dir / "alb_metrics_consolidated.csv"
+        
+        # Flatten metrics data for CSV
         rows = []
         metrics_data = data.get('metrics', {})
         
-        # Collect all unique timestamps
+        # Get all unique timestamps from all metrics
         all_timestamps = set()
         for metric_name, datapoints in metrics_data.items():
             for dp in datapoints:
                 if 'Timestamp' in dp:
                     all_timestamps.add(dp['Timestamp'])
         
-        sorted_timestamps = sorted(list(all_timestamps))
+        # Sort timestamps
+        sorted_timestamps = sorted(all_timestamps)
         
-        # Create rows for each timestamp
+        # Build rows - one per timestamp
         for ts in sorted_timestamps:
+            # Format timestamp consistently for ML (ISO format)
+            if isinstance(ts, datetime):
+                timestamp_str = ts.isoformat()
+            else:
+                timestamp_str = str(ts)
+            
             row = {
                 'account_id': data.get('account_id', ''),
                 'region': data.get('region', ''),
                 'lb_arn': data.get('lb_arn', ''),
-                'timestamp': ts.isoformat() if isinstance(ts, datetime) else ts,
+                'timestamp': timestamp_str,
             }
             
-            # Add metric values
+            # Add metric values for this timestamp
             for metric_name, datapoints in metrics_data.items():
                 for dp in datapoints:
                     if dp.get('Timestamp') == ts:
-                        for stat in ['Average', 'Sum', 'Maximum', 'Minimum']:
+                        # Extract statistics - ensure numeric values
+                        for stat in ['Average', 'Maximum', 'Sum', 'Minimum']:
                             if stat in dp:
-                                row[f"{metric_name}_{stat.lower()}"] = float(dp[stat]) if dp[stat] is not None else None
+                                value = dp[stat]
+                                # Convert to float, handle None
+                                try:
+                                    row[f"{metric_name}_{stat.lower()}"] = float(value) if value is not None else ''
+                                except (ValueError, TypeError):
+                                    row[f"{metric_name}_{stat.lower()}"] = ''
                         break
             
             rows.append(row)
         
+        # Write CSV (append to consolidated file)
         if rows:
-            df = pd.DataFrame(rows)
-            # Append to existing file if it exists
-            if filepath.exists():
-                existing_df = pd.read_csv(filepath)
-                df = pd.concat([existing_df, df], ignore_index=True)
-                df = df.drop_duplicates(subset=['account_id', 'region', 'lb_arn', 'timestamp'], keep='last')
-            df.to_csv(filepath, index=False)
-            print(f"  ✓ Saved {len(rows)} ALB metric rows to {filepath.name}")
+            fieldnames = list(rows[0].keys())
+            
+            # Check if consolidated file exists
+            file_exists = consolidated_file.exists()
+            
+            # Append to consolidated file
+            with open(consolidated_file, 'a', newline='') as f:
+                writer = csv.DictWriter(f, fieldnames=fieldnames)
+                if not file_exists:
+                    writer.writeheader()
+                writer.writerows(rows)
+            print(f"  ✓ Saved {len(rows)} ALB metric rows to alb_metrics_consolidated.csv")
         else:
-            # Create empty file with headers
-            df = pd.DataFrame(columns=[
-                'account_id', 'region', 'lb_arn', 'timestamp',
-                'RequestCount_sum', 'HTTPCode_ELB_4XX_Count_sum', 'HTTPCode_ELB_5XX_Count_sum'
-            ])
-            df.to_csv(filepath, index=False)
-            print(f"  ✓ Created empty ALB metrics file {filepath.name}")
+            # Create empty CSV with basic structure if file doesn't exist
+            if not consolidated_file.exists():
+                consolidated_file.parent.mkdir(parents=True, exist_ok=True)
+                base_fields = ['account_id', 'region', 'lb_arn', 'timestamp']
+                
+                with open(consolidated_file, 'w', newline='') as f:
+                    writer = csv.DictWriter(f, fieldnames=base_fields)
+                    writer.writeheader()
+                    writer.writerow({
+                        'account_id': data.get('account_id', ''),
+                        'region': data.get('region', ''),
+                        'lb_arn': data.get('lb_arn', ''),
+                        'timestamp': data.get('start_date', ''),
+                    })
+                print(f"  ✓ Created empty ALB metrics file alb_metrics_consolidated.csv")
     
-    def save_nlb_metrics_csv(self, data: Dict, month_key: str):
+    def save_nlb_metrics_csv(self, data: Dict):
         """
-        Save NLB metrics to CSV file
+        Save NLB metrics to consolidated CSV file
         
         Args:
             data: Metrics data dictionary
-            month_key: Month key (YYYY-MM)
         """
-        metrics_dir = DATA_DIR / "metrics" / "nlb" / month_key
-        metrics_dir.mkdir(parents=True, exist_ok=True)
-        filepath = metrics_dir / "nlb_metrics.csv"
+        import csv
         
+        # Save directly to consolidated file in service subdirectory
+        service_dir = DATA_DIR / "metrics" / "nlb"
+        service_dir.mkdir(parents=True, exist_ok=True)
+        consolidated_file = service_dir / "nlb_metrics_consolidated.csv"
+        
+        # Flatten metrics data for CSV
         rows = []
         metrics_data = data.get('metrics', {})
         
-        # Collect all unique timestamps
+        # Get all unique timestamps from all metrics
         all_timestamps = set()
         for metric_name, datapoints in metrics_data.items():
             for dp in datapoints:
                 if 'Timestamp' in dp:
                     all_timestamps.add(dp['Timestamp'])
         
-        sorted_timestamps = sorted(list(all_timestamps))
+        # Sort timestamps
+        sorted_timestamps = sorted(all_timestamps)
         
-        # Create rows for each timestamp
+        # Build rows - one per timestamp
         for ts in sorted_timestamps:
+            # Format timestamp consistently for ML (ISO format)
+            if isinstance(ts, datetime):
+                timestamp_str = ts.isoformat()
+            else:
+                timestamp_str = str(ts)
+            
             row = {
                 'account_id': data.get('account_id', ''),
                 'region': data.get('region', ''),
                 'lb_arn': data.get('lb_arn', ''),
-                'timestamp': ts.isoformat() if isinstance(ts, datetime) else ts,
+                'timestamp': timestamp_str,
             }
             
-            # Add metric values
+            # Add metric values for this timestamp
             for metric_name, datapoints in metrics_data.items():
                 for dp in datapoints:
                     if dp.get('Timestamp') == ts:
-                        for stat in ['Average', 'Sum', 'Maximum', 'Minimum']:
+                        # Extract statistics - ensure numeric values
+                        for stat in ['Average', 'Maximum', 'Sum', 'Minimum']:
                             if stat in dp:
-                                row[f"{metric_name}_{stat.lower()}"] = float(dp[stat]) if dp[stat] is not None else None
+                                value = dp[stat]
+                                # Convert to float, handle None
+                                try:
+                                    row[f"{metric_name}_{stat.lower()}"] = float(value) if value is not None else ''
+                                except (ValueError, TypeError):
+                                    row[f"{metric_name}_{stat.lower()}"] = ''
                         break
             
             rows.append(row)
         
+        # Write CSV (append to consolidated file)
         if rows:
-            df = pd.DataFrame(rows)
-            # Append to existing file if it exists
-            if filepath.exists():
-                existing_df = pd.read_csv(filepath)
-                df = pd.concat([existing_df, df], ignore_index=True)
-                df = df.drop_duplicates(subset=['account_id', 'region', 'lb_arn', 'timestamp'], keep='last')
-            df.to_csv(filepath, index=False)
-            print(f"  ✓ Saved {len(rows)} NLB metric rows to {filepath.name}")
+            fieldnames = list(rows[0].keys())
+            
+            # Check if consolidated file exists
+            file_exists = consolidated_file.exists()
+            
+            # Append to consolidated file
+            with open(consolidated_file, 'a', newline='') as f:
+                writer = csv.DictWriter(f, fieldnames=fieldnames)
+                if not file_exists:
+                    writer.writeheader()
+                writer.writerows(rows)
+            print(f"  ✓ Saved {len(rows)} NLB metric rows to nlb_metrics_consolidated.csv")
         else:
-            # Create empty file with headers
-            df = pd.DataFrame(columns=[
-                'account_id', 'region', 'lb_arn', 'timestamp',
-                'ProcessedBytes_sum', 'NewFlowCount_sum'
-            ])
-            df.to_csv(filepath, index=False)
-            print(f"  ✓ Created empty NLB metrics file {filepath.name}")
+            # Create empty CSV with basic structure if file doesn't exist
+            if not consolidated_file.exists():
+                consolidated_file.parent.mkdir(parents=True, exist_ok=True)
+                base_fields = ['account_id', 'region', 'lb_arn', 'timestamp']
+                
+                with open(consolidated_file, 'w', newline='') as f:
+                    writer = csv.DictWriter(f, fieldnames=base_fields)
+                    writer.writeheader()
+                    writer.writerow({
+                        'account_id': data.get('account_id', ''),
+                        'region': data.get('region', ''),
+                        'lb_arn': data.get('lb_arn', ''),
+                        'timestamp': data.get('start_date', ''),
+                    })
+                print(f"  ✓ Created empty NLB metrics file nlb_metrics_consolidated.csv")
 

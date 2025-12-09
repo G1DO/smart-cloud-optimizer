@@ -2,13 +2,13 @@
 NAT Gateways Collector
 Collects NAT Gateway inventory and CloudWatch metrics
 """
-import pandas as pd
+import csv
 from pathlib import Path
 from typing import List, Dict
 from datetime import datetime
 
 from .config import AWSConfig, DATA_DIR
-from .date_utils import get_datetime_range, get_month_key
+from .date_utils import get_datetime_range
 
 
 class NATGatewayCollector:
@@ -74,25 +74,28 @@ class NATGatewayCollector:
         """
         nat_gateways = self.list_nat_gateways()
         
+        inventory_dir = DATA_DIR / "inventory"
+        inventory_dir.mkdir(parents=True, exist_ok=True)
+        filepath = inventory_dir / "nat_gateways.csv"
+        
         if nat_gateways:
-            df = pd.DataFrame(nat_gateways)
-            inventory_dir = DATA_DIR / "inventory"
-            inventory_dir.mkdir(parents=True, exist_ok=True)
-            filepath = inventory_dir / "nat_gateways.csv"
-            df.to_csv(filepath, index=False)
+            fieldnames = list(nat_gateways[0].keys())
+            with open(filepath, 'w', newline='') as f:
+                writer = csv.DictWriter(f, fieldnames=fieldnames)
+                writer.writeheader()
+                writer.writerows(nat_gateways)
             print(f"  ✓ Saved {len(nat_gateways)} NAT Gateways to {filepath.name}")
             return filepath
         else:
             # Create empty file with headers
-            inventory_dir = DATA_DIR / "inventory"
-            inventory_dir.mkdir(parents=True, exist_ok=True)
-            filepath = inventory_dir / "nat_gateways.csv"
-            df = pd.DataFrame(columns=[
+            fieldnames = [
                 'account_id', 'region', 'nat_gateway_id', 'vpc_id', 'subnet_id',
                 'state', 'connectivity_type', 'allocation_id', 'private_ip',
                 'public_ip', 'create_time', 'tags'
-            ])
-            df.to_csv(filepath, index=False)
+            ]
+            with open(filepath, 'w', newline='') as f:
+                writer = csv.DictWriter(f, fieldnames=fieldnames)
+                writer.writeheader()
             print(f"  ✓ Created empty inventory file {filepath.name}")
             return filepath
     
@@ -180,65 +183,92 @@ class NATGatewayCollector:
             'metrics': metrics_data
         }
     
-    def save_metrics_csv(self, data: Dict, month_key: str):
+    def save_metrics_csv(self, data: Dict):
         """
-        Save NAT Gateway metrics to CSV file
+        Save NAT Gateway metrics to consolidated CSV file
         
         Args:
             data: Metrics data dictionary
-            month_key: Month key (YYYY-MM)
         """
-        metrics_dir = DATA_DIR / "metrics" / "nat" / month_key
-        metrics_dir.mkdir(parents=True, exist_ok=True)
-        filepath = metrics_dir / "nat_metrics.csv"
+        # Save directly to consolidated file in service subdirectory
+        service_dir = DATA_DIR / "metrics" / "nat"
+        service_dir.mkdir(parents=True, exist_ok=True)
+        consolidated_file = service_dir / "nat_metrics_consolidated.csv"
         
+        # Flatten metrics data for CSV
         rows = []
         metrics_data = data.get('metrics', {})
         
-        # Collect all unique timestamps
+        # Get all unique timestamps from all metrics
         all_timestamps = set()
         for metric_name, datapoints in metrics_data.items():
             for dp in datapoints:
                 if 'Timestamp' in dp:
                     all_timestamps.add(dp['Timestamp'])
         
-        sorted_timestamps = sorted(list(all_timestamps))
+        # Sort timestamps
+        sorted_timestamps = sorted(all_timestamps)
         
-        # Create rows for each timestamp
+        # Build rows - one per timestamp
         for ts in sorted_timestamps:
+            # Format timestamp consistently for ML (ISO format)
+            if isinstance(ts, datetime):
+                timestamp_str = ts.isoformat()
+            else:
+                timestamp_str = str(ts)
+            
             row = {
                 'account_id': data.get('account_id', ''),
                 'region': data.get('region', ''),
                 'nat_gateway_id': data.get('nat_gateway_id', ''),
-                'timestamp': ts.isoformat() if isinstance(ts, datetime) else ts,
+                'timestamp': timestamp_str,
             }
             
-            # Add metric values
+            # Add metric values for this timestamp
             for metric_name, datapoints in metrics_data.items():
                 for dp in datapoints:
                     if dp.get('Timestamp') == ts:
-                        for stat in ['Average', 'Sum', 'Maximum', 'Minimum']:
+                        # Extract statistics - ensure numeric values
+                        for stat in ['Average', 'Maximum', 'Sum', 'Minimum']:
                             if stat in dp:
-                                row[f"{metric_name}_{stat.lower()}"] = float(dp[stat]) if dp[stat] is not None else None
+                                value = dp[stat]
+                                # Convert to float, handle None
+                                try:
+                                    row[f"{metric_name}_{stat.lower()}"] = float(value) if value is not None else ''
+                                except (ValueError, TypeError):
+                                    row[f"{metric_name}_{stat.lower()}"] = ''
                         break
             
             rows.append(row)
         
+        # Write CSV (append to consolidated file)
         if rows:
-            df = pd.DataFrame(rows)
-            # Append to existing file if it exists
-            if filepath.exists():
-                existing_df = pd.read_csv(filepath)
-                df = pd.concat([existing_df, df], ignore_index=True)
-                df = df.drop_duplicates(subset=['account_id', 'region', 'nat_gateway_id', 'timestamp'], keep='last')
-            df.to_csv(filepath, index=False)
-            print(f"  ✓ Saved {len(rows)} metric rows to {filepath.name}")
+            fieldnames = list(rows[0].keys())
+            
+            # Check if consolidated file exists
+            file_exists = consolidated_file.exists()
+            
+            # Append to consolidated file
+            with open(consolidated_file, 'a', newline='') as f:
+                writer = csv.DictWriter(f, fieldnames=fieldnames)
+                if not file_exists:
+                    writer.writeheader()
+                writer.writerows(rows)
+            print(f"  ✓ Saved {len(rows)} metric rows to nat_metrics_consolidated.csv")
         else:
-            # Create empty file with headers
-            df = pd.DataFrame(columns=[
-                'account_id', 'region', 'nat_gateway_id', 'timestamp',
-                'BytesProcessed_sum', 'ActiveConnectionCount_average', 'ActiveConnectionCount_maximum'
-            ])
-            df.to_csv(filepath, index=False)
-            print(f"  ✓ Created empty metrics file {filepath.name}")
+            # Create empty CSV with basic structure if file doesn't exist
+            if not consolidated_file.exists():
+                consolidated_file.parent.mkdir(parents=True, exist_ok=True)
+                base_fields = ['account_id', 'region', 'nat_gateway_id', 'timestamp']
+                
+                with open(consolidated_file, 'w', newline='') as f:
+                    writer = csv.DictWriter(f, fieldnames=base_fields)
+                    writer.writeheader()
+                    writer.writerow({
+                        'account_id': data.get('account_id', ''),
+                        'region': data.get('region', ''),
+                        'nat_gateway_id': data.get('nat_gateway_id', ''),
+                        'timestamp': data.get('start_date', ''),
+                    })
+                print(f"  ✓ Created empty metrics file nat_metrics_consolidated.csv")
 
