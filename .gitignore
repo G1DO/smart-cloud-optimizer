@@ -1,6 +1,6 @@
 # Virtual environment
 venv/
-
+READMEPRIV.md
 # Python cache
 __pycache__/
 *.pyc
