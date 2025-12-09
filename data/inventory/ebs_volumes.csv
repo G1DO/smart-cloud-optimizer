@@ -1,0 +1,2 @@
+account_id,region,volume_id,size_gb,volume_type,iops,throughput,encrypted,state,availability_zone,snapshot_id,create_time,attachments,tags
+131471595343,eu-north-1,vol-075116c764cbeeb9c,8,gp2,100,,False,in-use,eu-north-1b,snap-0629733e13d5b9ae3,2025-10-22T00:46:30.564000+00:00,i-09071fcd42e350fa9:/dev/xvda,

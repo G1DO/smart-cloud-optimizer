@@ -1,0 +1,2 @@
+account_id,region,load_balancer_arn,load_balancer_name,type,scheme,ip_address_type,state,vpc_id,availability_zones,created_time,tags
+131471595343,eu-north-1,arn:aws:elasticloadbalancing:eu-north-1:131471595343:loadbalancer/app/awseb--AWSEB-515w6po1eYKY/6cacad60d851f634,awseb--AWSEB-515w6po1eYKY,application,internet-facing,ipv4,active,vpc-0b19f95f2a9d3e2f8,eu-north-1c;eu-north-1b;eu-north-1a,2025-10-22T00:46:09.113000+00:00,elasticbeanstalk:environment-name=questboard1-env;elasticbeanstalk:environment-id=e-ezcmzrx2jw;Name=questboard1-env

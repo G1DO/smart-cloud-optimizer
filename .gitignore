@@ -14,8 +14,8 @@ __pycache__/
 credentials
 
 # Collected data (can be regenerated)
-data/
 backups/
+# Note: data/ folder is included in repo for snapshot
 
 # IDE
 .vscode/
