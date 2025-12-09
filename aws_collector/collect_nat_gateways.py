@@ -248,13 +248,41 @@ class NATGatewayCollector:
             # Check if consolidated file exists
             file_exists = consolidated_file.exists()
             
-            # Append to consolidated file
-            with open(consolidated_file, 'a', newline='') as f:
-                writer = csv.DictWriter(f, fieldnames=fieldnames)
-                if not file_exists:
-                    writer.writeheader()
-                writer.writerows(rows)
-            print(f"  ✓ Saved {len(rows)} metric rows to nat_metrics_consolidated.csv")
+            # Read existing data to check for duplicates
+            existing_rows = []
+            if file_exists:
+                try:
+                    with open(consolidated_file, 'r', newline='') as f:
+                        reader = csv.DictReader(f)
+                        existing_rows = list(reader)
+                except Exception as e:
+                    print(f"  [WARN] Could not read existing file for deduplication: {e}")
+            
+            # Create set of existing unique keys (nat_gateway_id + region + timestamp)
+            existing_keys = set()
+            if existing_rows:
+                for row in existing_rows:
+                    key = (row.get('nat_gateway_id', ''), row.get('region', ''), row.get('timestamp', ''))
+                    existing_keys.add(key)
+            
+            # Filter out duplicates
+            new_rows = []
+            for row in rows:
+                key = (row.get('nat_gateway_id', ''), row.get('region', ''), row.get('timestamp', ''))
+                if key not in existing_keys:
+                    new_rows.append(row)
+                    existing_keys.add(key)  # Prevent duplicates within this batch
+            
+            # Append only new rows
+            if new_rows:
+                with open(consolidated_file, 'a', newline='') as f:
+                    writer = csv.DictWriter(f, fieldnames=fieldnames)
+                    if not file_exists:
+                        writer.writeheader()
+                    writer.writerows(new_rows)
+                print(f"  ✓ Added {len(new_rows)} new rows to nat_metrics_consolidated.csv (skipped {len(rows) - len(new_rows)} duplicates)")
+            else:
+                print(f"  ✓ All {len(rows)} rows already exist (skipped duplicates)")
         else:
             # Create empty CSV with basic structure if file doesn't exist
             if not consolidated_file.exists():

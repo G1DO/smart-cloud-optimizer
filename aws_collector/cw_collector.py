@@ -414,12 +414,56 @@ class CloudWatchCollector:
             # Check if consolidated file exists
             file_exists = consolidated_file.exists()
             
-            # Append to consolidated file
-            with open(consolidated_file, 'a', newline='') as f:
-                writer = csv.DictWriter(f, fieldnames=fieldnames)
-                if not file_exists:
-                    writer.writeheader()
-                writer.writerows(rows)
+            # Read existing data to check for duplicates
+            existing_rows = []
+            if file_exists:
+                try:
+                    with open(consolidated_file, 'r', newline='') as f:
+                        reader = csv.DictReader(f)
+                        existing_rows = list(reader)
+                except Exception as e:
+                    print(f"  [WARN] Could not read existing file for deduplication: {e}")
+            
+            # Create set of existing unique keys (resource_id + timestamp)
+            existing_keys = set()
+            resource_id_field = None
+            if service == 'ec2':
+                resource_id_field = 'instance_id'
+            elif service == 'ebs':
+                resource_id_field = 'volume_id'
+            elif service == 'lambda':
+                resource_id_field = 'function_name'
+            elif service == 'rds':
+                resource_id_field = 'db_instance_id'
+            elif service == 's3':
+                resource_id_field = 'bucket_name'
+            
+            if resource_id_field and existing_rows:
+                for row in existing_rows:
+                    key = (row.get(resource_id_field, ''), row.get('timestamp', ''))
+                    existing_keys.add(key)
+            
+            # Filter out duplicates
+            new_rows = []
+            for row in rows:
+                if resource_id_field:
+                    key = (row.get(resource_id_field, ''), row.get('timestamp', ''))
+                    if key not in existing_keys:
+                        new_rows.append(row)
+                        existing_keys.add(key)  # Add to set to prevent duplicates within this batch
+                else:
+                    new_rows.append(row)
+            
+            # Append only new rows
+            if new_rows:
+                with open(consolidated_file, 'a', newline='') as f:
+                    writer = csv.DictWriter(f, fieldnames=fieldnames)
+                    if not file_exists:
+                        writer.writeheader()
+                    writer.writerows(new_rows)
+                print(f"  ✓ Added {len(new_rows)} new rows (skipped {len(rows) - len(new_rows)} duplicates)")
+            else:
+                print(f"  ✓ All {len(rows)} rows already exist (skipped duplicates)")
         else:
             # Create empty CSV with basic structure if file doesn't exist
             if not consolidated_file.exists():
