@@ -1,0 +1,11 @@
+id,app_type,daily_users,uptime_hours,importance,budget_usd,region,recommended_instance,recommended_pricing,estimated_cost_usd,explanation,created_at
+1,Static website,500,24,low,10.0,us-east-1,t3.micro,On-Demand,7.49,Low traffic site fits Free Tier eligible t3.micro. On-Demand is cheapest for unpredictable low usage.,2025-06-01T12:00:00Z
+2,Web application,5000,24,medium,50.0,us-east-1,t3.medium,Reserved-1yr,18.86,Burstable t3.medium handles variable web traffic. Reserved 1yr saves 37% over On-Demand for steady workload.,2025-06-02T12:00:00Z
+3,REST API,10000,24,high,100.0,us-east-1,c5.large,Reserved-1yr,38.59,Compute-optimized c5 is ideal for API workloads. Reserved pricing for production reliability.,2025-06-03T12:00:00Z
+4,E-commerce platform,20000,24,high,200.0,us-east-1,m5.xlarge,Reserved-1yr,87.12,Balanced compute + memory for session management and product catalog. Reserved for cost predictability.,2025-06-04T12:00:00Z
+5,ML training pipeline,1000,8,low,300.0,us-east-1,c5.2xlarge,Spot,73.44,Batch ML workload is fault-tolerant. Spot saves 70% and training can be checkpointed.,2025-06-05T12:00:00Z
+6,PostgreSQL database,5000,24,high,150.0,us-east-1,r5.large,Reserved-1yr,57.17,Memory-optimized r5 suits database workloads. Reserved pricing for always-on production database.,2025-06-06T12:00:00Z
+7,Event-driven microservices,15000,24,medium,80.0,us-east-1,Lambda,Pay-per-request,25.0,"Event-driven architecture maps naturally to serverless. Pay only for invocations, no idle cost.",2025-06-07T12:00:00Z
+8,Batch data processing,500,4,low,40.0,us-east-1,t3.large,Spot,18.0,Short-duration fault-tolerant batch job. Spot instance provides 70% savings.,2025-06-08T12:00:00Z
+9,CI/CD build server,200,12,medium,60.0,us-east-1,c5.xlarge,On-Demand,73.44,Compute-heavy builds need c5. On-Demand for variable usage that doesn't justify Reserved commitment.,2025-06-09T12:00:00Z
+10,Redis cache cluster,8000,24,high,120.0,us-east-1,r5.large,Reserved-1yr,57.17,Memory-optimized for in-memory caching. Reserved pricing for always-on production cache.,2025-06-10T12:00:00Z

@@ -1,163 +1,169 @@
 """
-Cost Explorer Data Collector
-Fetches cost data month-by-month from AWS Cost Explorer API
+cost_collector.py — AWS Cost Explorer data collector.
+
+Fetches daily, per-service, per-usage-type cost data and anomalies
+month-by-month from the Cost Explorer API.
+
+Part of the Smart Cloud Optimizer graduation project.
 """
 import csv
-from pathlib import Path
-from typing import Dict, List, Optional
+import logging
 from datetime import datetime
+from typing import Dict, List, Optional
 
 from .config import AWSConfig, DATA_DIR
 from .date_utils import get_date_range_for_cost, get_month_key
 
+logger = logging.getLogger(__name__)
+
 
 class CostCollector:
     """Collects cost data from AWS Cost Explorer"""
-    
+
     def __init__(self, config: AWSConfig):
         """
         Initialize Cost Collector
-        
+
         Args:
             config: AWSConfig instance with Cost Explorer client
         """
         self.config = config
         self.ce = config.ce
         self.account_id = config.account_id
-    
+
     def _paginated_query(self, params: dict) -> List[dict]:
         """Handle Cost Explorer pagination"""
         results = []
         next_token = None
-        
+
         while True:
             effective_params = dict(params)
             if next_token:
                 effective_params['NextPageToken'] = next_token
-            
+
             try:
                 response = self.ce.get_cost_and_usage(**effective_params)
                 results.append(response)
-                
+
                 next_token = response.get('NextPageToken')
                 if not next_token:
                     break
             except Exception as e:
-                print(f"[ERROR] Cost Explorer query failed: {e}")
+                logger.error(f"[ERROR] Cost Explorer query failed: {e}")
                 break
-        
+
         return results
-    
+
     def fetch_daily_cost(self, start_date: str, end_date: str) -> Dict:
         """
         Fetch daily cost data
-        
+
         Args:
             start_date: Start date (YYYY-MM-DD)
             end_date: End date (YYYY-MM-DD)
-        
+
         Returns:
             Dictionary with daily cost data
         """
         start, end = get_date_range_for_cost(start_date, end_date)
-        
+
         params = {
             'TimePeriod': {'Start': start, 'End': end},
             'Granularity': 'DAILY',
             'Metrics': ['UnblendedCost'],
         }
-        
+
         all_results = []
         for response in self._paginated_query(params):
             all_results.extend(response.get('ResultsByTime', []))
-        
+
         return {
             'account_id': self.account_id,
             'start_date': start_date,
             'end_date': end_date,
             'data': all_results
         }
-    
+
     def fetch_service_cost(self, start_date: str, end_date: str) -> Dict:
         """
         Fetch cost grouped by service
-        
+
         Args:
             start_date: Start date (YYYY-MM-DD)
             end_date: End date (YYYY-MM-DD)
-        
+
         Returns:
             Dictionary with cost by service
         """
         start, end = get_date_range_for_cost(start_date, end_date)
-        
+
         params = {
             'TimePeriod': {'Start': start, 'End': end},
             'Granularity': 'DAILY',
             'Metrics': ['UnblendedCost'],
             'GroupBy': [{'Type': 'DIMENSION', 'Key': 'SERVICE'}],
         }
-        
+
         all_results = []
         for response in self._paginated_query(params):
             all_results.extend(response.get('ResultsByTime', []))
-        
+
         return {
             'account_id': self.account_id,
             'start_date': start_date,
             'end_date': end_date,
             'data': all_results
         }
-    
+
     def fetch_usage_type_cost(self, start_date: str, end_date: str) -> Dict:
         """
         Fetch cost grouped by usage type
-        
+
         Args:
             start_date: Start date (YYYY-MM-DD)
             end_date: End date (YYYY-MM-DD)
-        
+
         Returns:
             Dictionary with cost by usage type
         """
         start, end = get_date_range_for_cost(start_date, end_date)
-        
+
         params = {
             'TimePeriod': {'Start': start, 'End': end},
             'Granularity': 'DAILY',
             'Metrics': ['UnblendedCost'],
             'GroupBy': [{'Type': 'DIMENSION', 'Key': 'USAGE_TYPE'}],
         }
-        
+
         all_results = []
         for response in self._paginated_query(params):
             all_results.extend(response.get('ResultsByTime', []))
-        
+
         return {
             'account_id': self.account_id,
             'start_date': start_date,
             'end_date': end_date,
             'data': all_results
         }
-    
+
     def fetch_anomalies(self, start_date: str, end_date: str) -> Dict:
         """
         Fetch cost anomalies
-        
+
         Args:
             start_date: Start date (YYYY-MM-DD)
             end_date: End date (YYYY-MM-DD)
-        
+
         Returns:
             Dictionary with cost anomalies
         """
         start, end = get_date_range_for_cost(start_date, end_date)
-        
+
         try:
             response = self.ce.get_anomalies(
                 DateInterval={'StartDate': start, 'EndDate': end}
             )
-            
+
             return {
                 'account_id': self.account_id,
                 'start_date': start_date,
@@ -165,7 +171,7 @@ class CostCollector:
                 'data': response.get('Anomalies', [])
             }
         except Exception as e:
-            print(f"[WARN] Failed to fetch anomalies: {e}")
+            logger.warning(f"[WARN] Failed to fetch anomalies: {e}")
             return {
                 'account_id': self.account_id,
                 'start_date': start_date,
@@ -173,11 +179,11 @@ class CostCollector:
                 'data': [],
                 'error': str(e)
             }
-    
+
     def save_csv(self, data: Dict, month_key: str, filename: str):
         """
         Save cost data to CSV file
-        
+
         Args:
             data: Data dictionary to save
             month_key: Month key (YYYY-MM)
@@ -192,7 +198,7 @@ class CostCollector:
         }
         consolidated_filename = consolidated_map.get(filename, f"{filename}_consolidated.csv")
         consolidated_file = DATA_DIR / "cost" / consolidated_filename
-        
+
         # Flatten the data structure for CSV
         rows = []
         for result in data.get('data', []):
@@ -247,25 +253,25 @@ class CostCollector:
                         'root_cause': str(anomaly.get('RootCauses', [])),
                         'impact': str(anomaly.get('Impact', {}))
                     })
-        
+
         # Write CSV (append to consolidated file only - no monthly folders)
         if rows:
             fieldnames = list(rows[0].keys())
-            
+
             # Ensure cost directory exists
             consolidated_file.parent.mkdir(parents=True, exist_ok=True)
-            
+
             # Check if consolidated file exists
             file_exists = consolidated_file.exists()
-            
+
             # Append to consolidated file
             with open(consolidated_file, 'a', newline='') as f:
                 writer = csv.DictWriter(f, fieldnames=fieldnames)
                 if not file_exists:
                     writer.writeheader()
                 writer.writerows(rows)
-            
-            print(f"  ✓ Saved {len(rows)} rows → {consolidated_filename}")
+
+            logger.info(f"  ✓ Saved {len(rows)} rows → {consolidated_filename}")
         else:
             # Create empty CSV with headers if file doesn't exist
             if not consolidated_file.exists():
@@ -274,42 +280,39 @@ class CostCollector:
                     writer = csv.writer(f)
                     writer.writerow(['account_id', 'date', 'note'])
                     writer.writerow([data.get('account_id', ''), data.get('start_date', ''), 'No data'])
-                print(f"  ✓ Created empty file {consolidated_filename}")
-    
+                logger.info(f"  ✓ Created empty file {consolidated_filename}")
+
     def collect_month(self, start_date: str, end_date: str):
         """
         Collect all cost data for a specific month
-        
+
         Args:
             start_date: Start date (YYYY-MM-DD)
             end_date: End date (YYYY-MM-DD)
         """
-        from datetime import datetime
-        
         month_key = get_month_key(start_date)
-        print(f"  Fetching cost data for {month_key}...")
-        
+        logger.info(f"  Fetching cost data for {month_key}...")
+
         # Fetch all cost data types
-        print("    → Daily cost...", end="", flush=True)
+        logger.info("    → Daily cost...")
         daily_cost = self.fetch_daily_cost(start_date, end_date)
-        print(" ✓")
-        
-        print("    → Service cost...", end="", flush=True)
+        logger.info(" ✓")
+
+        logger.info("    → Service cost...")
         service_cost = self.fetch_service_cost(start_date, end_date)
-        print(" ✓")
-        
-        print("    → Usage type cost...", end="", flush=True)
+        logger.info(" ✓")
+
+        logger.info("    → Usage type cost...")
         usage_type_cost = self.fetch_usage_type_cost(start_date, end_date)
-        print(" ✓")
-        
-        print("    → Anomalies...", end="", flush=True)
+        logger.info(" ✓")
+
+        logger.info("    → Anomalies...")
         anomalies = self.fetch_anomalies(start_date, end_date)
-        print(" ✓")
-        
+        logger.info(" ✓")
+
         # Save to CSV files
-        print("    → Saving files...")
+        logger.info("    → Saving files...")
         self.save_csv(daily_cost, month_key, "daily_cost")
         self.save_csv(service_cost, month_key, "service_cost")
         self.save_csv(usage_type_cost, month_key, "usage_type_cost")
         self.save_csv(anomalies, month_key, "anomalies")
-

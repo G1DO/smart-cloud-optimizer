@@ -1,1 +1,0 @@
-account_id,region,instance_id,instance_type,state,availability_zone,launch_time,private_ip,public_ip,vpc_id,subnet_id,ami_id,tenancy,hypervisor,architecture,monitoring,cpu_cores,threads_per_core,tags

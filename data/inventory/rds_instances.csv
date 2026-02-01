@@ -1,3 +1,0 @@
-account_id,region,db_instance_id,engine,engine_version,db_instance_class,multi_az,allocated_storage_gb,storage_type,iops,status,endpoint,port,publicly_accessible,max_allocated_storage,backup_retention_period,auto_minor_version_upgrade,deletion_protection,instance_create_time,tags
-131471595343,eu-north-1,ahoydb,postgres,17.4,db.t4g.micro,False,20,gp2,,available,ahoydb.cpioco0eyxc1.eu-north-1.rds.amazonaws.com,5432,True,1000,1,True,False,2025-10-28 18:19:28.699000+00:00,
-131471595343,eu-north-1,questboard-db,postgres,17.4,db.t4g.micro,False,20,gp2,,available,questboard-db.cpioco0eyxc1.eu-north-1.rds.amazonaws.com,5432,True,1000,1,True,False,2025-10-21 19:08:45.373000+00:00,

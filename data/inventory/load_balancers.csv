@@ -1,1 +1,0 @@
-account_id,region,lb_arn,lb_name,type,scheme,dns_name,state,vpc_id,security_groups,subnets,canonical_hosted_zone_id,created_time

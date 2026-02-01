@@ -1,0 +1,3 @@
+account_id,region,db_instance_id,engine,engine_version,db_instance_class,multi_az,allocated_storage_gb,storage_type,iops,status,endpoint,port,publicly_accessible,max_allocated_storage,backup_retention_period,auto_minor_version_upgrade,deletion_protection,instance_create_time,tags
+SYNTHETIC-001,us-east-1,prod-postgres-primary,postgres,15.4,db.r5.large,True,100,gp3,3000,available,prod-postgres-primary.synth.us-east-1.rds.amazonaws.com,5432,False,500,7,True,True,2025-01-15 10:00:00.000000+00:00,Environment=production
+SYNTHETIC-001,us-east-1,staging-postgres,postgres,15.4,db.t4g.medium,False,20,gp3,,available,staging-postgres.synth.us-east-1.rds.amazonaws.com,5432,False,100,1,True,False,2025-02-01 14:30:00.000000+00:00,Environment=staging

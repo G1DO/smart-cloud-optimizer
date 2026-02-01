@@ -1,1 +1,0 @@
-account_id,region,volume_id,timestamp,read_ops_avg,write_ops_avg,read_bytes_avg,write_bytes_avg,queue_length_avg,burst_balance_avg,period_seconds

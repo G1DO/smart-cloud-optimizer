@@ -1,10 +1,13 @@
 """
-Date Utilities for Month-by-Month Data Collection
-Handles splitting time ranges into monthly chunks for AWS API calls
+date_utils.py — Date utilities for month-by-month data collection.
+
+Handles splitting time ranges into monthly chunks for AWS API calls.
+
+Part of the Smart Cloud Optimizer graduation project.
 """
-from datetime import datetime, timedelta
-from typing import List, Tuple
 from calendar import monthrange
+from datetime import datetime, timedelta, timezone
+from typing import List, Tuple
 
 
 def get_last_n_months(n: int = 5) -> List[Tuple[str, str]]:
@@ -118,17 +121,9 @@ def get_datetime_range(start_date: str, end_date: str) -> Tuple[datetime, dateti
     Returns:
         Tuple of datetime objects (with timezone)
     """
-    from datetime import timezone
-    
-    start = datetime.strptime(start_date, "%Y-%m-%d")
-    end = datetime.strptime(end_date, "%Y-%m-%d")
-    
-    # Set to end of day for end_date
-    end = end.replace(hour=23, minute=59, second=59)
-    
-    # Add timezone
-    start = start.replace(tzinfo=timezone.utc)
-    end = end.replace(tzinfo=timezone.utc)
-    
+    start = datetime.strptime(start_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+    end = datetime.strptime(end_date, "%Y-%m-%d").replace(
+        hour=23, minute=59, second=59, tzinfo=timezone.utc
+    )
     return start, end
 

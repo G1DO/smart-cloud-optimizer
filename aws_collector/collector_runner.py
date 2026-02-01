@@ -1,35 +1,63 @@
 """
-Main Collector Runner
-Orchestrates month-by-month data collection for the last 5 months
-"""
-from typing import List, Dict
-from datetime import datetime
-import sys
+collector_runner.py — Main orchestrator for month-by-month AWS data collection.
 
-from .config import AWSConfig, init_config
-from .date_utils import get_last_n_months, get_month_key
+Coordinates inventory, cost, metrics, and pricing collection across all
+AWS services for the last N months.
+
+Part of the Smart Cloud Optimizer graduation project.
+"""
+import csv
+import json
+import logging
+import sys
+from datetime import datetime
+from pathlib import Path
+from typing import Dict, List, Optional, Set, Tuple
+
+from .collect_cloudfront import CloudFrontCollector
+from .collect_load_balancers import LoadBalancerCollector
+from .collect_nat_gateways import NATGatewayCollector
+from .config import DATA_DIR, AWSConfig, init_config
 from .cost_collector import CostCollector
 from .cw_collector import CloudWatchCollector
-from .pricing_collector import PricingCollector
+from .date_utils import get_last_n_months, get_month_key
 from .ec2_collector import EC2Collector
-from .collect_cloudfront import CloudFrontCollector
-from .collect_nat_gateways import NATGatewayCollector
-from .collect_load_balancers import LoadBalancerCollector
+from .pricing_collector import PricingCollector
+
+logger = logging.getLogger(__name__)
+
+# Log progress every N resources during metric collection.
+PROGRESS_LOG_INTERVAL: int = 10
+
+
+def _count_metric_timestamps(metrics_data: Dict) -> int:
+    """Count unique timestamps across all metric datapoints.
+
+    Args:
+        metrics_data: Mapping of metric name to list of datapoints.
+
+    Returns:
+        Number of unique timestamps.
+    """
+    timestamps: Set = set()
+    for datapoints in metrics_data.values():
+        for dp in datapoints:
+            if "Timestamp" in dp:
+                timestamps.add(dp["Timestamp"])
+    return len(timestamps)
 
 
 class CollectorRunner:
-    """Main runner that orchestrates all data collection"""
-    
-    def __init__(self, config: AWSConfig = None):
-        """
-        Initialize Collector Runner
-        
+    """Main runner that orchestrates all data collection."""
+
+    def __init__(self, config: Optional[AWSConfig] = None) -> None:
+        """Initialize Collector Runner.
+
         Args:
-            config: AWSConfig instance (creates default if None)
+            config: AWSConfig instance. Creates a default one if *None*.
         """
         self.config = config or init_config()
-        
-        # Initialize collectors
+
         self.cost_collector = CostCollector(self.config)
         self.cw_collector = CloudWatchCollector(self.config)
         self.pricing_collector = PricingCollector(self.config)
@@ -37,448 +65,515 @@ class CollectorRunner:
         self.cloudfront_collector = CloudFrontCollector(self.config)
         self.nat_collector = NATGatewayCollector(self.config)
         self.lb_collector = LoadBalancerCollector(self.config)
-    
-    def _load_previous_inventory(self):
-        """Load inventory from previous collection if available"""
-        import json
-        from pathlib import Path
-        from .config import DATA_DIR
-        
+
+    # ------------------------------------------------------------------
+    # Inventory helpers
+    # ------------------------------------------------------------------
+
+    def _load_previous_inventory(self) -> Optional[List[Dict]]:
+        """Load instance inventory from a previous JSON collection.
+
+        Returns:
+            List of instance dicts, or *None* if unavailable.
+        """
         inventory_file = DATA_DIR / "inventory" / "instances.json"
-        if inventory_file.exists():
-            try:
-                with open(inventory_file, 'r') as f:
-                    return json.load(f)
-            except Exception as e:
-                print(f"  [INFO] Could not load previous inventory: {e}")
-        return None
-    
-    def collect_metrics_for_month(
-        self,
-        start_date: str,
-        end_date: str,
-        month_key: str
-    ):
-        """
-        Collect CloudWatch metrics for a specific month
-        
+        if not inventory_file.exists():
+            return None
+        try:
+            with open(inventory_file, "r") as f:
+                return json.load(f)
+        except Exception as e:
+            logger.info(f"  [INFO] Could not load previous inventory: {e}")
+            return None
+
+    def _load_csv_inventory(self, current_ids: Set[str]) -> List[Dict]:
+        """Load additional instances from the legacy CSV inventory.
+
         Args:
-            start_date: Start date (YYYY-MM-DD)
-            end_date: End date (YYYY-MM-DD)
-            month_key: Month key (YYYY-MM)
+            current_ids: Set of instance IDs already known.
+
+        Returns:
+            List of instance dicts found in CSV but not in *current_ids*.
         """
-        print(f"\n[Metrics] Collecting metrics for {month_key}...")
-        metrics_start = datetime.now()
-        
-        # Get current inventory
+        csv_file = DATA_DIR / "inventory" / "ec2_instances.csv"
+        if not csv_file.exists():
+            return []
+
+        added: List[Dict] = []
+        try:
+            with open(csv_file, "r") as f:
+                for row in csv.DictReader(f):
+                    iid = row.get("instance_id", "")
+                    if iid and iid not in current_ids:
+                        added.append({
+                            "account_id": row.get("account_id", ""),
+                            "region": row.get("region", ""),
+                            "instance_id": iid,
+                            "instance_type": row.get("instance_type", ""),
+                            "state": row.get("state", "terminated"),
+                        })
+                        current_ids.add(iid)
+        except Exception as e:
+            logger.warning(f"  [WARN] Could not load old CSV inventory: {e}")
+
+        return added
+
+    def _build_full_instance_list(self) -> Tuple[List[Dict], List[Dict]]:
+        """Merge current, previous-JSON, and legacy-CSV instance lists.
+
+        Returns:
+            Tuple of (all_instances, volumes).
+        """
         instances = self.ec2_collector.list_instances()
         volumes = self.ec2_collector.list_volumes()
-        
-        # Also try to load previous inventory to catch terminated instances
-        previous_instances = self._load_previous_inventory()
-        if previous_instances:
-            # Merge with current instances, prioritizing current ones
-            current_ids = {inst['instance_id'] for inst in instances}
-            added_count = 0
-            for prev_inst in previous_instances:
-                if prev_inst['instance_id'] not in current_ids:
-                    instances.append(prev_inst)
-                    added_count += 1
-            if added_count > 0:
-                print(f"  [INFO] Added {added_count} instances from previous inventory for historical metrics")
-        
-        # Also try to load from old CSV inventory files
-        import csv
-        from pathlib import Path
-        from .config import DATA_DIR
-        
-        old_csv_file = DATA_DIR / "inventory" / "ec2_instances.csv"
-        if old_csv_file.exists():
+
+        current_ids = {inst["instance_id"] for inst in instances}
+
+        # Merge previous JSON inventory
+        previous = self._load_previous_inventory()
+        if previous:
+            added = 0
+            for prev in previous:
+                if prev["instance_id"] not in current_ids:
+                    instances.append(prev)
+                    current_ids.add(prev["instance_id"])
+                    added += 1
+            if added:
+                logger.info(f"  [INFO] Added {added} instances from previous inventory for historical metrics")
+
+        # Merge legacy CSV inventory
+        csv_added = self._load_csv_inventory(current_ids)
+        if csv_added:
+            instances.extend(csv_added)
+            logger.info(f"  [INFO] Added {len(csv_added)} instances from old CSV inventory for historical metrics")
+
+        return instances, volumes
+
+    # ------------------------------------------------------------------
+    # Per-service metric collection
+    # ------------------------------------------------------------------
+
+    def _collect_ec2_metrics(
+        self, instances: List[Dict], start_date: str, end_date: str
+    ) -> int:
+        """Collect CloudWatch metrics for all EC2 instances.
+
+        Args:
+            instances: Full instance list (running + terminated).
+            start_date: Start date (YYYY-MM-DD).
+            end_date: End date (YYYY-MM-DD).
+
+        Returns:
+            Number of instances successfully collected.
+        """
+        total = len(instances)
+        running = sum(1 for i in instances if i.get("state") == "running")
+        terminated = sum(1 for i in instances if i.get("state") == "terminated")
+
+        logger.info(f"\n  [EC2] Processing {total} instances (running: {running}, terminated: {terminated})...")
+        logger.info("  Note: Historical metrics available for terminated instances via CloudWatch")
+
+        count = 0
+        for idx, instance in enumerate(instances, 1):
             try:
-                with open(old_csv_file, 'r') as f:
-                    reader = csv.DictReader(f)
-                    current_ids = {inst['instance_id'] for inst in instances}
-                    csv_added = 0
-                    for row in reader:
-                        if row.get('instance_id') and row['instance_id'] not in current_ids:
-                            # Convert CSV row to instance dict format
-                            instance_dict = {
-                                'account_id': row.get('account_id', ''),
-                                'region': row.get('region', ''),
-                                'instance_id': row['instance_id'],
-                                'instance_type': row.get('instance_type', ''),
-                                'state': row.get('state', 'terminated'),  # Assume terminated if in old CSV
-                            }
-                            instances.append(instance_dict)
-                            csv_added += 1
-                    if csv_added > 0:
-                        print(f"  [INFO] Added {csv_added} instances from old CSV inventory for historical metrics")
-            except Exception as e:
-                print(f"  [WARN] Could not load old CSV inventory: {e}")
-        
-        # Collect EC2 metrics - include ALL instances (running, stopped, terminated)
-        # CloudWatch keeps historical metrics for terminated instances
-        all_instances = instances  # Use all instances for historical data collection
-        total_ec2 = len(all_instances)
-        running_count = len([i for i in instances if i['state'] == 'running'])
-        terminated_count = len([i for i in instances if i['state'] == 'terminated'])
-        print(f"\n  [EC2] Processing {total_ec2} instances (running: {running_count}, terminated: {terminated_count})...")
-        print(f"  Note: Historical metrics available for terminated instances via CloudWatch")
-        ec2_count = 0
-        for idx, instance in enumerate(all_instances, 1):
-            try:
-                if idx % 10 == 0 or idx == total_ec2:
-                    print(f"    Progress: {idx}/{total_ec2} ({idx*100//total_ec2 if total_ec2 > 0 else 0}%)", end="\r")
+                if idx % PROGRESS_LOG_INTERVAL == 0 or idx == total:
+                    pct = idx * 100 // total if total else 0
+                    logger.info(f"    Progress: {idx}/{total} ({pct}%)")
                     sys.stdout.flush()
-                
+
                 metrics = self.cw_collector.get_ec2_metrics(
-                    instance['instance_id'],
-                    instance['region'],
-                    start_date,
-                    end_date
+                    instance["instance_id"], instance["region"], start_date, end_date
                 )
-                self.cw_collector.save_csv(
-                    metrics, 'ec2', instance['instance_id']
-                )
-                ec2_count += 1
+                self.cw_collector.save_csv(metrics, "ec2", instance["instance_id"])
+                count += 1
             except Exception as e:
-                print(f"\n    [WARN] Failed {instance['instance_id']}: {e}")
-        
-        print(f"\n  ✓ Collected EC2 metrics for {ec2_count}/{total_ec2} instances")
-        if terminated_count > 0:
-            print(f"  ℹ️  {terminated_count} terminated instances - historical metrics collected from CloudWatch")
-        
-        # Collect EBS metrics
-        attached_volumes = [v for v in volumes if v['state'] == 'in-use']
-        total_ebs = len(attached_volumes)
-        print(f"\n  [EBS] Processing {total_ebs} attached volumes...")
-        ebs_count = 0
-        for idx, volume in enumerate(attached_volumes, 1):
+                logger.warning(f"\n    [WARN] Failed {instance['instance_id']}: {e}")
+
+        logger.info(f"\n  ✓ Collected EC2 metrics for {count}/{total} instances")
+        if terminated:
+            logger.info(f"  ℹ️  {terminated} terminated instances - historical metrics collected from CloudWatch")
+        return count
+
+    def _collect_ebs_metrics(
+        self, volumes: List[Dict], start_date: str, end_date: str
+    ) -> int:
+        """Collect CloudWatch metrics for attached EBS volumes.
+
+        Args:
+            volumes: Full volume list (will be filtered to in-use).
+            start_date: Start date (YYYY-MM-DD).
+            end_date: End date (YYYY-MM-DD).
+
+        Returns:
+            Number of volumes successfully collected.
+        """
+        attached = [v for v in volumes if v.get("state") == "in-use"]
+        total = len(attached)
+        logger.info(f"\n  [EBS] Processing {total} attached volumes...")
+
+        count = 0
+        for idx, volume in enumerate(attached, 1):
             try:
-                if idx % 10 == 0 or idx == total_ebs:
-                    print(f"    Progress: {idx}/{total_ebs} ({idx*100//total_ebs if total_ebs > 0 else 0}%)", end="\r")
+                if idx % PROGRESS_LOG_INTERVAL == 0 or idx == total:
+                    pct = idx * 100 // total if total else 0
+                    logger.info(f"    Progress: {idx}/{total} ({pct}%)")
                     sys.stdout.flush()
-                
+
                 metrics = self.cw_collector.get_ebs_metrics(
-                    volume['volume_id'],
-                    volume['region'],
-                    start_date,
-                    end_date
+                    volume["volume_id"], volume["region"], start_date, end_date
                 )
-                self.cw_collector.save_csv(
-                    metrics, 'ebs', volume['volume_id']
-                )
-                ebs_count += 1
+                self.cw_collector.save_csv(metrics, "ebs", volume["volume_id"])
+                count += 1
             except Exception as e:
-                print(f"\n    [WARN] Failed {volume['volume_id']}: {e}")
-        
-        print(f"\n  ✓ Collected EBS metrics for {ebs_count}/{total_ebs} volumes")
-        
-        # Collect Lambda metrics
-        print(f"\n  [Lambda] Scanning {len(self.config.regions)} regions...")
-        lambda_count = 0
-        lambda_total = 0
-        for region_idx, region in enumerate(self.config.regions, 1):
+                logger.warning(f"\n    [WARN] Failed {volume['volume_id']}: {e}")
+
+        logger.info(f"\n  ✓ Collected EBS metrics for {count}/{total} volumes")
+        return count
+
+    def _collect_lambda_metrics(self, start_date: str, end_date: str) -> int:
+        """Collect CloudWatch metrics for Lambda functions across all regions.
+
+        Args:
+            start_date: Start date (YYYY-MM-DD).
+            end_date: End date (YYYY-MM-DD).
+
+        Returns:
+            Number of functions successfully collected.
+        """
+        regions = self.config.regions
+        logger.info(f"\n  [Lambda] Scanning {len(regions)} regions...")
+        count = 0
+        total = 0
+
+        for region_idx, region in enumerate(regions, 1):
             try:
-                print(f"    [{region_idx}/{len(self.config.regions)}] Region {region}...", end="", flush=True)
-                lambda_client_list = self.config.get_lambda_client(region)
-                paginator = lambda_client_list.get_paginator('list_functions')
-                
-                region_funcs = []
+                logger.info(f"    [{region_idx}/{len(regions)}] Region {region}...")
+                client = self.config.get_lambda_client(region)
+                paginator = client.get_paginator("list_functions")
+
+                funcs: List[Dict] = []
                 for page in paginator.paginate():
-                    region_funcs.extend(page.get('Functions', []))
-                
-                lambda_total += len(region_funcs)
-                print(f" Found {len(region_funcs)} functions")
-                
-                for func in region_funcs:
+                    funcs.extend(page.get("Functions", []))
+
+                total += len(funcs)
+                logger.info(f" Found {len(funcs)} functions")
+
+                for func in funcs:
                     try:
                         metrics = self.cw_collector.get_lambda_metrics(
-                            func['FunctionName'],
-                            region,
-                            start_date,
-                            end_date
+                            func["FunctionName"], region, start_date, end_date
                         )
-                        self.cw_collector.save_csv(
-                            metrics, 'lambda', func['FunctionName']
-                        )
-                        lambda_count += 1
+                        self.cw_collector.save_csv(metrics, "lambda", func["FunctionName"])
+                        count += 1
                     except Exception as e:
-                        print(f"      [WARN] Failed {func['FunctionName']}: {e}")
+                        logger.warning(f"      [WARN] Failed {func['FunctionName']}: {e}")
             except Exception as e:
-                print(f" ✗ ERROR: {e}")
-        
-        print(f"  ✓ Collected Lambda metrics for {lambda_count}/{lambda_total} functions")
-        
-        # Collect RDS metrics
-        print(f"\n  [RDS] Scanning {len(self.config.regions)} regions...")
-        rds_count = 0
-        rds_total = 0
-        for region_idx, region in enumerate(self.config.regions, 1):
+                logger.error(f" ✗ ERROR: {e}")
+
+        logger.info(f"  ✓ Collected Lambda metrics for {count}/{total} functions")
+        return count
+
+    def _collect_rds_metrics(self, start_date: str, end_date: str) -> int:
+        """Collect CloudWatch metrics for RDS instances across all regions.
+
+        Args:
+            start_date: Start date (YYYY-MM-DD).
+            end_date: End date (YYYY-MM-DD).
+
+        Returns:
+            Number of RDS instances successfully collected.
+        """
+        regions = self.config.regions
+        logger.info(f"\n  [RDS] Scanning {len(regions)} regions...")
+        count = 0
+        total = 0
+
+        for region_idx, region in enumerate(regions, 1):
             try:
-                print(f"    [{region_idx}/{len(self.config.regions)}] Region {region}...", end="", flush=True)
+                logger.info(f"    [{region_idx}/{len(regions)}] Region {region}...")
                 rds_client = self.config.get_rds_client(region)
-                paginator = rds_client.get_paginator('describe_db_instances')
-                
-                region_dbs = []
+                paginator = rds_client.get_paginator("describe_db_instances")
+
+                dbs: List[Dict] = []
                 for page in paginator.paginate():
-                    region_dbs.extend(page.get('DBInstances', []))
-                
-                rds_total += len(region_dbs)
-                print(f" Found {len(region_dbs)} instances")
-                
-                for db in region_dbs:
+                    dbs.extend(page.get("DBInstances", []))
+
+                total += len(dbs)
+                logger.info(f" Found {len(dbs)} instances")
+
+                for db in dbs:
                     try:
                         metrics = self.cw_collector.get_rds_metrics(
-                            db['DBInstanceIdentifier'],
-                            region,
-                            start_date,
-                            end_date
+                            db["DBInstanceIdentifier"], region, start_date, end_date
                         )
-                        self.cw_collector.save_csv(
-                            metrics, 'rds', db['DBInstanceIdentifier']
-                        )
-                        rds_count += 1
+                        self.cw_collector.save_csv(metrics, "rds", db["DBInstanceIdentifier"])
+                        count += 1
                     except Exception as e:
-                        print(f"      [WARN] Failed {db['DBInstanceIdentifier']}: {e}")
+                        logger.warning(f"      [WARN] Failed {db['DBInstanceIdentifier']}: {e}")
             except Exception as e:
-                print(f" ✗ ERROR: {e}")
-        
-        print(f"  ✓ Collected RDS metrics for {rds_count}/{rds_total} instances")
-        
-        # Collect S3 metrics
-        print(f"  Collecting S3 metrics...")
-        s3_count = 0
+                logger.error(f" ✗ ERROR: {e}")
+
+        logger.info(f"  ✓ Collected RDS metrics for {count}/{total} instances")
+        return count
+
+    def _collect_s3_metrics(self, start_date: str, end_date: str) -> int:
+        """Collect CloudWatch metrics for S3 buckets.
+
+        Args:
+            start_date: Start date (YYYY-MM-DD).
+            end_date: End date (YYYY-MM-DD).
+
+        Returns:
+            Number of buckets successfully collected.
+        """
+        logger.info("  Collecting S3 metrics...")
+        count = 0
         try:
-            s3_client = self.config.s3
-            buckets = s3_client.list_buckets().get('Buckets', [])
-            
+            buckets = self.config.s3.list_buckets().get("Buckets", [])
             for bucket in buckets:
                 try:
                     metrics = self.cw_collector.get_s3_metrics(
-                        bucket['Name'],
-                        start_date,
-                        end_date
+                        bucket["Name"], start_date, end_date
                     )
-                    self.cw_collector.save_csv(
-                        metrics, 's3', bucket['Name']
-                    )
-                    s3_count += 1
+                    self.cw_collector.save_csv(metrics, "s3", bucket["Name"])
+                    count += 1
                 except Exception as e:
-                    print(f"    [WARN] Failed to collect S3 metrics for {bucket['Name']}: {e}")
+                    logger.warning(f"    [WARN] Failed to collect S3 metrics for {bucket['Name']}: {e}")
         except Exception as e:
-            print(f"    [WARN] Failed to list S3 buckets: {e}")
-        
-        print(f"  ✓ Collected S3 metrics for {s3_count} buckets")
-        
-        # Collect CloudFront metrics
-        print(f"\n  [CloudFront] Collecting metrics for {month_key}...")
+            logger.warning(f"    [WARN] Failed to list S3 buckets: {e}")
+
+        logger.info(f"  ✓ Collected S3 metrics for {count} buckets")
+        return count
+
+    def _collect_cloudfront_metrics(
+        self, start_date: str, end_date: str, month_key: str
+    ) -> int:
+        """Collect CloudWatch metrics for CloudFront distributions.
+
+        Args:
+            start_date: Start date (YYYY-MM-DD).
+            end_date: End date (YYYY-MM-DD).
+            month_key: Month key (YYYY-MM) for logging.
+
+        Returns:
+            Number of distributions successfully collected.
+        """
+        logger.info(f"\n  [CloudFront] Collecting metrics for {month_key}...")
+        count = 0
+        total_rows = 0
         try:
-            cloudfront_distributions = self.cloudfront_collector.list_distributions()
-            cloudfront_count = 0
-            cloudfront_rows = 0
-            for dist in cloudfront_distributions:
+            distributions = self.cloudfront_collector.list_distributions()
+            for dist in distributions:
                 try:
                     metrics = self.cloudfront_collector.get_metrics(
-                        dist['distribution_id'],
-                        start_date,
-                        end_date
+                        dist["distribution_id"], start_date, end_date
                     )
-                    # Count rows before saving
-                    metrics_data = metrics.get('metrics', {})
-                    timestamps = set()
-                    for metric_name, datapoints in metrics_data.items():
-                        for dp in datapoints:
-                            if 'Timestamp' in dp:
-                                timestamps.add(dp['Timestamp'])
-                    cloudfront_rows += len(timestamps)
+                    total_rows += _count_metric_timestamps(metrics.get("metrics", {}))
                     self.cloudfront_collector.save_metrics_csv(metrics)
-                    cloudfront_count += 1
+                    count += 1
                 except Exception as e:
-                    print(f"    [WARN] Failed to collect CloudFront metrics for {dist['distribution_id']}: {e}")
-            print(f"  ✓ Collected CloudFront metrics for {cloudfront_count} distributions ({cloudfront_rows} rows added)")
+                    logger.warning(f"    [WARN] Failed to collect CloudFront metrics for {dist['distribution_id']}: {e}")
+            logger.info(f"  ✓ Collected CloudFront metrics for {count} distributions ({total_rows} rows added)")
         except Exception as e:
-            print(f"  [WARN] Failed to collect CloudFront metrics: {e}")
-        
-        # Collect NAT Gateway metrics
-        print(f"\n  [NAT Gateways] Collecting metrics for {month_key}...")
+            logger.warning(f"  [WARN] Failed to collect CloudFront metrics: {e}")
+        return count
+
+    def _collect_nat_metrics(
+        self, start_date: str, end_date: str, month_key: str
+    ) -> int:
+        """Collect CloudWatch metrics for NAT Gateways.
+
+        Args:
+            start_date: Start date (YYYY-MM-DD).
+            end_date: End date (YYYY-MM-DD).
+            month_key: Month key (YYYY-MM) for logging.
+
+        Returns:
+            Number of NAT Gateways successfully collected.
+        """
+        logger.info(f"\n  [NAT Gateways] Collecting metrics for {month_key}...")
+        count = 0
+        total_rows = 0
         try:
             nat_gateways = self.nat_collector.list_nat_gateways()
-            nat_count = 0
-            nat_rows = 0
             for nat in nat_gateways:
                 try:
                     metrics = self.nat_collector.get_metrics(
-                        nat['nat_gateway_id'],
-                        nat['region'],
-                        start_date,
-                        end_date
+                        nat["nat_gateway_id"], nat["region"], start_date, end_date
                     )
-                    # Count rows before saving
-                    metrics_data = metrics.get('metrics', {})
-                    timestamps = set()
-                    for metric_name, datapoints in metrics_data.items():
-                        for dp in datapoints:
-                            if 'Timestamp' in dp:
-                                timestamps.add(dp['Timestamp'])
-                    nat_rows += len(timestamps)
+                    total_rows += _count_metric_timestamps(metrics.get("metrics", {}))
                     self.nat_collector.save_metrics_csv(metrics)
-                    nat_count += 1
+                    count += 1
                 except Exception as e:
-                    print(f"    [WARN] Failed to collect NAT Gateway metrics for {nat['nat_gateway_id']}: {e}")
-            print(f"  ✓ Collected NAT Gateway metrics for {nat_count} gateways ({nat_rows} rows added)")
+                    logger.warning(f"    [WARN] Failed to collect NAT Gateway metrics for {nat['nat_gateway_id']}: {e}")
+            logger.info(f"  ✓ Collected NAT Gateway metrics for {count} gateways ({total_rows} rows added)")
         except Exception as e:
-            print(f"  [WARN] Failed to collect NAT Gateway metrics: {e}")
-        
-        # Collect Load Balancer metrics
-        print(f"\n  [Load Balancers] Collecting metrics for {month_key}...")
+            logger.warning(f"  [WARN] Failed to collect NAT Gateway metrics: {e}")
+        return count
+
+    def _collect_lb_metrics(
+        self, start_date: str, end_date: str, month_key: str
+    ) -> None:
+        """Collect CloudWatch metrics for ALB and NLB load balancers.
+
+        Args:
+            start_date: Start date (YYYY-MM-DD).
+            end_date: End date (YYYY-MM-DD).
+            month_key: Month key (YYYY-MM) for logging.
+        """
+        logger.info(f"\n  [Load Balancers] Collecting metrics for {month_key}...")
+        alb_count = 0
+        nlb_count = 0
+        alb_rows = 0
+        nlb_rows = 0
+
         try:
             load_balancers = self.lb_collector.list_load_balancers()
-            alb_count = 0
-            nlb_count = 0
-            alb_rows = 0
-            nlb_rows = 0
             for lb in load_balancers:
                 try:
-                    if lb['type'] == 'application':
+                    if lb["type"] == "application":
                         metrics = self.lb_collector.get_alb_metrics(
-                            lb['lb_arn'],
-                            lb['region'],
-                            start_date,
-                            end_date
+                            lb["lb_arn"], lb["region"], start_date, end_date
                         )
-                        # Count rows before saving
-                        metrics_data = metrics.get('metrics', {})
-                        timestamps = set()
-                        for metric_name, datapoints in metrics_data.items():
-                            for dp in datapoints:
-                                if 'Timestamp' in dp:
-                                    timestamps.add(dp['Timestamp'])
-                        alb_rows += len(timestamps)
+                        alb_rows += _count_metric_timestamps(metrics.get("metrics", {}))
                         self.lb_collector.save_alb_metrics_csv(metrics)
                         alb_count += 1
-                    elif lb['type'] == 'network':
+                    elif lb["type"] == "network":
                         metrics = self.lb_collector.get_nlb_metrics(
-                            lb['lb_arn'],
-                            lb['region'],
-                            start_date,
-                            end_date
+                            lb["lb_arn"], lb["region"], start_date, end_date
                         )
-                        # Count rows before saving
-                        metrics_data = metrics.get('metrics', {})
-                        timestamps = set()
-                        for metric_name, datapoints in metrics_data.items():
-                            for dp in datapoints:
-                                if 'Timestamp' in dp:
-                                    timestamps.add(dp['Timestamp'])
-                        nlb_rows += len(timestamps)
+                        nlb_rows += _count_metric_timestamps(metrics.get("metrics", {}))
                         self.lb_collector.save_nlb_metrics_csv(metrics)
                         nlb_count += 1
                 except Exception as e:
-                    print(f"    [WARN] Failed to collect Load Balancer metrics for {lb['lb_arn']}: {e}")
-            print(f"  ✓ Collected ALB metrics for {alb_count} load balancers ({alb_rows} rows added)")
-            print(f"  ✓ Collected NLB metrics for {nlb_count} load balancers ({nlb_rows} rows added)")
+                    logger.warning(f"    [WARN] Failed to collect Load Balancer metrics for {lb['lb_arn']}: {e}")
+            logger.info(f"  ✓ Collected ALB metrics for {alb_count} load balancers ({alb_rows} rows added)")
+            logger.info(f"  ✓ Collected NLB metrics for {nlb_count} load balancers ({nlb_rows} rows added)")
         except Exception as e:
-            print(f"  [WARN] Failed to collect Load Balancer metrics: {e}")
-        
-        metrics_time = (datetime.now() - metrics_start).total_seconds()
-        print(f"\n[Metrics] ✓ Completed {month_key} in {metrics_time:.1f}s")
-    
-    def run(self, months: int = 5):
-        """
-        Run complete data collection for the last N months
-        
+            logger.warning(f"  [WARN] Failed to collect Load Balancer metrics: {e}")
+
+    # ------------------------------------------------------------------
+    # Main orchestration
+    # ------------------------------------------------------------------
+
+    def collect_metrics_for_month(
+        self, start_date: str, end_date: str, month_key: str
+    ) -> None:
+        """Collect CloudWatch metrics for all services for a single month.
+
         Args:
-            months: Number of months to collect (default: 5)
+            start_date: Start date (YYYY-MM-DD).
+            end_date: End date (YYYY-MM-DD).
+            month_key: Month key (YYYY-MM).
+        """
+        logger.info(f"\n[Metrics] Collecting metrics for {month_key}...")
+        metrics_start = datetime.now()
+
+        instances, volumes = self._build_full_instance_list()
+
+        self._collect_ec2_metrics(instances, start_date, end_date)
+        self._collect_ebs_metrics(volumes, start_date, end_date)
+        self._collect_lambda_metrics(start_date, end_date)
+        self._collect_rds_metrics(start_date, end_date)
+        self._collect_s3_metrics(start_date, end_date)
+        self._collect_cloudfront_metrics(start_date, end_date, month_key)
+        self._collect_nat_metrics(start_date, end_date, month_key)
+        self._collect_lb_metrics(start_date, end_date, month_key)
+
+        elapsed = (datetime.now() - metrics_start).total_seconds()
+        logger.info(f"\n[Metrics] ✓ Completed {month_key} in {elapsed:.1f}s")
+
+    def run(self, months: int = 12) -> None:
+        """Run complete data collection for the last N months.
+
+        Args:
+            months: Number of months to collect (default: 12).
         """
         overall_start = datetime.now()
-        
-        print("=" * 60)
-        print("AWS Data Collector - Starting Collection")
-        print("=" * 60)
-        print(f"Account ID: {self.config.account_id}")
-        print(f"Regions: {len(self.config.regions)}")
-        print(f"Months to collect: {months}")
-        print(f"Start time: {overall_start.strftime('%Y-%m-%d %H:%M:%S')}")
-        print("=" * 60)
-        
-        # Get month ranges
+
+        logger.info("=" * 60)
+        logger.info("AWS Data Collector - Starting Collection")
+        logger.info("=" * 60)
+        logger.info(f"Account ID: {self.config.account_id}")
+        logger.info(f"Regions: {len(self.config.regions)}")
+        logger.info(f"Months to collect: {months}")
+        logger.info(f"Start time: {overall_start.strftime('%Y-%m-%d %H:%M:%S')}")
+        logger.info("=" * 60)
+
         month_ranges = get_last_n_months(months)
-        
+
         # Step 1: Collect inventory (once)
-        print("\n" + "=" * 60)
-        print("STEP 1: Collecting Inventory")
-        print("=" * 60)
+        logger.info("\n" + "=" * 60)
+        logger.info("STEP 1: Collecting Inventory")
+        logger.info("=" * 60)
         inventory_start = datetime.now()
-        inventory_files = self.ec2_collector.save_inventory()
+        self.ec2_collector.save_inventory()
         inventory_time = (datetime.now() - inventory_start).total_seconds()
-        print(f"\n✓ Inventory collection completed in {inventory_time:.1f}s")
-        
+        logger.info(f"\n✓ Inventory collection completed in {inventory_time:.1f}s")
+
         # Step 2: Collect data for each month
-        print("\n" + "=" * 60)
-        print("STEP 2: Collecting Monthly Data")
-        print("=" * 60)
-        
+        logger.info("\n" + "=" * 60)
+        logger.info("STEP 2: Collecting Monthly Data")
+        logger.info("=" * 60)
+
         total_months = len(month_ranges)
         for month_idx, (start_date, end_date) in enumerate(month_ranges, 1):
             month_key = get_month_key(start_date)
             month_start = datetime.now()
-            
-            print(f"\n{'=' * 60}")
-            print(f"Month {month_idx}/{total_months}: {month_key} ({start_date} to {end_date})")
-            print(f"{'=' * 60}")
-            
-            # Collect cost data
-            print(f"\n[{month_key}] Step 1/3: Collecting cost data...")
+
+            logger.info(f"\n{'=' * 60}")
+            logger.info(f"Month {month_idx}/{total_months}: {month_key} ({start_date} to {end_date})")
+            logger.info(f"{'=' * 60}")
+
+            # Cost data
+            logger.info(f"\n[{month_key}] Step 1/3: Collecting cost data...")
             cost_start = datetime.now()
             self.cost_collector.collect_month(start_date, end_date)
             cost_time = (datetime.now() - cost_start).total_seconds()
-            print(f"[{month_key}] ✓ Cost data collected in {cost_time:.1f}s")
-            
-            # Collect metrics
-            print(f"\n[{month_key}] Step 2/3: Collecting metrics...")
+            logger.info(f"[{month_key}] ✓ Cost data collected in {cost_time:.1f}s")
+
+            # Metrics
+            logger.info(f"\n[{month_key}] Step 2/3: Collecting metrics...")
             self.collect_metrics_for_month(start_date, end_date, month_key)
-            
-            # Collect pricing snapshot
-            print(f"\n[{month_key}] Step 3/3: Collecting pricing snapshot...")
+
+            # Pricing
+            logger.info(f"\n[{month_key}] Step 3/3: Collecting pricing snapshot...")
             pricing_start = datetime.now()
             self.pricing_collector.collect_month_snapshot(month_key, regions=self.config.regions)
             pricing_time = (datetime.now() - pricing_start).total_seconds()
-            print(f"[{month_key}] ✓ Pricing snapshot collected in {pricing_time:.1f}s")
-            
+            logger.info(f"[{month_key}] ✓ Pricing snapshot collected in {pricing_time:.1f}s")
+
             month_time = (datetime.now() - month_start).total_seconds()
-            print(f"\n[{month_key}] ✓ Month completed in {month_time:.1f}s")
-            
-            # Show progress
-            remaining_months = total_months - month_idx
-            if remaining_months > 0:
-                elapsed_total = (datetime.now() - overall_start).total_seconds()
-                avg_time_per_month = elapsed_total / month_idx
-                estimated_remaining = avg_time_per_month * remaining_months
-                print(f"  Progress: {month_idx}/{total_months} months ({month_idx*100//total_months}%)")
-                print(f"  Estimated time remaining: {estimated_remaining/60:.1f} minutes")
-        
+            logger.info(f"\n[{month_key}] ✓ Month completed in {month_time:.1f}s")
+
+            remaining = total_months - month_idx
+            if remaining > 0:
+                elapsed = (datetime.now() - overall_start).total_seconds()
+                avg = elapsed / month_idx
+                est_remaining = avg * remaining
+                logger.info(f"  Progress: {month_idx}/{total_months} months ({month_idx * 100 // total_months}%)")
+                logger.info(f"  Estimated time remaining: {est_remaining / 60:.1f} minutes")
+
         overall_time = (datetime.now() - overall_start).total_seconds()
-        
-        print("\n" + "=" * 60)
-        print("✓ Collection Complete!")
-        print("=" * 60)
-        print(f"Total time: {overall_time/60:.1f} minutes ({overall_time:.1f}s)")
-        print(f"End time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-        print("\nData saved to:")
-        print("  - Cost data: data/cost/*_consolidated.csv")
-        print("  - Metrics: data/metrics/{service}/{service}_metrics_consolidated.csv")
-        print("  - Pricing: data/pricing/pricing_consolidated.csv")
-        print("  - Inventory: data/inventory/*.csv")
-        print("=" * 60)
+
+        logger.info("\n" + "=" * 60)
+        logger.info("✓ Collection Complete!")
+        logger.info("=" * 60)
+        logger.info(f"Total time: {overall_time / 60:.1f} minutes ({overall_time:.1f}s)")
+        logger.info(f"End time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        logger.info("\nData saved to:")
+        logger.info("  - Cost data: data/cost/*_consolidated.csv")
+        logger.info("  - Metrics: data/metrics/{service}/{service}_metrics_consolidated.csv")
+        logger.info("  - Pricing: data/pricing/pricing_consolidated.csv")
+        logger.info("  - Inventory: data/inventory/*.csv")
+        logger.info("=" * 60)
 
 
-def main():
-    """Main entry point"""
+def main() -> None:
+    """Main entry point."""
     runner = CollectorRunner()
-    runner.run(months=5)
+    runner.run(months=12)
 
 
 if __name__ == "__main__":
     main()
-

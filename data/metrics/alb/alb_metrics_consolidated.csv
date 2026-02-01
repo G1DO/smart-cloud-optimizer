@@ -1,1 +1,0 @@
-account_id,region,lb_arn,timestamp,RequestCount_sum,HTTPCode_ELB_4XX_Count_sum,HTTPCode_ELB_5XX_Count_sum

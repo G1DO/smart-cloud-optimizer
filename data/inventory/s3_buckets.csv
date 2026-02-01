@@ -1,2 +1,0 @@
-account_id,bucket_name,region,creation_date,versioning,default_encryption,public_access_block
-131471595343,elasticbeanstalk-eu-north-1-131471595343,eu-north-1,2025-10-20T14:23:22+00:00,,AES256,"{'BlockPublicAcls': False, 'IgnorePublicAcls': False, 'BlockPublicPolicy': False, 'RestrictPublicBuckets': False}"

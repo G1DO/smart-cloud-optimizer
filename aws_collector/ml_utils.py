@@ -1,14 +1,47 @@
 """
-ML Utilities for Data Preparation
-Helper functions to prepare collected data for ML model training
+ml_utils.py — ML data preparation utilities.
+
+Helper functions to prepare collected CSV data for ML model training,
+including column-swap detection, time-feature engineering, and lag creation.
+
+Part of the Smart Cloud Optimizer graduation project.
 """
-import pandas as pd
+from typing import Dict, List, Optional, Tuple
+
 import numpy as np
-from pathlib import Path
-from typing import List, Dict, Optional
-from datetime import datetime
+import pandas as pd
 
 from .config import DATA_DIR
+
+
+def _fix_column_swap(df: pd.DataFrame, id_col: str) -> pd.DataFrame:
+    """
+    Detect and fix swapped resource-ID / timestamp columns.
+
+    Some real CSV files have the id and timestamp data in each other's
+    columns (header says 'instance_id' but the values are ISO timestamps,
+    and vice versa).  This function detects the swap by checking the first
+    non-null value in each column and swaps the data back if needed.
+    """
+    if id_col not in df.columns or 'timestamp' not in df.columns:
+        return df
+
+    # Sample a non-null value from each column
+    id_sample = df[id_col].dropna().iloc[0] if not df[id_col].dropna().empty else ''
+    ts_sample = df['timestamp'].dropna().iloc[0] if not df['timestamp'].dropna().empty else ''
+
+    id_sample = str(id_sample)
+    ts_sample = str(ts_sample)
+
+    # Detect swap: id column looks like a timestamp, timestamp column looks like an id
+    id_looks_like_ts = 'T' in id_sample and id_sample[:4].isdigit()
+    ts_looks_like_id = ts_sample.startswith('i-') or ts_sample.startswith('vol-')
+
+    if id_looks_like_ts or ts_looks_like_id:
+        df = df.copy()
+        df[id_col], df['timestamp'] = df['timestamp'].copy(), df[id_col].copy()
+
+    return df
 
 
 def load_cost_data(month_key: str = None) -> pd.DataFrame:
@@ -59,8 +92,9 @@ def load_ec2_metrics(month_key: str = None, instance_id: str = None) -> pd.DataF
     consolidated_file = metrics_dir / "ec2_metrics_consolidated.csv"
     if consolidated_file.exists():
         df = pd.read_csv(consolidated_file)
+        df = _fix_column_swap(df, 'instance_id')
         if instance_id:
-            df = df[df.get('instance_id', '') == instance_id]
+            df = df[df['instance_id'] == instance_id]
         return df
     
     # Fallback to old monthly structure if exists
@@ -108,8 +142,9 @@ def load_rds_metrics(month_key: str = None, db_id: str = None) -> pd.DataFrame:
     consolidated_file = metrics_dir / "rds_metrics_consolidated.csv"
     if consolidated_file.exists():
         df = pd.read_csv(consolidated_file)
+        df = _fix_column_swap(df, 'db_instance_id')
         if db_id:
-            df = df[df.get('db_instance_id', '') == db_id]
+            df = df[df['db_instance_id'] == db_id]
         return df
     
     # Fallback to old monthly structure if exists
@@ -189,8 +224,6 @@ def prepare_for_training(df: pd.DataFrame, target_col: str,
     Returns:
         Tuple of (X_features, y_target)
     """
-    import numpy as np
-    
     exclude_cols = exclude_cols or []
     exclude_cols.extend(['timestamp', 'account_id', target_col])
     

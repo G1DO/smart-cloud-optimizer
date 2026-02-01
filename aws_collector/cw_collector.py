@@ -1,8 +1,13 @@
 """
-CloudWatch Metrics Collector
+cw_collector.py — CloudWatch metrics collector.
+
 Fetches metrics month-by-month for EC2, EBS, Lambda, RDS, and S3
+and writes them to consolidated CSV files with deduplication.
+
+Part of the Smart Cloud Optimizer graduation project.
 """
 import csv
+import logging
 from pathlib import Path
 from typing import Dict, List, Optional
 from datetime import datetime
@@ -10,20 +15,22 @@ from datetime import datetime
 from .config import AWSConfig, DATA_DIR
 from .date_utils import get_datetime_range, get_month_key
 
+logger = logging.getLogger(__name__)
+
 
 class CloudWatchCollector:
     """Collects CloudWatch metrics for various AWS services"""
-    
+
     def __init__(self, config: AWSConfig):
         """
         Initialize CloudWatch Collector
-        
+
         Args:
             config: AWSConfig instance
         """
         self.config = config
         self.account_id = config.account_id
-    
+
     def _fetch_metric(
         self,
         cloudwatch_client,
@@ -37,7 +44,7 @@ class CloudWatchCollector:
     ) -> List[Dict]:
         """
         Fetch metric statistics from CloudWatch
-        
+
         Args:
             cloudwatch_client: CloudWatch client
             namespace: Metric namespace
@@ -47,7 +54,7 @@ class CloudWatchCollector:
             end_time: End datetime
             period: Period in seconds
             statistics: List of statistics to fetch
-        
+
         Returns:
             List of datapoints
         """
@@ -63,9 +70,9 @@ class CloudWatchCollector:
             )
             return response.get('Datapoints', [])
         except Exception as e:
-            print(f"[WARN] Failed to fetch {namespace}/{metric_name}: {e}")
+            logger.warning(f"[WARN] Failed to fetch {namespace}/{metric_name}: {e}")
             return []
-    
+
     def get_ec2_metrics(
         self,
         instance_id: str,
@@ -75,21 +82,21 @@ class CloudWatchCollector:
     ) -> Dict:
         """
         Get EC2 instance metrics
-        
+
         Args:
             instance_id: EC2 instance ID
             region: AWS region
             start_date: Start date (YYYY-MM-DD)
             end_date: End date (YYYY-MM-DD)
-        
+
         Returns:
             Dictionary with EC2 metrics
         """
         cloudwatch = self.config.get_cloudwatch_client(region)
         start_time, end_time = get_datetime_range(start_date, end_date)
-        
+
         dimensions = [{'Name': 'InstanceId', 'Value': instance_id}]
-        
+
         metrics = {
             'CPUUtilization': self._fetch_metric(
                 cloudwatch, 'AWS/EC2', 'CPUUtilization',
@@ -117,7 +124,7 @@ class CloudWatchCollector:
                 period=3600, statistics=['Average']
             ),
         }
-        
+
         return {
             'account_id': self.account_id,
             'region': region,
@@ -126,7 +133,7 @@ class CloudWatchCollector:
             'end_date': end_date,
             'metrics': metrics
         }
-    
+
     def get_ebs_metrics(
         self,
         volume_id: str,
@@ -136,21 +143,21 @@ class CloudWatchCollector:
     ) -> Dict:
         """
         Get EBS volume metrics
-        
+
         Args:
             volume_id: EBS volume ID
             region: AWS region
             start_date: Start date (YYYY-MM-DD)
             end_date: End date (YYYY-MM-DD)
-        
+
         Returns:
             Dictionary with EBS metrics
         """
         cloudwatch = self.config.get_cloudwatch_client(region)
         start_time, end_time = get_datetime_range(start_date, end_date)
-        
+
         dimensions = [{'Name': 'VolumeId', 'Value': volume_id}]
-        
+
         metrics = {
             'VolumeReadBytes': self._fetch_metric(
                 cloudwatch, 'AWS/EBS', 'VolumeReadBytes',
@@ -173,7 +180,7 @@ class CloudWatchCollector:
                 period=3600, statistics=['Average']
             ),
         }
-        
+
         return {
             'account_id': self.account_id,
             'region': region,
@@ -182,7 +189,7 @@ class CloudWatchCollector:
             'end_date': end_date,
             'metrics': metrics
         }
-    
+
     def get_lambda_metrics(
         self,
         function_name: str,
@@ -192,21 +199,21 @@ class CloudWatchCollector:
     ) -> Dict:
         """
         Get Lambda function metrics
-        
+
         Args:
             function_name: Lambda function name
             region: AWS region
             start_date: Start date (YYYY-MM-DD)
             end_date: End date (YYYY-MM-DD)
-        
+
         Returns:
             Dictionary with Lambda metrics
         """
         cloudwatch = self.config.get_cloudwatch_client(region)
         start_time, end_time = get_datetime_range(start_date, end_date)
-        
+
         dimensions = [{'Name': 'FunctionName', 'Value': function_name}]
-        
+
         metrics = {
             'Invocations': self._fetch_metric(
                 cloudwatch, 'AWS/Lambda', 'Invocations',
@@ -224,7 +231,7 @@ class CloudWatchCollector:
                 period=3600, statistics=['Sum']
             ),
         }
-        
+
         return {
             'account_id': self.account_id,
             'region': region,
@@ -233,7 +240,7 @@ class CloudWatchCollector:
             'end_date': end_date,
             'metrics': metrics
         }
-    
+
     def get_rds_metrics(
         self,
         db_id: str,
@@ -243,21 +250,21 @@ class CloudWatchCollector:
     ) -> Dict:
         """
         Get RDS instance metrics
-        
+
         Args:
             db_id: RDS instance identifier
             region: AWS region
             start_date: Start date (YYYY-MM-DD)
             end_date: End date (YYYY-MM-DD)
-        
+
         Returns:
             Dictionary with RDS metrics
         """
         cloudwatch = self.config.get_cloudwatch_client(region)
         start_time, end_time = get_datetime_range(start_date, end_date)
-        
+
         dimensions = [{'Name': 'DBInstanceIdentifier', 'Value': db_id}]
-        
+
         metrics = {
             'CPUUtilization': self._fetch_metric(
                 cloudwatch, 'AWS/RDS', 'CPUUtilization',
@@ -275,7 +282,7 @@ class CloudWatchCollector:
                 period=3600, statistics=['Average']
             ),
         }
-        
+
         return {
             'account_id': self.account_id,
             'region': region,
@@ -284,7 +291,7 @@ class CloudWatchCollector:
             'end_date': end_date,
             'metrics': metrics
         }
-    
+
     def get_s3_metrics(
         self,
         bucket_name: str,
@@ -293,38 +300,38 @@ class CloudWatchCollector:
     ) -> Dict:
         """
         Get S3 bucket metrics
-        
+
         Args:
             bucket_name: S3 bucket name
             start_date: Start date (YYYY-MM-DD)
             end_date: End date (YYYY-MM-DD)
-        
+
         Returns:
             Dictionary with S3 metrics
         """
         # S3 metrics are in us-east-1
         cloudwatch = self.config.get_cloudwatch_client('us-east-1')
         start_time, end_time = get_datetime_range(start_date, end_date)
-        
+
         dimensions_base = [{'Name': 'BucketName', 'Value': bucket_name}]
-        
+
         metrics = {}
-        
+
         # Fetch for StandardStorage
         dimensions = dimensions_base + [{'Name': 'StorageType', 'Value': 'StandardStorage'}]
-        
+
         metrics['BucketSizeBytes'] = self._fetch_metric(
             cloudwatch, 'AWS/S3', 'BucketSizeBytes',
             dimensions, start_time, end_time,
             period=86400, statistics=['Average']  # Daily for S3
         )
-        
+
         metrics['NumberOfObjects'] = self._fetch_metric(
             cloudwatch, 'AWS/S3', 'NumberOfObjects',
             dimensions, start_time, end_time,
             period=86400, statistics=['Average']
         )
-        
+
         return {
             'account_id': self.account_id,
             'bucket_name': bucket_name,
@@ -332,11 +339,11 @@ class CloudWatchCollector:
             'end_date': end_date,
             'metrics': metrics
         }
-    
+
     def save_csv(self, data: Dict, service: str, resource_id: str):
         """
         Save metrics data to consolidated CSV file
-        
+
         Args:
             data: Data dictionary to save
             service: Service name (ec2, ebs, lambda, rds, s3)
@@ -346,21 +353,21 @@ class CloudWatchCollector:
         service_dir = DATA_DIR / "metrics" / service
         service_dir.mkdir(parents=True, exist_ok=True)
         consolidated_file = service_dir / f"{service}_metrics_consolidated.csv"
-        
+
         # Flatten metrics data for CSV
         rows = []
         metrics_data = data.get('metrics', {})
-        
+
         # Get all unique timestamps from all metrics
         all_timestamps = set()
         for metric_name, datapoints in metrics_data.items():
             for dp in datapoints:
                 if 'Timestamp' in dp:
                     all_timestamps.add(dp['Timestamp'])
-        
+
         # Sort timestamps
         sorted_timestamps = sorted(all_timestamps)
-        
+
         # Build rows - one per timestamp
         for ts in sorted_timestamps:
             # Format timestamp consistently for ML (ISO format)
@@ -368,13 +375,13 @@ class CloudWatchCollector:
                 timestamp_str = ts.isoformat()
             else:
                 timestamp_str = str(ts)
-            
+
             row = {
                 'account_id': data.get('account_id', ''),
                 'region': data.get('region', ''),
                 'timestamp': timestamp_str,
             }
-            
+
             # Add resource identifier based on service
             if service == 'ec2':
                 row['instance_id'] = data.get('instance_id', resource_id)
@@ -386,7 +393,7 @@ class CloudWatchCollector:
                 row['db_instance_id'] = data.get('db_instance_id', resource_id)
             elif service == 's3':
                 row['bucket_name'] = data.get('bucket_name', resource_id)
-            
+
             # Add metric values for this timestamp
             for metric_name, datapoints in metrics_data.items():
                 for dp in datapoints:
@@ -401,19 +408,34 @@ class CloudWatchCollector:
                                 except (ValueError, TypeError):
                                     row[f"{metric_name}_{stat.lower()}"] = ''
                         break
-            
+
             rows.append(row)
-        
+
         # Write CSV (append to consolidated file only - no monthly folders)
         if rows:
-            fieldnames = list(rows[0].keys())
-            
+            # Determine resource ID field for this service
+            resource_id_field = {
+                'ec2': 'instance_id',
+                'ebs': 'volume_id',
+                'lambda': 'function_name',
+                'rds': 'db_instance_id',
+                's3': 'bucket_name',
+            }.get(service)
+
+            # Define explicit column order to prevent column swap bugs
+            base_fields = ['account_id', 'region']
+            if resource_id_field:
+                base_fields.append(resource_id_field)
+            base_fields.append('timestamp')
+            metric_fields = [k for k in rows[0].keys() if k not in base_fields]
+            fieldnames = base_fields + sorted(metric_fields)
+
             # Ensure metrics directory exists
             consolidated_file.parent.mkdir(parents=True, exist_ok=True)
-            
+
             # Check if consolidated file exists
             file_exists = consolidated_file.exists()
-            
+
             # Read existing data to check for duplicates
             existing_rows = []
             if file_exists:
@@ -422,27 +444,16 @@ class CloudWatchCollector:
                         reader = csv.DictReader(f)
                         existing_rows = list(reader)
                 except Exception as e:
-                    print(f"  [WARN] Could not read existing file for deduplication: {e}")
-            
+                    logger.warning(f"  [WARN] Could not read existing file for deduplication: {e}")
+
             # Create set of existing unique keys (resource_id + timestamp)
             existing_keys = set()
-            resource_id_field = None
-            if service == 'ec2':
-                resource_id_field = 'instance_id'
-            elif service == 'ebs':
-                resource_id_field = 'volume_id'
-            elif service == 'lambda':
-                resource_id_field = 'function_name'
-            elif service == 'rds':
-                resource_id_field = 'db_instance_id'
-            elif service == 's3':
-                resource_id_field = 'bucket_name'
-            
+
             if resource_id_field and existing_rows:
                 for row in existing_rows:
                     key = (row.get(resource_id_field, ''), row.get('timestamp', ''))
                     existing_keys.add(key)
-            
+
             # Filter out duplicates
             new_rows = []
             for row in rows:
@@ -453,7 +464,7 @@ class CloudWatchCollector:
                         existing_keys.add(key)  # Add to set to prevent duplicates within this batch
                 else:
                     new_rows.append(row)
-            
+
             # Append only new rows
             if new_rows:
                 with open(consolidated_file, 'a', newline='') as f:
@@ -461,9 +472,9 @@ class CloudWatchCollector:
                     if not file_exists:
                         writer.writeheader()
                     writer.writerows(new_rows)
-                print(f"  ✓ Added {len(new_rows)} new rows (skipped {len(rows) - len(new_rows)} duplicates)")
+                logger.info(f"  ✓ Added {len(new_rows)} new rows (skipped {len(rows) - len(new_rows)} duplicates)")
             else:
-                print(f"  ✓ All {len(rows)} rows already exist (skipped duplicates)")
+                logger.info(f"  ✓ All {len(rows)} rows already exist (skipped duplicates)")
         else:
             # Create empty CSV with basic structure if file doesn't exist
             if not consolidated_file.exists():
@@ -479,7 +490,7 @@ class CloudWatchCollector:
                     base_fields.append('db_instance_id')
                 elif service == 's3':
                     base_fields.append('bucket_name')
-                
+
                 with open(consolidated_file, 'w', newline='') as f:
                     writer = csv.DictWriter(f, fieldnames=base_fields)
                     writer.writeheader()
@@ -488,4 +499,3 @@ class CloudWatchCollector:
                         'region': data.get('region', ''),
                         'timestamp': data.get('start_date', ''),
                     })
-

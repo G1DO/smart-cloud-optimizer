@@ -1,31 +1,49 @@
 """
-Main entry point for AWS Collector
-Run this to start collecting AWS data for the last 5 months
+main.py — Entry point for the AWS data collection pipeline.
+
+Run this module to collect 12 months of AWS cost, metrics, pricing,
+and inventory data.
+
+Part of the Smart Cloud Optimizer graduation project.
 """
+import logging
 import sys
+import traceback
+
 from .collector_runner import CollectorRunner
 
+logger = logging.getLogger(__name__)
 
-def main():
-    """Main function to run the collector"""
+
+def main() -> int:
+    """Run the full collection pipeline.
+
+    Returns:
+        Exit code: 0 on success, 1 on failure or cancellation.
+    """
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(name)s %(levelname)s %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+
     try:
-        print("Starting AWS Data Collector...")
-        print("This will collect 5 months of AWS data (cost, metrics, pricing, inventory)")
-        print("Press Ctrl+C to cancel\n")
-        
+        logger.info("Starting AWS Data Collector...")
+        logger.info("This will collect 12 months of AWS data (cost, metrics, pricing, inventory)")
+        logger.info("Press Ctrl+C to cancel\n")
+
         # Initialize and run collector
         runner = CollectorRunner()
-        runner.run(months=5)
-        
-        print("\n✅ Collection completed successfully!")
+        runner.run(months=12)
+
+        logger.info("\n✅ Collection completed successfully!")
         return 0
-    
+
     except KeyboardInterrupt:
-        print("\n\n⚠️  Collection cancelled by user")
+        logger.warning("\n\n⚠️  Collection cancelled by user")
         return 1
     except Exception as e:
-        print(f"\n❌ Error during collection: {e}", file=sys.stderr)
-        import traceback
+        logger.error(f"\n❌ Error during collection: {e}")
         traceback.print_exc()
         return 1
 

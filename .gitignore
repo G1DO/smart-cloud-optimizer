@@ -1,21 +1,25 @@
 # Virtual environment
 venv/
-READMEPRIV.md
+.venv/
+
 # Python cache
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
 .Python
+*.egg-info/
 
-# AWS credentials (ممنوع)
+# Environment / secrets
+.env
 .aws/
-*.env
 credentials
 
-# Collected data (can be regenerated)
-backups/
-# Note: data/ folder is included in repo for snapshot
+# Real AWS data (don't commit — contains account-specific info)
+data/real/
+
+# DO commit synthetic data
+!data/synthetic/
 
 # IDE
 .vscode/
@@ -28,6 +32,20 @@ backups/
 .DS_Store
 Thumbs.db
 
+# Build / dist
+dist/
+build/
+*.egg-info/
+
+# Testing / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
 # Temporary files
 *.log
 *.tmp
+backups/
+
+# Database
+data/*.db
