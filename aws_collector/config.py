@@ -16,14 +16,14 @@ logger = logging.getLogger(__name__)
 
 # Base directory paths
 BASE_DIR: Path = Path(__file__).parent.parent
-DATA_DIR: Path = BASE_DIR / "data"
+DATA_DIR: Path = BASE_DIR / "data" / "real"
 
 # Ensure data directories exist
-DATA_DIR.mkdir(exist_ok=True)
+DATA_DIR.mkdir(parents=True, exist_ok=True)
 for _subdir in ("cost", "metrics", "pricing", "inventory"):
     (DATA_DIR / _subdir).mkdir(exist_ok=True)
 
-for _service in ("ec2", "ebs", "lambda", "rds", "s3"):
+for _service in ("ec2", "ebs", "lambda", "rds", "s3", "cloudfront", "nat", "alb", "nlb"):
     (DATA_DIR / "metrics" / _service).mkdir(exist_ok=True)
 
 
