@@ -1,9 +1,0 @@
-account_id,region,volume_id,size_gb,volume_type,iops,throughput,encrypted,state,availability_zone,snapshot_id,create_time,attachments,tags
-SYNTHETIC-001,us-east-1,vol-e1a00a067a0f58df6,100,gp3,3000,125,True,in-use,us-east-1a,,2025-01-10T08:30:00.000000+00:00,i-fe01442ffcbdd8b17:/dev/xvda,Name=prod-web-1-root;Environment=production
-SYNTHETIC-001,us-east-1,vol-037a0ba45c2f1f885,100,gp3,3000,125,True,in-use,us-east-1b,,2025-01-11T08:30:00.000000+00:00,i-322ced9d357a71851:/dev/xvda,Name=prod-web-2-root;Environment=production
-SYNTHETIC-001,us-east-1,vol-6450110ebc99720b5,50,gp3,3000,125,True,in-use,us-east-1a,,2025-01-12T08:30:00.000000+00:00,i-62c9b73536b4afb64:/dev/xvda,Name=prod-api-1-root;Environment=production
-SYNTHETIC-001,us-east-1,vol-bcb9b95d25fc51ea8,50,gp3,3000,125,True,in-use,us-east-1b,,2025-01-13T08:30:00.000000+00:00,i-9ad0eb8ce137a7aa6:/dev/xvda,Name=prod-cache-1-root;Environment=production
-SYNTHETIC-001,us-east-1,vol-06de2f17a158ef373,30,gp2,100,,True,in-use,us-east-1a,,2025-01-14T08:30:00.000000+00:00,i-6fcb9841d7a4596cc:/dev/xvda,Name=staging-web-root;Environment=staging
-SYNTHETIC-001,us-east-1,vol-c7550b023cc8797e9,20,gp2,100,,True,in-use,us-east-1b,,2025-01-15T08:30:00.000000+00:00,i-f785f27a24b145b6a:/dev/xvda,Name=staging-api-root;Environment=staging
-SYNTHETIC-001,us-east-1,vol-06088e76cdcf9481f,30,gp2,100,,True,in-use,us-east-1a,,2025-01-16T08:30:00.000000+00:00,i-8a2f2d2dd5bc5cab6:/dev/xvda,Name=dev-server-root;Environment=development
-SYNTHETIC-001,us-east-1,vol-2d97c939aa5d6dddf,200,io2,3000,,True,in-use,us-east-1a,,2025-01-17T08:30:00.000000+00:00,i-7f2d2987eea6a58df:/dev/xvda,Name=batch-processor-root;Environment=production

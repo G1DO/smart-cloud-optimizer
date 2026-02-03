@@ -1,5 +1,0 @@
-account_id,bucket_name,region,creation_date,versioning,default_encryption,public_access_block
-SYNTHETIC-001,app-user-uploads,us-east-1,2024-06-15T10:00:00+00:00,Enabled,AES256,"{'BlockPublicAcls': True, 'IgnorePublicAcls': True, 'BlockPublicPolicy': True, 'RestrictPublicBuckets': True}"
-SYNTHETIC-001,app-logs,us-east-1,2024-06-15T10:05:00+00:00,Suspended,AES256,"{'BlockPublicAcls': True, 'IgnorePublicAcls': True, 'BlockPublicPolicy': True, 'RestrictPublicBuckets': True}"
-SYNTHETIC-001,app-backups,us-east-1,2024-07-01T08:00:00+00:00,Enabled,AES256,"{'BlockPublicAcls': True, 'IgnorePublicAcls': True, 'BlockPublicPolicy': True, 'RestrictPublicBuckets': True}"
-SYNTHETIC-001,app-static-assets,us-east-1,2024-06-15T10:10:00+00:00,,AES256,"{'BlockPublicAcls': True, 'IgnorePublicAcls': True, 'BlockPublicPolicy': True, 'RestrictPublicBuckets': True}"

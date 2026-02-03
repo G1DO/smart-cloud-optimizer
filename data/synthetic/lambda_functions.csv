@@ -1,5 +1,0 @@
-account_id,region,function_name,function_arn,runtime,memory_size,timeout,handler,last_modified,code_size,description,vpc_subnet_ids,vpc_security_group_ids,tags
-SYNTHETIC-001,us-east-1,image-resizer,arn:aws:lambda:us-east-1:000000000000:function:image-resizer,python3.12,512,30,index.handler,2025-06-01T12:00:00.000+0000,5242880,Resize uploaded images,,,Environment=production
-SYNTHETIC-001,us-east-1,email-sender,arn:aws:lambda:us-east-1:000000000000:function:email-sender,python3.12,256,15,index.handler,2025-06-01T12:00:00.000+0000,2097152,Send transactional emails,,,Environment=production
-SYNTHETIC-001,us-east-1,log-processor,arn:aws:lambda:us-east-1:000000000000:function:log-processor,python3.12,1024,300,index.handler,2025-06-01T12:00:00.000+0000,10485760,Process and aggregate logs,,,Environment=production
-SYNTHETIC-001,us-east-1,webhook-handler,arn:aws:lambda:us-east-1:000000000000:function:webhook-handler,nodejs20.x,128,10,index.handler,2025-06-01T12:00:00.000+0000,1048576,Handle incoming webhooks,,,Environment=production
