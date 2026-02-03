@@ -10,7 +10,9 @@ import logging
 import sys
 import traceback
 
-from .collector_runner import CollectorRunner
+import config
+
+from .runner import CollectorRunner
 
 logger = logging.getLogger(__name__)
 
@@ -21,11 +23,7 @@ def main() -> int:
     Returns:
         Exit code: 0 on success, 1 on failure or cancellation.
     """
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s %(name)s %(levelname)s %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-    )
+    config.setup_logging()
 
     try:
         logger.info("Starting AWS Data Collector...")

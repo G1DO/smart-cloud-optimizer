@@ -1,7 +1,7 @@
-"""Tests for aws_collector.date_utils"""
+"""Tests for date utilities in aws_collector.metrics"""
 from datetime import datetime, timezone
 
-from aws_collector.date_utils import (
+from aws_collector.metrics import (
     get_last_n_months,
     get_month_key,
     get_date_range_for_cost,

@@ -7,24 +7,11 @@ data collection pipeline. Project-level settings live in the root config.py.
 Part of the Smart Cloud Optimizer graduation project.
 """
 import logging
-from pathlib import Path
 from typing import List, Optional
 
 import boto3
 
 logger = logging.getLogger(__name__)
-
-# Base directory paths
-BASE_DIR: Path = Path(__file__).parent.parent
-DATA_DIR: Path = BASE_DIR / "data" / "real"
-
-# Ensure data directories exist
-DATA_DIR.mkdir(parents=True, exist_ok=True)
-for _subdir in ("cost", "metrics", "pricing", "inventory"):
-    (DATA_DIR / _subdir).mkdir(exist_ok=True)
-
-for _service in ("ec2", "ebs", "lambda", "rds", "s3", "cloudfront", "nat", "alb", "nlb"):
-    (DATA_DIR / "metrics" / _service).mkdir(exist_ok=True)
 
 
 class AWSConfig:
@@ -81,6 +68,18 @@ class AWSConfig:
     def get_ec2_client(self, region: str):
         """Get EC2 client for a specific region."""
         return self.session.client("ec2", region_name=region)
+
+    def get_elasticache_client(self, region: str):
+        """Get ElastiCache client for a specific region."""
+        return self.session.client("elasticache", region_name=region)
+
+    def get_ecs_client(self, region: str):
+        """Get ECS client for a specific region."""
+        return self.session.client("ecs", region_name=region)
+
+    def get_dynamodb_client(self, region: str):
+        """Get DynamoDB client for a specific region."""
+        return self.session.client("dynamodb", region_name=region)
 
 
 # ---------------------------------------------------------------------------

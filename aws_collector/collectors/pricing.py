@@ -1,41 +1,62 @@
 """
-pricing_collector.py — AWS Pricing API collector.
+pricing.py — AWS Pricing API collector.
 
 Fetches pricing information for EC2, S3, Lambda, and RDS from the
 AWS Pricing API and EC2 Spot Price History API.
 
+Note: This collector does not follow the standard list_resources/get_metrics
+pattern as pricing data is reference data, not resource-specific metrics.
+
 Part of the Smart Cloud Optimizer graduation project.
 """
-import csv
 import json
 import logging
+import sqlite3
 from typing import Any, Dict, List, Optional
 
-from .config import AWSConfig, DATA_DIR
-from .pricing_constants import (
+import storage
+
+from ..config import AWSConfig
+from ..pricing_constants import (
     DEFAULT_INSTANCE_TYPES,
     DEFAULT_RDS_INSTANCE_CLASSES,
     DEFAULT_S3_STORAGE_CLASSES,
-    PRICING_CSV_FIELDS,
     REGION_LOCATION_MAP,
     REGION_PREFIX_MAP,
     RESERVED_INSTANCE_TYPES_LIMIT,
     SPOT_DISCOUNT_FACTOR,
 )
+from ..transforms import transform_pricing
 
 logger = logging.getLogger(__name__)
 
 
 class PricingCollector:
-    """Collects pricing data from AWS Pricing API and EC2 Spot API."""
+    """Collects pricing data from AWS Pricing API and EC2 Spot API.
 
-    def __init__(self, config: AWSConfig) -> None:
+    Unlike resource collectors, pricing data is reference information
+    that applies across resources. This collector fetches price lists
+    for EC2, RDS, S3, and Lambda services.
+    """
+
+    SERVICE_NAME: str = "Pricing"
+
+    def __init__(
+        self,
+        config: AWSConfig,
+        conn: sqlite3.Connection,
+        user_id: str,
+    ) -> None:
         """Initialize Pricing Collector.
 
         Args:
             config: AWSConfig instance with Pricing client.
+            conn: SQLite connection for data storage.
+            user_id: User ID for data isolation.
         """
         self.config = config
+        self.conn = conn
+        self.user_id = user_id
         self.pricing = config.pricing
         self.account_id = config.account_id
         self.session = config.session
@@ -95,7 +116,9 @@ class PricingCollector:
         ]
 
         if pricing_type == "OnDemand":
-            filters.append({"Type": "TERM_MATCH", "Field": "capacitystatus", "Value": "Used"})
+            filters.append(
+                {"Type": "TERM_MATCH", "Field": "capacitystatus", "Value": "Used"}
+            )
 
         try:
             response = self.pricing.get_products(
@@ -105,10 +128,15 @@ class PricingCollector:
             )
             if response.get("PriceList"):
                 product = json.loads(response["PriceList"][0])
-                return self._extract_ec2_pricing(product, instance_type, region, pricing_type)
+                return self._extract_ec2_pricing(
+                    product, instance_type, region, pricing_type
+                )
             return None
         except Exception as e:
-            logger.warning(f"Failed to get EC2 {pricing_type} price for {instance_type} in {region}: {e}")
+            logger.warning(
+                f"Failed to get EC2 {pricing_type} price for "
+                f"{instance_type} in {region}: {e}"
+            )
             return None
 
     def get_spot_price(
@@ -149,11 +177,17 @@ class PricingCollector:
                     "hourly_price_usd": float(entry["SpotPrice"]),
                     "pricing_type": "Spot",
                     "availability_zone": entry.get("AvailabilityZone", ""),
-                    "timestamp": entry["Timestamp"].isoformat() if entry.get("Timestamp") else "",
+                    "timestamp": (
+                        entry["Timestamp"].isoformat()
+                        if entry.get("Timestamp")
+                        else ""
+                    ),
                 }
             return None
         except Exception as e:
-            logger.warning(f"Failed to get Spot price for {instance_type} in {region}: {e}")
+            logger.warning(
+                f"Failed to get Spot price for {instance_type} in {region}: {e}"
+            )
             return None
 
     def _extract_ec2_pricing(
@@ -261,7 +295,9 @@ class PricingCollector:
     # S3 pricing
     # ------------------------------------------------------------------
 
-    def get_s3_price(self, storage_class: str = "Standard") -> Optional[Dict[str, Any]]:
+    def get_s3_price(
+        self, storage_class: str = "Standard"
+    ) -> Optional[Dict[str, Any]]:
         """Fetch S3 storage price from the Pricing API.
 
         Args:
@@ -291,7 +327,9 @@ class PricingCollector:
             return None
 
     @staticmethod
-    def _extract_s3_pricing(product: Dict[str, Any], storage_class: str) -> Dict[str, Any]:
+    def _extract_s3_pricing(
+        product: Dict[str, Any], storage_class: str
+    ) -> Dict[str, Any]:
         """Extract per-GB price from an S3 Pricing API product.
 
         Args:
@@ -306,7 +344,10 @@ class PricingCollector:
                 for dim_value in term_value.get("priceDimensions", {}).values():
                     usd = dim_value.get("pricePerUnit", {}).get("USD")
                     if usd is not None:
-                        return {"storage_class": storage_class, "price_per_gb_usd": float(usd)}
+                        return {
+                            "storage_class": storage_class,
+                            "price_per_gb_usd": float(usd),
+                        }
             return {"storage_class": storage_class, "price_per_gb_usd": None}
         except Exception as e:
             logger.warning(f"Failed to extract S3 pricing: {e}")
@@ -316,7 +357,9 @@ class PricingCollector:
     # Lambda pricing
     # ------------------------------------------------------------------
 
-    def get_lambda_price(self, region: str = "us-east-1") -> Optional[Dict[str, Any]]:
+    def get_lambda_price(
+        self, region: str = "us-east-1"
+    ) -> Optional[Dict[str, Any]]:
         """Fetch Lambda pricing (requests + compute) from the Pricing API.
 
         Args:
@@ -343,11 +386,17 @@ class PricingCollector:
             pricing_info: Dict[str, Any] = {}
             for price_item in response.get("PriceList", []):
                 product = json.loads(price_item)
-                group = product.get("product", {}).get("attributes", {}).get("group", "")
+                group = (
+                    product.get("product", {}).get("attributes", {}).get("group", "")
+                )
                 if "Request" in group:
-                    pricing_info["requests_per_million"] = self._extract_price(price_item)
+                    pricing_info["requests_per_million"] = self._extract_price(
+                        price_item
+                    )
                 elif "Compute" in group:
-                    pricing_info["compute_per_gb_second"] = self._extract_price(price_item)
+                    pricing_info["compute_per_gb_second"] = self._extract_price(
+                        price_item
+                    )
 
             return pricing_info if pricing_info else None
         except Exception as e:
@@ -447,7 +496,12 @@ class PricingCollector:
                             "region": region,
                             "hourly_price_usd": float(usd),
                         }
-            return {"instance_class": instance_class, "engine": engine, "region": region, "hourly_price_usd": None}
+            return {
+                "instance_class": instance_class,
+                "engine": engine,
+                "region": region,
+                "hourly_price_usd": None,
+            }
         except Exception as e:
             logger.warning(f"Failed to extract RDS pricing: {e}")
             return {}
@@ -461,24 +515,26 @@ class PricingCollector:
         month_key: str,
         instance_types: Optional[List[str]] = None,
         regions: Optional[List[str]] = None,
-    ) -> None:
-        """Collect and save a full pricing snapshot for one month.
+    ) -> List[Dict[str, Any]]:
+        """Collect a full pricing snapshot for one month.
 
         Fetches EC2 (On-Demand, Reserved, Spot), S3, Lambda, and RDS
-        pricing and writes a consolidated CSV.
+        pricing.
 
         Args:
             month_key: Month key in ``YYYY-MM`` format.
             instance_types: EC2 types to query (defaults to ``DEFAULT_INSTANCE_TYPES``).
             regions: AWS regions to query (defaults to all configured regions).
+
+        Returns:
+            List of pricing row dicts.
         """
         if instance_types is None:
             instance_types = list(DEFAULT_INSTANCE_TYPES)
         if regions is None:
-            from .config import get_config
-            regions = get_config().regions
+            regions = self.config.regions
 
-        logger.info(f"  Collecting pricing snapshot for {month_key}...")
+        logger.info(f"  [{self.SERVICE_NAME}] Collecting pricing snapshot for {month_key}...")
         logger.info(f"    Regions: {len(regions)}, Instance types: {len(instance_types)}")
 
         rows: List[Dict[str, Any]] = []
@@ -489,17 +545,25 @@ class PricingCollector:
         rows.extend(self._collect_lambda_pricing(month_key))
         rows.extend(self._collect_rds_pricing(month_key))
 
-        self._write_pricing_csv(month_key, rows)
+        return rows
 
     def _collect_ec2_on_demand(
-        self, month_key: str, instance_types: List[str], regions: List[str],
+        self,
+        month_key: str,
+        instance_types: List[str],
+        regions: List[str],
     ) -> List[Dict[str, Any]]:
         """Collect EC2 On-Demand prices for all type/region combinations."""
-        logger.info(f"    -> EC2 on-demand prices ({len(instance_types)} types x {len(regions)} regions)...")
+        logger.info(
+            f"    -> EC2 on-demand prices "
+            f"({len(instance_types)} types x {len(regions)} regions)..."
+        )
         rows: List[Dict[str, Any]] = []
         for instance_type in instance_types:
             for region in regions:
-                price = self.get_ec2_price(instance_type, region=region, pricing_type="OnDemand")
+                price = self.get_ec2_price(
+                    instance_type, region=region, pricing_type="OnDemand"
+                )
                 if price:
                     rows.append({
                         "account_id": self.account_id,
@@ -508,25 +572,39 @@ class PricingCollector:
                         "pricing_type": "On-Demand",
                         "instance_type": price.get("instance_type", ""),
                         "region": price.get("region", ""),
-                        "hourly_price_usd": float(price["hourly_price_usd"]) if price.get("hourly_price_usd") else 0.0,
-                        "product_family": price.get("product_attributes", {}).get("productFamily", ""),
+                        "hourly_price_usd": (
+                            float(price["hourly_price_usd"])
+                            if price.get("hourly_price_usd")
+                            else 0.0
+                        ),
+                        "product_family": price.get("product_attributes", {}).get(
+                            "productFamily", ""
+                        ),
                     })
         logger.info(f"      {len(rows)} prices collected")
         return rows
 
     def _collect_ec2_reserved(
-        self, month_key: str, instance_types: List[str], regions: List[str],
+        self,
+        month_key: str,
+        instance_types: List[str],
+        regions: List[str],
     ) -> List[Dict[str, Any]]:
         """Collect EC2 Reserved Instance prices (1yr and 3yr)."""
         reserved_types = instance_types[:RESERVED_INSTANCE_TYPES_LIMIT]
         rows: List[Dict[str, Any]] = []
 
         for term in ("1yr", "3yr"):
-            logger.info(f"    -> EC2 reserved {term} prices ({len(reserved_types)} types x {len(regions)} regions)...")
+            logger.info(
+                f"    -> EC2 reserved {term} prices "
+                f"({len(reserved_types)} types x {len(regions)} regions)..."
+            )
             count = 0
             for instance_type in reserved_types:
                 for region in regions:
-                    reserved = self.get_reserved_price(instance_type, region=region, term=term)
+                    reserved = self.get_reserved_price(
+                        instance_type, region=region, term=term
+                    )
                     if reserved:
                         rows.append({
                             "account_id": self.account_id,
@@ -536,7 +614,11 @@ class PricingCollector:
                             "instance_type": reserved.get("instance_type", ""),
                             "region": reserved.get("region", ""),
                             "term": term,
-                            "price_usd": float(reserved["price_usd"]) if reserved.get("price_usd") else 0.0,
+                            "price_usd": (
+                                float(reserved["price_usd"])
+                                if reserved.get("price_usd")
+                                else 0.0
+                            ),
                             "unit": reserved.get("unit", ""),
                         })
                         count += 1
@@ -544,10 +626,16 @@ class PricingCollector:
         return rows
 
     def _collect_ec2_spot(
-        self, month_key: str, instance_types: List[str], regions: List[str],
+        self,
+        month_key: str,
+        instance_types: List[str],
+        regions: List[str],
     ) -> List[Dict[str, Any]]:
         """Collect EC2 Spot prices using the EC2 Spot Price History API."""
-        logger.info(f"    -> EC2 spot prices ({len(instance_types)} types x {len(regions)} regions)...")
+        logger.info(
+            f"    -> EC2 spot prices "
+            f"({len(instance_types)} types x {len(regions)} regions)..."
+        )
         rows: List[Dict[str, Any]] = []
         for instance_type in instance_types:
             for region in regions:
@@ -560,7 +648,11 @@ class PricingCollector:
                         "pricing_type": "Spot",
                         "instance_type": spot_price.get("instance_type", ""),
                         "region": spot_price.get("region", ""),
-                        "hourly_price_usd": float(spot_price["hourly_price_usd"]) if spot_price.get("hourly_price_usd") else 0.0,
+                        "hourly_price_usd": (
+                            float(spot_price["hourly_price_usd"])
+                            if spot_price.get("hourly_price_usd")
+                            else 0.0
+                        ),
                     })
         logger.info(f"      {len(rows)} prices collected")
         return rows
@@ -578,7 +670,11 @@ class PricingCollector:
                     "service": "S3",
                     "pricing_type": "Storage",
                     "storage_class": storage_class,
-                    "price_per_gb_usd": float(s3_price["price_per_gb_usd"]) if s3_price.get("price_per_gb_usd") else 0.0,
+                    "price_per_gb_usd": (
+                        float(s3_price["price_per_gb_usd"])
+                        if s3_price.get("price_per_gb_usd")
+                        else 0.0
+                    ),
                 })
         logger.info(f"      {len(rows)} prices collected")
         return rows
@@ -594,8 +690,16 @@ class PricingCollector:
                 "month": month_key,
                 "service": "Lambda",
                 "pricing_type": "Requests",
-                "requests_per_million_usd": float(lambda_price.get("requests_per_million", 0)) if lambda_price.get("requests_per_million") else 0.0,
-                "compute_per_gb_second_usd": float(lambda_price.get("compute_per_gb_second", 0)) if lambda_price.get("compute_per_gb_second") else 0.0,
+                "requests_per_million_usd": (
+                    float(lambda_price.get("requests_per_million", 0))
+                    if lambda_price.get("requests_per_million")
+                    else 0.0
+                ),
+                "compute_per_gb_second_usd": (
+                    float(lambda_price.get("compute_per_gb_second", 0))
+                    if lambda_price.get("compute_per_gb_second")
+                    else 0.0
+                ),
             })
         logger.info(f"      {len(rows)} entries collected")
         return rows
@@ -615,45 +719,32 @@ class PricingCollector:
                     "instance_class": instance_class,
                     "engine": rds_price.get("engine", ""),
                     "region": rds_price.get("region", ""),
-                    "hourly_price_usd": float(rds_price["hourly_price_usd"]) if rds_price.get("hourly_price_usd") else 0.0,
+                    "hourly_price_usd": (
+                        float(rds_price["hourly_price_usd"])
+                        if rds_price.get("hourly_price_usd")
+                        else 0.0
+                    ),
                 })
         logger.info(f"      {len(rows)} prices collected")
         return rows
 
-    def _write_pricing_csv(self, month_key: str, rows: List[Dict[str, Any]]) -> None:
-        """Write collected pricing rows to the consolidated CSV file.
+    def collect(self, month_key: str, regions: Optional[List[str]] = None) -> int:
+        """Collect and store pricing snapshot for a month.
 
         Args:
-            month_key: Month key for logging.
-            rows: List of pricing row dicts.
+            month_key: Month key in ``YYYY-MM`` format.
+            regions: AWS regions to query (defaults to configured regions).
+
+        Returns:
+            Number of pricing records inserted.
         """
-        pricing_dir = DATA_DIR / "pricing"
-        pricing_dir.mkdir(parents=True, exist_ok=True)
-        consolidated_file = pricing_dir / "pricing_consolidated.csv"
+        raw_rows = self.collect_month_snapshot(month_key, regions=regions)
+        pricing_rows = transform_pricing(raw_rows)
 
-        if rows:
-            all_fieldnames: set[str] = set()
-            for row in rows:
-                all_fieldnames.update(row.keys())
+        if pricing_rows:
+            storage.insert_instance_pricing(self.conn, pricing_rows)
 
-            fieldnames = [f for f in PRICING_CSV_FIELDS if f in all_fieldnames]
-            extra_fields = sorted(all_fieldnames - set(fieldnames))
-            fieldnames.extend(extra_fields)
-
-            normalized_rows = [{field: row.get(field, "") for field in fieldnames} for row in rows]
-
-            file_exists = consolidated_file.exists()
-            with open(consolidated_file, "a", newline="") as f:
-                writer = csv.DictWriter(f, fieldnames=fieldnames)
-                if not file_exists:
-                    writer.writeheader()
-                writer.writerows(normalized_rows)
-
-            logger.info(f"  Saved {len(rows)} pricing records -> pricing_consolidated.csv")
-        else:
-            if not consolidated_file.exists():
-                with open(consolidated_file, "w", newline="") as f:
-                    writer = csv.writer(f)
-                    writer.writerow(["account_id", "month", "service", "note"])
-                    writer.writerow([self.account_id, month_key, "N/A", "No pricing data"])
-                logger.info("  Created empty pricing file pricing_consolidated.csv")
+        logger.info(
+            f"  [{self.SERVICE_NAME}] Inserted {len(pricing_rows)} pricing records"
+        )
+        return len(pricing_rows)

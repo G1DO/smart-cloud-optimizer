@@ -1,15 +1,14 @@
 """
-AWS Collector Package
-A modular system for collecting AWS usage data, costs, and metrics.
+AWS Collector Package — Modular system for collecting AWS usage data.
+
+Collects costs, metrics, inventory, and pricing data across 10 AWS services:
+EC2, RDS, Lambda, S3, DynamoDB, ElastiCache, ECS, NAT Gateway, ELB, EBS.
 """
 
-__version__ = "2.0.0"
+__version__ = "3.0.0"
 
-from .collector_runner import CollectorRunner
-from .config import AWSConfig, init_config, get_config
-
-# ML utilities available but not imported by default (requires pandas/numpy)
-# Import with: from aws_collector.ml_utils import load_cost_data, add_time_features
+from .config import AWSConfig, get_config, init_config
+from .runner import CollectorRunner
 
 __all__ = [
     "CollectorRunner",
