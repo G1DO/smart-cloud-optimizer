@@ -47,6 +47,7 @@ class DynamoDBCollector(BaseCollector):
             List of table dictionaries with inventory data.
         """
         all_tables: List[Dict] = []
+        failed_regions = []
 
         logger.info(f"\n[{self.SERVICE_NAME}] Collecting inventory...")
         for region in self.regions:
@@ -101,7 +102,10 @@ class DynamoDBCollector(BaseCollector):
                 logger.warning(
                     f"  [WARN] Failed to list DynamoDB tables in {region}: {e}"
                 )
+                failed_regions.append(region)
 
+        if failed_regions:
+            logger.warning(f"  [DynamoDB] Skipped {len(failed_regions)} regions: {failed_regions}")
         logger.info(f"  Found {len(all_tables)} DynamoDB tables")
         return all_tables
 
@@ -211,6 +215,7 @@ class DynamoDBCollector(BaseCollector):
         # Step 3: Fetch and insert metrics for each table
         total = len(tables)
         count = 0
+        failed_tables = []
 
         for idx, table in enumerate(tables, 1):
             try:
@@ -235,7 +240,10 @@ class DynamoDBCollector(BaseCollector):
                     f"    [WARN] Failed DynamoDB metrics for "
                     f"{table['table_name']}: {e}"
                 )
+                failed_tables.append(table["table_name"])
 
+        if failed_tables:
+            logger.warning(f"  [DynamoDB] Failed {len(failed_tables)} tables: {failed_tables[:5]}{'...' if len(failed_tables) > 5 else ''}")
         logger.info(
             f"  Collected {self.SERVICE_NAME} metrics for {count}/{total} tables"
         )
