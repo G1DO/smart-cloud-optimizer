@@ -156,6 +156,7 @@ class S3Collector(BaseCollector):
         # Step 3: Fetch and insert metrics for each bucket
         logger.info(f"\n[{self.SERVICE_NAME}] Processing {total} buckets...")
         count = 0
+        failed_buckets = []
 
         for idx, bucket in enumerate(buckets, 1):
             try:
@@ -183,7 +184,10 @@ class S3Collector(BaseCollector):
                 logger.warning(
                     f"  [WARN] Failed to collect S3 metrics for {bucket['bucket_name']}: {e}"
                 )
+                failed_buckets.append(bucket["bucket_name"])
 
+        if failed_buckets:
+            logger.warning(f"  [S3] Failed {len(failed_buckets)} buckets: {failed_buckets[:5]}{'...' if len(failed_buckets) > 5 else ''}")
         logger.info(
             f"\n[{self.SERVICE_NAME}] Collected metrics for {count}/{total} buckets"
         )
