@@ -47,5 +47,5 @@ htmlcov/
 *.tmp
 backups/
 
-# Database
-data/*.db
+# Database (track synthetic db for team)
+# data/*.db
