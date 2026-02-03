@@ -5,6 +5,7 @@ import numpy as np
 from data_generation.synthetic import (
     generate_daily_costs,
     generate_service_costs,
+    generate_service_region_costs,
     generate_ec2_instances,
     generate_ec2_metrics,
     generate_rds_instances,
@@ -13,6 +14,19 @@ from data_generation.synthetic import (
     generate_lambda_functions,
     generate_ebs_volumes,
     generate_instance_pricing,
+    generate_elasticache_nodes,
+    generate_elasticache_metrics,
+    generate_ecs_services,
+    generate_ecs_metrics,
+    generate_dynamodb_tables,
+    generate_dynamodb_metrics,
+    generate_nat_gateways,
+    generate_nat_gateway_metrics,
+    generate_elb_instances,
+    generate_elb_metrics,
+    generate_ebs_metrics,
+    generate_lambda_metrics,
+    generate_s3_metrics,
 )
 
 
@@ -48,6 +62,29 @@ class TestServiceCosts:
     def test_no_negative_costs(self):
         df = generate_service_costs(days=30, seed=1)
         assert (df["cost_amount"] >= 0).all()
+
+
+class TestServiceRegionCosts:
+    def test_has_region_column(self):
+        svc = generate_service_costs(days=30, seed=1)
+        df = generate_service_region_costs(svc, seed=1)
+        assert "region" in df.columns
+
+    def test_more_rows_than_service_costs(self):
+        svc = generate_service_costs(days=30, seed=1)
+        df = generate_service_region_costs(svc, seed=1)
+        assert len(df) >= len(svc)
+
+    def test_no_negative_costs(self):
+        svc = generate_service_costs(days=30, seed=1)
+        df = generate_service_region_costs(svc, seed=1)
+        assert (df["cost_amount"] >= 0).all()
+
+    def test_required_columns(self):
+        svc = generate_service_costs(days=30, seed=1)
+        df = generate_service_region_costs(svc, seed=1)
+        for col in ["account_id", "date", "service_name", "region", "cost_amount", "currency"]:
+            assert col in df.columns
 
 
 class TestEC2Instances:
@@ -145,3 +182,168 @@ class TestInstancePricing:
         df, _, _ = generate_instance_pricing()
         assert "instance_type" in df.columns
         assert "hourly_price_usd" in df.columns
+
+
+class TestElastiCacheNodes:
+    def test_count(self):
+        df = generate_elasticache_nodes()
+        assert len(df) == 3
+
+    def test_required_columns(self):
+        df = generate_elasticache_nodes()
+        for col in ["cache_cluster_id", "cache_node_type", "engine"]:
+            assert col in df.columns
+
+    def test_engines(self):
+        df = generate_elasticache_nodes()
+        assert set(df["engine"]) == {"redis", "memcached"}
+
+
+class TestElastiCacheMetrics:
+    def test_has_rows(self):
+        df = generate_elasticache_metrics(days=3, seed=1)
+        assert len(df) > 0
+
+    def test_cache_hit_ratio(self):
+        df = generate_elasticache_metrics(days=7, seed=1)
+        total_hits = df["cache_hits"].sum()
+        total_misses = df["cache_misses"].sum()
+        ratio = total_hits / (total_hits + total_misses)
+        assert ratio > 0.90
+
+    def test_cpu_range(self):
+        df = generate_elasticache_metrics(days=7, seed=1)
+        assert (df["cpu_util_avg"] >= 0).all()
+        assert (df["cpu_util_avg"] <= 100).all()
+
+
+class TestECSServices:
+    def test_count(self):
+        df = generate_ecs_services()
+        assert len(df) == 4
+
+    def test_required_columns(self):
+        df = generate_ecs_services()
+        for col in ["service_name", "cluster_name", "cpu", "memory_mb"]:
+            assert col in df.columns
+
+
+class TestECSMetrics:
+    def test_has_rows(self):
+        df = generate_ecs_metrics(days=3, seed=1)
+        assert len(df) > 0
+
+    def test_cpu_range(self):
+        df = generate_ecs_metrics(days=7, seed=1)
+        assert (df["cpu_utilization_avg"] >= 0).all()
+        assert (df["cpu_utilization_avg"] <= 100).all()
+
+
+class TestDynamoDBTables:
+    def test_count(self):
+        df = generate_dynamodb_tables()
+        assert len(df) == 3
+
+    def test_capacity_modes(self):
+        df = generate_dynamodb_tables()
+        assert "ON_DEMAND" in df["capacity_mode"].values
+        assert "PROVISIONED" in df["capacity_mode"].values
+
+
+class TestDynamoDBMetrics:
+    def test_has_rows(self):
+        df = generate_dynamodb_metrics(days=3, seed=1)
+        assert len(df) > 0
+
+    def test_no_negative_units(self):
+        df = generate_dynamodb_metrics(days=7, seed=1)
+        assert (df["consumed_read_units_avg"] >= 0).all()
+        assert (df["consumed_write_units_avg"] >= 0).all()
+
+
+class TestNATGateways:
+    def test_count(self):
+        df = generate_nat_gateways()
+        assert len(df) == 2
+
+    def test_required_columns(self):
+        df = generate_nat_gateways()
+        for col in ["nat_gateway_id", "vpc_id", "subnet_id", "state"]:
+            assert col in df.columns
+
+
+class TestNATGatewayMetrics:
+    def test_has_rows(self):
+        df = generate_nat_gateway_metrics(days=3, seed=1)
+        assert len(df) > 0
+
+    def test_no_negative_bytes(self):
+        df = generate_nat_gateway_metrics(days=7, seed=1)
+        assert (df["bytes_in_avg"] >= 0).all()
+        assert (df["bytes_out_avg"] >= 0).all()
+
+
+class TestELBInstances:
+    def test_count(self):
+        df = generate_elb_instances()
+        assert len(df) == 3
+
+    def test_required_columns(self):
+        df = generate_elb_instances()
+        for col in ["load_balancer_arn", "load_balancer_name", "type"]:
+            assert col in df.columns
+
+
+class TestELBMetrics:
+    def test_has_rows(self):
+        df = generate_elb_metrics(days=3, seed=1)
+        assert len(df) > 0
+
+    def test_http_codes_non_negative(self):
+        df = generate_elb_metrics(days=7, seed=1)
+        for col in ["http_2xx", "http_3xx", "http_4xx", "http_5xx"]:
+            assert (df[col] >= 0).all()
+
+
+class TestEBSMetrics:
+    def test_has_rows(self):
+        df = generate_ebs_metrics(days=3, seed=1)
+        assert len(df) > 0
+
+    def test_multiple_volumes(self):
+        df = generate_ebs_metrics(days=3, seed=1)
+        assert df["volume_id"].nunique() == 8
+
+    def test_no_negative_ops(self):
+        df = generate_ebs_metrics(days=7, seed=1)
+        assert (df["read_ops_avg"] >= 0).all()
+        assert (df["write_ops_avg"] >= 0).all()
+
+
+class TestLambdaMetrics:
+    def test_has_rows(self):
+        df = generate_lambda_metrics(days=7, seed=1)
+        assert len(df) > 0
+
+    def test_multiple_functions(self):
+        df = generate_lambda_metrics(days=7, seed=1)
+        assert df["function_name"].nunique() == 4
+
+    def test_no_negative_invocations(self):
+        df = generate_lambda_metrics(days=7, seed=1)
+        assert (df["invocations"] >= 0).all()
+        assert (df["errors"] >= 0).all()
+
+
+class TestS3Metrics:
+    def test_has_rows(self):
+        df = generate_s3_metrics(days=7, seed=1)
+        assert len(df) > 0
+
+    def test_multiple_buckets(self):
+        df = generate_s3_metrics(days=7, seed=1)
+        assert df["bucket_name"].nunique() == 4
+
+    def test_positive_sizes(self):
+        df = generate_s3_metrics(days=7, seed=1)
+        assert (df["bucket_size_bytes"] >= 0).all()

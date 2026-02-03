@@ -13,9 +13,8 @@ class TestPaths:
     def test_data_dir_under_project_root(self):
         assert config.DATA_DIR == config.PROJECT_ROOT / "data"
 
-    def test_real_and_synthetic_dirs(self):
-        assert config.REAL_DATA_DIR == config.DATA_DIR / "real"
-        assert config.SYNTHETIC_DATA_DIR == config.DATA_DIR / "synthetic"
+    def test_db_path_under_data_dir(self):
+        assert config.DB_PATH == config.DATA_DIR / "cloud_optimizer.db"
 
 
 class TestDemoMode:
@@ -30,16 +29,6 @@ class TestDemoMode:
         with mock.patch.dict(os.environ, {"DEMO_MODE": "false"}):
             result = os.getenv("DEMO_MODE", "true").lower() == "true"
             assert result is False
-
-
-class TestGetDataDir:
-    def test_demo_returns_synthetic(self):
-        with mock.patch.object(config, "DEMO_MODE", True):
-            assert config.get_data_dir() == config.SYNTHETIC_DATA_DIR
-
-    def test_non_demo_returns_real(self):
-        with mock.patch.object(config, "DEMO_MODE", False):
-            assert config.get_data_dir() == config.REAL_DATA_DIR
 
 
 class TestConstants:
