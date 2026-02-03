@@ -49,6 +49,7 @@ class LambdaCollector(BaseCollector):
             List of function dictionaries with inventory data.
         """
         all_functions: List[Dict] = []
+        failed_regions = []
 
         logger.info(f"\n[{self.SERVICE_NAME}] Collecting inventory...")
         for region in self.regions:
@@ -77,7 +78,10 @@ class LambdaCollector(BaseCollector):
                 logger.warning(
                     f"  [WARN] Failed to list Lambda functions in {region}: {e}"
                 )
+                failed_regions.append(region)
 
+        if failed_regions:
+            logger.warning(f"  [Lambda] Skipped {len(failed_regions)} regions: {failed_regions}")
         logger.info(f"  Found {len(all_functions)} Lambda functions")
         return all_functions
 
@@ -159,6 +163,7 @@ class LambdaCollector(BaseCollector):
         # Step 3: Fetch and insert metrics for each function
         logger.info(f"\n[{self.SERVICE_NAME}] Processing {total} functions...")
         count = 0
+        failed_functions = []
 
         for idx, func in enumerate(functions, 1):
             try:
@@ -185,7 +190,10 @@ class LambdaCollector(BaseCollector):
                 logger.warning(
                     f"  [WARN] Failed {func['function_name']}: {e}"
                 )
+                failed_functions.append(func["function_name"])
 
+        if failed_functions:
+            logger.warning(f"  [Lambda] Failed {len(failed_functions)} functions: {failed_functions[:5]}{'...' if len(failed_functions) > 5 else ''}")
         logger.info(
             f"\n[{self.SERVICE_NAME}] Collected metrics for {count}/{total} functions"
         )
