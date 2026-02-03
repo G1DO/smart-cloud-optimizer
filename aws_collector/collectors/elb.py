@@ -47,6 +47,7 @@ class ELBCollector(BaseCollector):
             List of Load Balancer dictionaries with inventory data.
         """
         all_load_balancers: List[Dict] = []
+        failed_regions = []
 
         logger.info(f"\n[{self.SERVICE_NAME}] Collecting inventory...")
         for region in self.regions:
@@ -89,7 +90,10 @@ class ELBCollector(BaseCollector):
                 logger.warning(
                     f"  [WARN] Failed to list Load Balancers in {region}: {e}"
                 )
+                failed_regions.append(region)
 
+        if failed_regions:
+            logger.warning(f"  [ELB] Skipped {len(failed_regions)} regions: {failed_regions}")
         logger.info(
             f"  [{self.SERVICE_NAME}] Found {len(all_load_balancers)} Load Balancers"
         )
@@ -291,6 +295,7 @@ class ELBCollector(BaseCollector):
         total = len(load_balancers)
         alb_count = 0
         nlb_count = 0
+        failed_lbs = []
 
         for idx, lb in enumerate(load_balancers, 1):
             try:
@@ -331,7 +336,10 @@ class ELBCollector(BaseCollector):
 
             except Exception as e:
                 logger.warning(f"    [WARN] Failed {lb['lb_arn']}: {e}")
+                failed_lbs.append(lb["lb_name"])
 
+        if failed_lbs:
+            logger.warning(f"  [ELB] Failed {len(failed_lbs)} load balancers: {failed_lbs[:5]}{'...' if len(failed_lbs) > 5 else ''}")
         logger.info(
             f"  [{self.SERVICE_NAME}] Collected ALB metrics: {alb_count}, "
             f"NLB metrics: {nlb_count}"
