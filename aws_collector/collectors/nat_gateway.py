@@ -47,6 +47,7 @@ class NATGatewayCollector(BaseCollector):
             List of NAT Gateway dictionaries with inventory data.
         """
         all_nat_gateways: List[Dict] = []
+        failed_regions = []
 
         logger.info(f"\n[{self.SERVICE_NAME}] Collecting inventory...")
         for region in self.regions:
@@ -89,7 +90,10 @@ class NATGatewayCollector(BaseCollector):
                 logger.warning(
                     f"  [WARN] Failed to list NAT Gateways in {region}: {e}"
                 )
+                failed_regions.append(region)
 
+        if failed_regions:
+            logger.warning(f"  [NAT Gateway] Skipped {len(failed_regions)} regions: {failed_regions}")
         logger.info(
             f"  [{self.SERVICE_NAME}] Found {len(all_nat_gateways)} NAT Gateways"
         )
@@ -200,6 +204,7 @@ class NATGatewayCollector(BaseCollector):
         # Collect metrics
         total = len(nat_gateways)
         count = 0
+        failed_gateways = []
 
         for idx, nat in enumerate(nat_gateways, 1):
             try:
@@ -223,7 +228,10 @@ class NATGatewayCollector(BaseCollector):
                 logger.warning(
                     f"    [WARN] Failed {nat['nat_gateway_id']}: {e}"
                 )
+                failed_gateways.append(nat["nat_gateway_id"])
 
+        if failed_gateways:
+            logger.warning(f"  [NAT Gateway] Failed {len(failed_gateways)} gateways: {failed_gateways[:5]}{'...' if len(failed_gateways) > 5 else ''}")
         logger.info(
             f"  [{self.SERVICE_NAME}] Collected metrics for {count}/{total} gateways"
         )
