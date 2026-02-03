@@ -47,6 +47,7 @@ class ECSCollector(BaseCollector):
             List of service dictionaries with inventory data.
         """
         all_services: List[Dict] = []
+        failed_regions = []
 
         logger.info(f"\n[{self.SERVICE_NAME}] Collecting inventory...")
         for region in self.regions:
@@ -121,7 +122,10 @@ class ECSCollector(BaseCollector):
                 logger.warning(
                     f"  [WARN] Failed to list ECS services in {region}: {e}"
                 )
+                failed_regions.append(region)
 
+        if failed_regions:
+            logger.warning(f"  [ECS] Skipped {len(failed_regions)} regions: {failed_regions}")
         logger.info(f"  Found {len(all_services)} ECS services")
         return all_services
 
@@ -207,6 +211,7 @@ class ECSCollector(BaseCollector):
         # Step 3: Fetch and insert metrics for each service
         total = len(services)
         count = 0
+        failed_services = []
 
         for idx, svc in enumerate(services, 1):
             try:
@@ -233,7 +238,10 @@ class ECSCollector(BaseCollector):
                     f"    [WARN] Failed ECS metrics for "
                     f"{svc['service_name']}: {e}"
                 )
+                failed_services.append(svc["service_name"])
 
+        if failed_services:
+            logger.warning(f"  [ECS] Failed {len(failed_services)} services: {failed_services[:5]}{'...' if len(failed_services) > 5 else ''}")
         logger.info(
             f"  Collected {self.SERVICE_NAME} metrics for {count}/{total} services"
         )
