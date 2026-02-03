@@ -10,13 +10,14 @@ Every file in the project, what it does, and how it connects to the rest.
 
 Single source of truth for project-wide settings. Contains:
 
-- **Paths**: `PROJECT_ROOT`, `DATA_DIR`, `REAL_DATA_DIR`, `SYNTHETIC_DATA_DIR`, `DB_PATH`
+- **Paths**: `PROJECT_ROOT`, `DATA_DIR`, `DB_PATH`
 - **Mode**: `DEMO_MODE` (bool, from env var, default `true`)
 - **AWS**: `AWS_REGION`, `AWS_ACCOUNT_ID`
 - **ML**: `FORECAST_HORIZON_DAYS`, `MIN_TRAINING_DAYS`, `SEASONALITY_PERIOD`
 - **Optimization**: `DEFAULT_BUDGET_CAP`, `SPOT_RELIABILITY`
 - **API keys**: `OPENAI_API_KEY`, `OPENAI_MODEL`
-- **Functions**: `get_data_dir()` (returns synthetic or real path), `setup_logging()`
+- **Reference data**: `INSTANCE_SPECS` (17 instance types), `SERVICE_NAME_MAP` (AWS name → short DB name)
+- **Functions**: `setup_logging()`
 
 This file does NOT touch boto3. AWS client setup lives in `aws_collector/config.py`.
 
@@ -24,9 +25,9 @@ This file does NOT touch boto3. AWS client setup lives in `aws_collector/config.
 
 Streamlit entry point (stub). Will import from `dashboard/` and launch the web UI.
 
-### `requirements.txt`
+### `pyproject.toml`
 
-Python dependencies: `boto3`, `pandas`, `numpy`, `matplotlib`, `pytest`.
+Project metadata and dependency specification.
 
 ---
 
@@ -34,7 +35,7 @@ Python dependencies: `boto3`, `pandas`, `numpy`, `matplotlib`, `pytest`.
 
 ### `__init__.py`
 
-Exports `CollectorRunner` for external use.
+Exports `CollectorRunner`, `AWSConfig`, `init_config`, `get_config`.
 
 ### `config.py`
 
@@ -43,64 +44,32 @@ AWS-specific configuration. Creates and manages boto3 clients.
 - **`AWSConfig`** class: Holds `session`, `ce` (Cost Explorer), `ec2`, `cloudwatch`, `pricing`, `s3` clients. Also fetches `account_id` via STS and `regions` via `ec2.describe_regions()`.
 - **`get_config()`**: Singleton accessor — returns existing `AWSConfig` or creates one.
 - **`init_config(session)`**: Initializes the singleton with a specific boto3 session.
-- Creates `data/` subdirectories on import.
+- Regional clients created on-demand via `get_ec2_client(region)`, `get_rds_client(region)`, `get_lambda_client(region)`, `get_cloudwatch_client(region)`.
 
-### `collector_runner.py`
+### `runner.py`
 
-The orchestrator. `CollectorRunner` runs the full collection pipeline:
+Thin orchestrator (~165 lines). Initializes all service collectors and runs them month-by-month:
 
-1. `save_inventory()` — EC2 instances, volumes, regions
-2. Monthly loop: `collect_month()` (costs) → `collect_metrics_for_month()` (CloudWatch) → `collect_month_snapshot()` (pricing)
+```python
+class CollectorRunner:
+    def run(self, months: int = 12):
+        for start, end in get_last_n_months(months):
+            self.cost.collect(start, end)
+            self.ec2.collect(start, end)
+            # ... each collector handles its own inventory + metrics
+```
 
-The metrics collection is split into private methods:
-- `_collect_ec2_metrics()`, `_collect_ebs_metrics()`, `_collect_lambda_metrics()`
-- `_collect_rds_metrics()`, `_collect_s3_metrics()`, `_collect_cloudfront_metrics()`
-- `_collect_nat_metrics()`, `_collect_lb_metrics()`
+### `metrics.py`
 
-Also handles instance merging (live + JSON + CSV inventories) to capture terminated instance metrics.
+Merged module containing CloudWatch helpers, metric maps, and date utilities:
 
-### `cost_collector.py`
+- **`fetch_cw_metric()`** — Generic wrapper for `cloudwatch.get_metric_statistics()`
+- **Metric maps**: `EC2_METRIC_MAP`, `RDS_METRIC_MAP`, `LAMBDA_METRIC_MAP`, etc.
+- **Date utilities**: `get_last_n_months()`, `get_datetime_range()`, `month_start_end()`, `get_month_key()`
 
-`CostCollector` wraps AWS Cost Explorer API. Methods:
+### `transforms.py`
 
-- `collect_month(start, end)` — Runs all four cost queries for a date range
-- `fetch_daily_cost()` — `GetCostAndUsage` grouped by day
-- `fetch_service_cost()` — `GetCostAndUsage` grouped by service
-- `fetch_usage_type_cost()` — `GetCostAndUsage` grouped by usage type
-- `fetch_anomalies()` — `GetAnomalies` for the period
-
-All results append to consolidated CSVs with deduplication.
-
-### `cw_collector.py`
-
-`CloudWatchCollector` wraps `cloudwatch.get_metric_statistics()`. Provides typed methods for each metric:
-
-- `get_cpu_utilization()`, `get_network_in()`, `get_network_out()`
-- `get_disk_read_ops()`, `get_disk_write_ops()`
-- And similar for EBS, Lambda, RDS, S3, CloudFront, NAT, ALB, NLB
-
-Each method returns a list of `(timestamp, value)` tuples.
-
-### `ec2_collector.py`
-
-`EC2Collector` handles EC2 and EBS inventory:
-
-- `list_instances()` — Calls `ec2.describe_instances()` across all regions
-- `list_volumes()` — Calls `ec2.describe_volumes()` across all regions
-- `list_regions()` — Returns the region list from config
-- `save_inventory()` — Writes all three to consolidated CSVs
-
-### `pricing_collector.py`
-
-`PricingCollector` queries the AWS Pricing API for instance costs:
-
-- `collect_month_snapshot(month_key)` — Collects all pricing types for a month
-- `_collect_ec2_on_demand()` — On-demand EC2 pricing via Pricing API
-- `_collect_ec2_reserved()` — Reserved instance pricing (1yr, 3yr)
-- `_collect_ec2_spot()` — Spot pricing (estimated from on-demand × discount factor)
-- `_collect_s3_pricing()` — S3 storage class pricing
-- `_collect_lambda_pricing()` — Lambda compute pricing
-- `_collect_rds_pricing()` — RDS instance pricing
+Data transformation helpers. Normalizes raw AWS API responses into the dict format expected by `storage.insert_*()`.
 
 ### `pricing_constants.py`
 
@@ -112,48 +81,66 @@ Static data used by `PricingCollector`:
 - `DEFAULT_RDS_CLASSES` — RDS instance classes
 - `SPOT_DISCOUNT_FACTOR` — 0.7 (Spot is ~70% of on-demand)
 
-### `collect_cloudfront.py`
-
-Collects CloudFront distribution inventory and metrics. Called by `CollectorRunner._collect_cloudfront_metrics()`.
-
-### `collect_nat_gateways.py`
-
-Collects NAT Gateway inventory and metrics across all regions. Called by `CollectorRunner._collect_nat_metrics()`.
-
-### `collect_load_balancers.py`
-
-Collects ALB and NLB inventory and metrics. Handles the ELBv2 API and splits results by load balancer type. Called by `CollectorRunner._collect_lb_metrics()`.
-
-### `date_utils.py`
-
-Date arithmetic for month-based collection:
-
-- `get_last_n_months(n)` — Returns list of `(start_str, end_str)` tuples for the last N months
-- `get_datetime_range(start_str, end_str)` — Converts date strings to datetime objects
-
-### `ml_utils.py`
-
-Data preparation for the ML engine:
-
-- `prepare_for_training(csv_path)` — Reads a metrics CSV, converts timestamps, sorts, fills missing values
-- `compute_daily_aggregates(df)` — Resamples hourly metrics to daily averages
-- `detect_outliers(series, threshold)` — Z-score based outlier detection
-
 ### `main.py`
 
-CLI entry point (`python -m aws_collector.main`). Initializes logging, creates `AWSConfig`, runs `CollectorRunner.run()`, reports results.
+CLI entry point (`python -m aws_collector.main`). Initializes logging, creates `CollectorRunner`, runs `runner.run()`, reports results.
+
+---
+
+### `collectors/` — Service Collectors
+
+All collectors inherit from `BaseCollector` and implement a consistent interface:
+
+```python
+class ServiceCollector(BaseCollector):
+    SERVICE_NAME: str = "ServiceName"
+
+    def list_resources(self) -> List[Dict]: ...
+    def get_metrics(self, resource_id, region, start, end) -> Dict: ...
+    def collect(self, start_date, end_date) -> int: ...
+```
+
+| File | Service | Inventory | Metrics |
+|------|---------|-----------|---------|
+| `base.py` | Abstract base | — | `_fetch_metric()` helper |
+| `ec2.py` | EC2 + EBS | instances, volumes | CPU, network, disk |
+| `rds.py` | RDS | db instances | CPU, connections, storage |
+| `lambda_.py` | Lambda | functions | invocations, duration, errors |
+| `s3.py` | S3 | buckets | size, object count |
+| `dynamodb.py` | DynamoDB | tables | read/write capacity |
+| `elasticache.py` | ElastiCache | clusters | CPU, memory, cache hits |
+| `ecs.py` | ECS/Fargate | services | CPU, memory |
+| `nat_gateway.py` | NAT Gateway | gateways | bytes, packets, connections |
+| `elb.py` | ALB/NLB | load balancers | requests, response time |
+| `cost.py` | Cost Explorer | — | daily/service costs, anomalies |
+| `pricing.py` | Pricing API | — | EC2/RDS/Lambda/S3 pricing |
+
+---
+
+## `storage/` — Data Persistence Layer
+
+### `db.py`
+
+Single data gateway for the entire project. Contains:
+
+- **Schema DDL**: 30 `CREATE TABLE` statements (inline, not a separate SQL file)
+- **Connection management**: `get_connection(db_path)` — opens SQLite with WAL mode, foreign keys enabled
+- **Schema lifecycle**: `ensure_schema(conn)` (create tables/indexes if missing, non-destructive), `create_schema(conn)` (drop + recreate, destructive; tests/dev only), `ensure_user(conn, account_id)`, `clear_user_data(conn, user_id)`
+- **Insert functions** (30): One per table — `insert_daily_costs()`, `insert_ec2_instances()`, `insert_ec2_metrics()`, etc. All accept `(conn, user_id, rows: list[dict])`. Do not commit — caller batches and commits.
+- **Get functions** (27): One per table — `get_daily_costs()`, `get_ec2_instances()`, `get_ec2_metrics()`, etc. Support filtering by date range and resource ID. Return `list[dict]`.
+- **Internal helpers**: `_safe_float()`, `_safe_int()`, `_build_tuples()`, `_executemany_insert()`, `_rows_to_dicts()`, `_query_metrics()`
+
+### `__init__.py`
+
+Exports all 57+ public functions, plus `INSTANCE_SPECS` and `SERVICE_NAME_MAP` constants.
 
 ---
 
 ## `data_generation/` — Synthetic Data
 
-### `__init__.py`
-
-Empty. Package marker.
-
 ### `synthetic.py`
 
-Generates all synthetic CSV files. CLI: `python -m data_generation.synthetic --output-dir data/synthetic/ --days 365 --seed 42`.
+Generates realistic AWS data and writes directly to SQLite via `storage.insert_*()`. CLI: `python -m data_generation.synthetic --days 365 --seed 42`.
 
 Key functions:
 
@@ -163,32 +150,35 @@ Key functions:
 - `generate_ec2_metrics()` — Per-instance CPU profiles (diurnal, spiky, steady, batch)
 - `generate_rds_instances()` — 2 RDS instances
 - `generate_rds_metrics()` — RDS CPU, storage, connections
-- `generate_s3_buckets()` — 4 buckets
-- `generate_lambda_functions()` — 4 functions
-- `generate_ebs_volumes()` — 8 volumes (one per EC2)
-- `generate_instance_pricing()` — Pricing for all instance types, merges with real pricing if available
+- Plus generators for ElastiCache, ECS, DynamoDB, S3, Lambda, EBS, NAT Gateway, ELB
+- `generate_instance_pricing()` — Pricing for all instance types
 - `generate_ai_recommendations()` — Sample AI recommendations
-- `_plot_cost_preview()` — Saves a PNG chart of the generated cost data
 
 All random values use `numpy.random.default_rng(seed)` for deterministic output.
 
 ---
 
-## `ml_engine/` — ML Forecasting (Stub)
+## `ml_engine/` — ML Forecasting (Partial)
 
-Will contain time-series forecasting models (Prophet, ARIMA, statsmodels). Reads metrics and cost CSVs, outputs forecasts.
+### `data_prep.py`
+
+Data loading and feature engineering from SQLite:
+
+- **Loaders**: `load_cost_data(conn, user_id, ...)`, `load_ec2_metrics(conn, ...)`, `load_rds_metrics(conn, ...)` — return DataFrames
+- **Feature engineering**: `add_time_features(df, timestamp_col)` — creates hour, day_of_week, month, is_weekend, sine/cos encodings
+- **Lag features**: `create_lag_features(df, columns, lags=[1, 7, 30])`
+- **Aggregation**: `aggregate_metrics(df, group_by, agg_funcs)`
+- **Training prep**: `prepare_for_training(df, target_col, exclude_cols)` — splits X/y, fills NaNs
+
+Forecasting models (Prophet, SARIMAX) not yet implemented.
 
 ## `ai_module/` — AI Recommendations (Stub)
 
-Will use OpenAI API to recommend instance types based on workload profiles. Reads inventory and metrics, outputs recommendations.
+Will use OpenAI API to recommend instance types based on workload profiles. Reads inventory and metrics via `storage.get_*()`, outputs recommendations.
 
 ## `optimizer/` — Cost Optimization (Stub)
 
-Will use PuLP linear programming to find the cheapest instance mix that meets performance constraints. Reads forecasts and pricing, outputs an optimized plan.
-
-## `storage/` — Data Persistence (Stub)
-
-Will provide a database layer (SQLite) for storing processed results. Currently all data lives in CSV files.
+Will use PuLP linear programming to find the cheapest instance mix that meets performance constraints. Reads forecasts and pricing via `storage.get_*()`, outputs an optimized plan.
 
 ## `dashboard/` — Web UI (Stub)
 
@@ -200,16 +190,20 @@ Streamlit dashboard. Will display cost trends, anomaly charts, right-sizing reco
 
 ### `test_config.py`
 
-Tests for root `config.py`: paths exist, constants have correct types, `get_data_dir()` returns the right directory based on `DEMO_MODE`.
+Tests for root `config.py`: paths exist, constants have correct types, `DB_PATH` is set.
 
 ### `test_date_utils.py`
 
-Tests for `aws_collector/date_utils.py`: month range generation, edge cases (year boundaries, February), output format.
+Tests for date utilities in `aws_collector/metrics.py`: month range generation, edge cases (year boundaries, February), output format.
 
 ### `test_ml_utils.py`
 
-Tests for `aws_collector/ml_utils.py`: data preparation, daily aggregation, outlier detection.
+Tests for `ml_engine/data_prep.py`: data loading, feature engineering, lag creation.
+
+### `test_storage.py`
+
+Tests for `storage/db.py`: insert/query API, upsert behavior (`INSERT OR REPLACE`), user isolation, schema creation, 25 tests covering all table categories.
 
 ### `test_synthetic.py`
 
-Tests for `data_generation/synthetic.py`: CSV output existence, schema validation, row counts, determinism (same seed = same output), value ranges.
+Tests for `data_generation/synthetic.py`: DB table population, schema validation, row counts, determinism (same seed = same output), value ranges.

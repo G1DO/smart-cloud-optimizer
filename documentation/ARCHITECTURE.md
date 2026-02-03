@@ -19,17 +19,17 @@ Smart Cloud Optimizer is an AI-powered platform that helps reduce AWS cloud cost
 │   │  (real data)     │         │  (demo mode)          │        │
 │   │                  │         │                       │        │
 │   │  - Cost Explorer │         │  - Fake 8-instance    │        │
-│   │  - CloudWatch    │         │    EC2 fleet           │        │
+│   │  - CloudWatch    │         │    EC2 fleet          │        │
 │   │  - Pricing API   │         │  - 365 days of costs  │        │
 │   │  - EC2/RDS/S3..  │         │  - Realistic metrics  │        │
 │   └────────┬─────────┘         └───────────┬──────────┘        │
 │            │                                │                   │
 │            ▼                                ▼                   │
 │   ┌──────────────────────────────────────────────┐             │
-│   │              data/ (CSV files)                │             │
+│   │         storage/db.py  (SQLite gateway)      │             │
 │   │                                               │             │
-│   │   data/real/     ← from AWS (gitignored)     │             │
-│   │   data/synthetic/ ← generated (committed)    │             │
+│   │   insert_*() ──> data/cloud_optimizer.db     │             │
+│   │   get_*()    <── (30 tables, user_id keyed)  │             │
 │   └───────────────────────┬──────────────────────┘             │
 └───────────────────────────┼─────────────────────────────────────┘
                             │
@@ -72,18 +72,18 @@ Smart Cloud Optimizer is an AI-powered platform that helps reduce AWS cloud cost
 No AWS credentials needed. The synthetic generator creates realistic data that mimics a mid-size SaaS startup (~$1,500-$2,500/month AWS bill). This mode lets you demo the full platform without a real AWS account.
 
 ```text
-data_generation/synthetic.py  ──>  data/synthetic/*.csv  ──>  dashboard
+data_generation/synthetic.py  ──>  storage.insert_*()  ──>  SQLite DB  ──>  dashboard
 ```
 
 ### Real Mode (`DEMO_MODE=false`)
 
-Connects to a real AWS account via boto3. Collects 12 months of historical data across all enabled regions.
+Connects to a real AWS account via boto3. Collects 12 months of historical data across all enabled regions and writes to the database.
 
 ```text
-aws_collector/main.py  ──>  data/real/*.csv  ──>  dashboard
+aws_collector/main.py  ──>  storage.insert_*()  ──>  SQLite DB  ──>  dashboard
 ```
 
-The `config.get_data_dir()` function returns the correct path based on the mode.
+Both modes write to the same SQLite database through `storage.insert_*()`. Downstream modules read via `storage.get_*()` and don't care which source produced the data.
 
 ## Module Responsibilities
 
@@ -92,19 +92,19 @@ The `config.get_data_dir()` function returns the correct path based on the mode.
 | `config.py` | Project-wide constants, paths, env vars | Done |
 | `aws_collector/` | Real AWS data collection pipeline | Done |
 | `data_generation/` | Synthetic data generator | Done |
-| `ml_engine/` | Time-series forecasting (Prophet, ARIMA, statsmodels) | Stub |
+| `storage/` | SQLite gateway (30 tables, `insert_*`/`get_*` API) | Done |
+| `ml_engine/` | Data prep utilities + time-series forecasting (Prophet, ARIMA) | Partial |
 | `ai_module/` | LLM-based instance recommendations (OpenAI) | Stub |
 | `optimizer/` | Cost minimization via linear programming (PuLP) | Stub |
-| `storage/` | Data persistence and database layer | Stub |
 | `dashboard/` | Streamlit web UI | Stub |
 | `tests/` | Unit tests (pytest) | Done |
 
 ## Why This Architecture
 
-**CSV as the data interchange format** — Every module reads and writes CSV. This makes debugging trivial (open in any spreadsheet), avoids database setup complexity, and works identically in demo and real modes.
+**SQLite as the single data store** — All modules read and write through `storage.db` `insert_*`/`get_*` functions. No CSV intermediate layer. This gives us ACID transactions, type safety, indexed queries, and multi-user isolation via `user_id` — all without external database setup.
 
 **Two config files** — `config.py` (root) holds project-level settings like paths and ML constants. `aws_collector/config.py` holds boto3 session management. They don't overlap — one is about the project, the other is about AWS.
 
-**Append-only consolidated files** — Instead of one CSV per month, each service has a single consolidated file. New data appends with deduplication. This makes ML training simple — just `pd.read_csv()` the one file.
+**Upsert on primary keys** — `INSERT OR REPLACE` handles deduplication automatically. Re-running the collector or synthetic generator won't create duplicate rows. Downstream modules just call `storage.get_*()`.
 
-**Collector pattern** — Each AWS service has its own collector class (CostCollector, EC2Collector, etc.). The CollectorRunner orchestrates them month-by-month. This makes it easy to add new services without touching existing code.
+**Collector pattern** — Each AWS service has its own collector class in `aws_collector/collectors/` (EC2Collector, RDSCollector, LambdaCollector, etc.). All inherit from `BaseCollector` and implement `list_resources()`, `get_metrics()`, and `collect()`. The `CollectorRunner` in `runner.py` orchestrates them month-by-month. This makes it easy to add new services without touching existing code.

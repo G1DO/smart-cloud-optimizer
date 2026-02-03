@@ -34,28 +34,19 @@ Set these in a `.env` file or export them before running.
 ### Demo Mode (`DEMO_MODE=true`)
 
 - No AWS credentials needed
-- Data read from `data/synthetic/`
 - Synthetic data must be generated first: `python -m data_generation.synthetic`
+- Data is read from SQLite DB (`data/cloud_optimizer.db`)
 - All modules (ML, AI, optimizer, dashboard) work identically
 
 ### Real Mode (`DEMO_MODE=false`)
 
 - Requires configured AWS credentials (`~/.aws/credentials` or env vars)
-- Data written to `data/real/` (gitignored)
 - Collector runs against live AWS APIs
-- Needs IAM permissions: `ce:GetCostAndUsage`, `ce:GetAnomalies`, `cloudwatch:GetMetricStatistics`, `ec2:Describe*`, `pricing:GetProducts`, `rds:Describe*`, `lambda:ListFunctions`, `s3:ListBuckets`, `sts:GetCallerIdentity`, `elasticloadbalancing:Describe*`, `cloudfront:ListDistributions`
+- Needs IAM permissions: `ce:GetCostAndUsage`, `ce:GetAnomalies`, `cloudwatch:GetMetricStatistics`, `ec2:Describe*`, `pricing:GetProducts`, `rds:Describe*`, `lambda:ListFunctions`, `s3:ListBuckets`, `sts:GetCallerIdentity`, `elasticloadbalancing:Describe*`
 
 ### How mode switching works
 
-```python
-# config.py
-DEMO_MODE = os.getenv("DEMO_MODE", "true").lower() == "true"
-
-def get_data_dir() -> Path:
-    return SYNTHETIC_DATA_DIR if DEMO_MODE else REAL_DATA_DIR
-```
-
-Every downstream module calls `get_data_dir()` to find its CSV files. Switch modes by changing one env var.
+Both modes write to the same SQLite database through `storage.insert_*()`. Downstream modules read via `storage.get_*()` and don't care which source produced the data. The `DEMO_MODE` flag controls whether `aws_collector` attempts real AWS connections.
 
 ---
 
@@ -67,9 +58,7 @@ Every downstream module calls `get_data_dir()` to find its CSV files. Switch mod
 | --- | --- | --- |
 | `PROJECT_ROOT` | repo root | Base directory |
 | `DATA_DIR` | `data/` | Parent data directory |
-| `REAL_DATA_DIR` | `data/real/` | Real AWS data (gitignored) |
-| `SYNTHETIC_DATA_DIR` | `data/synthetic/` | Generated demo data |
-| `DB_PATH` | `data/cloud_optimizer.db` | Future SQLite database path |
+| `DB_PATH` | `data/cloud_optimizer.db` | SQLite database path |
 
 ### Collection
 
@@ -101,7 +90,7 @@ Every downstream module calls `get_data_dir()` to find its CSV files. Switch mod
 ```python
 SUPPORTED_SERVICES = [
     "ec2", "rds", "lambda", "s3", "ebs",
-    "cloudfront", "nat_gateway", "alb", "nlb",
+    "nat_gateway", "alb", "nlb",
 ]
 ```
 

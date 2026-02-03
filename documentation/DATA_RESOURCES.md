@@ -80,7 +80,7 @@ Used by the system but not downloaded as Kaggle datasets.
 ### AWS Account Data (Real Mode)
 
 - **What**: Your own AWS account's Cost Explorer, CloudWatch, and inventory data collected via `aws_collector/`.
-- **Feeds**: All `data/real/*.csv` files
+- **Feeds**: Stored in SQLite database via `storage/db.py`
 - **Requires**: Configured AWS credentials with appropriate IAM permissions.
 
 ---

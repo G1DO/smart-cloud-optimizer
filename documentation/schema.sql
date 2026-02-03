@@ -4,7 +4,9 @@
 -- Database: SQLite (cloud_optimizer.db)
 -- Services: EC2, RDS, ElastiCache, ECS/Fargate, S3, Lambda, EBS, DynamoDB,
 --           NAT Gateway, ELB/ALB
--- Tables:   25 total (2 core + 2 cost + 6 metrics + 10 inventory + 1 pricing + 4 output)
+-- Tables:   30 total (2 core + 3 cost + 11 metrics + 10 inventory + 1 pricing + 4 output)
+-- NOTE:     The authoritative schema lives in storage/db.py (_SCHEMA_DDL).
+--           This file is a human-readable reference. If they diverge, db.py wins.
 -- ============================================================================
 
 PRAGMA journal_mode = WAL;          -- Better concurrent read performance
@@ -117,6 +119,23 @@ CREATE TABLE IF NOT EXISTS service_costs (
 CREATE INDEX idx_service_costs_user    ON service_costs(user_id, service);
 CREATE INDEX idx_service_costs_date    ON service_costs(date);
 
+-- 1c. SERVICE_REGION_COSTS — Per-service, per-region daily breakdown
+-- WHY: Enables region-level cost analysis. "Your EC2 in us-east-1 costs
+--      3x more than eu-north-1." Feeds geographic cost visualisation.
+
+CREATE TABLE IF NOT EXISTS service_region_costs (
+    date              TEXT    NOT NULL,
+    user_id           TEXT    NOT NULL,
+    service           TEXT    NOT NULL,
+    region            TEXT    NOT NULL,
+    daily_cost        REAL    NOT NULL,
+    PRIMARY KEY (date, user_id, service, region),
+    FOREIGN KEY (user_id) REFERENCES users(user_id)
+);
+
+CREATE INDEX idx_service_region_costs_user ON service_region_costs(user_id);
+CREATE INDEX idx_service_region_costs_date ON service_region_costs(date);
+
 -- ============================================================================
 -- 2. METRICS TABLES — CloudWatch-style utilization data
 -- ============================================================================
@@ -133,14 +152,16 @@ CREATE TABLE IF NOT EXISTS ec2_metrics (
     user_id           TEXT    NOT NULL,
     instance_id       TEXT    NOT NULL,                -- 'i-user001-001'
     cpu_utilization   REAL    NOT NULL,                -- 0-100%
-    memory_utilization REAL   NOT NULL,                -- 0-100% (CloudWatch agent)
+    cpu_max           REAL,                            -- Max CPU in period
+    memory_utilization REAL,                           -- 0-100% (CloudWatch agent, may be NULL)
     network_in_kbps   REAL    NOT NULL DEFAULT 0,
     network_out_kbps  REAL    NOT NULL DEFAULT 0,
     disk_read_kbps    REAL    NOT NULL DEFAULT 0,
     disk_write_kbps   REAL    NOT NULL DEFAULT 0,
+    disk_read_ops     REAL    DEFAULT 0,
+    disk_write_ops    REAL    DEFAULT 0,
     PRIMARY KEY (timestamp, user_id, instance_id),
-    FOREIGN KEY (user_id) REFERENCES users(user_id),
-    FOREIGN KEY (instance_id) REFERENCES ec2_instances(instance_id)
+    FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
 
 CREATE INDEX idx_ec2_metrics_user      ON ec2_metrics(user_id);
@@ -161,8 +182,7 @@ CREATE TABLE IF NOT EXISTS rds_metrics (
     connections       INTEGER NOT NULL DEFAULT 0,
     free_storage_gb   REAL    NOT NULL DEFAULT 0,
     PRIMARY KEY (timestamp, user_id, db_instance_id),
-    FOREIGN KEY (user_id) REFERENCES users(user_id),
-    FOREIGN KEY (db_instance_id) REFERENCES rds_instances(db_instance_id)
+    FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
 
 CREATE INDEX idx_rds_metrics_user ON rds_metrics(user_id);
@@ -182,8 +202,7 @@ CREATE TABLE IF NOT EXISTS elasticache_metrics (
     cache_misses      INTEGER NOT NULL DEFAULT 0,
     evictions         INTEGER NOT NULL DEFAULT 0,
     PRIMARY KEY (timestamp, user_id, cache_cluster_id),
-    FOREIGN KEY (user_id) REFERENCES users(user_id),
-    FOREIGN KEY (cache_cluster_id) REFERENCES elasticache_nodes(cache_cluster_id)
+    FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
 
 CREATE INDEX idx_elasticache_metrics_user ON elasticache_metrics(user_id);
@@ -202,8 +221,7 @@ CREATE TABLE IF NOT EXISTS ecs_metrics (
     running_task_count INTEGER NOT NULL DEFAULT 1,
     desired_task_count INTEGER NOT NULL DEFAULT 1,
     PRIMARY KEY (timestamp, user_id, service_name),
-    FOREIGN KEY (user_id) REFERENCES users(user_id),
-    FOREIGN KEY (service_name) REFERENCES ecs_services(service_name)
+    FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
 
 CREATE INDEX idx_ecs_metrics_user ON ecs_metrics(user_id);
@@ -224,8 +242,7 @@ CREATE TABLE IF NOT EXISTS lambda_metrics (
     avg_memory_used_mb REAL   NOT NULL DEFAULT 0,      -- Actual usage
     memory_allocated_mb INTEGER NOT NULL,              -- Configured limit
     PRIMARY KEY (date, user_id, function_name),
-    FOREIGN KEY (user_id) REFERENCES users(user_id),
-    FOREIGN KEY (function_name) REFERENCES lambda_functions(function_name)
+    FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
 
 CREATE INDEX idx_lambda_metrics_user ON lambda_metrics(user_id);
@@ -244,12 +261,84 @@ CREATE TABLE IF NOT EXISTS dynamodb_metrics (
     provisioned_write_units REAL   DEFAULT NULL,
     throttled_requests     INTEGER NOT NULL DEFAULT 0,
     PRIMARY KEY (timestamp, user_id, table_name),
-    FOREIGN KEY (user_id) REFERENCES users(user_id),
-    FOREIGN KEY (table_name) REFERENCES dynamodb_tables(table_name)
+    FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
 
 CREATE INDEX idx_dynamodb_metrics_user ON dynamodb_metrics(user_id);
 CREATE INDEX idx_dynamodb_metrics_ts   ON dynamodb_metrics(timestamp);
+
+-- 2g. EBS_METRICS — Hourly volume I/O metrics
+
+CREATE TABLE IF NOT EXISTS ebs_metrics (
+    timestamp         TEXT    NOT NULL,
+    user_id           TEXT    NOT NULL,
+    volume_id         TEXT    NOT NULL,
+    read_ops          REAL    NOT NULL DEFAULT 0,
+    write_ops         REAL    NOT NULL DEFAULT 0,
+    read_bytes        REAL    NOT NULL DEFAULT 0,
+    write_bytes       REAL    NOT NULL DEFAULT 0,
+    idle_time_seconds REAL    NOT NULL DEFAULT 0,
+    PRIMARY KEY (timestamp, user_id, volume_id),
+    FOREIGN KEY (user_id) REFERENCES users(user_id)
+);
+
+CREATE INDEX idx_ebs_metrics_user ON ebs_metrics(user_id);
+CREATE INDEX idx_ebs_metrics_ts   ON ebs_metrics(timestamp);
+
+-- 2h. S3_METRICS — Periodic bucket size and object count
+
+CREATE TABLE IF NOT EXISTS s3_metrics (
+    timestamp         TEXT    NOT NULL,
+    user_id           TEXT    NOT NULL,
+    bucket_name       TEXT    NOT NULL,
+    bucket_size_bytes REAL    DEFAULT 0,
+    number_of_objects INTEGER DEFAULT 0,
+    PRIMARY KEY (timestamp, user_id, bucket_name),
+    FOREIGN KEY (user_id) REFERENCES users(user_id)
+);
+
+CREATE INDEX idx_s3_metrics_user ON s3_metrics(user_id);
+CREATE INDEX idx_s3_metrics_ts   ON s3_metrics(timestamp);
+
+-- 2i. NAT_GATEWAY_METRICS — Hourly NAT Gateway traffic metrics
+
+CREATE TABLE IF NOT EXISTS nat_gateway_metrics (
+    timestamp         TEXT    NOT NULL,
+    user_id           TEXT    NOT NULL,
+    nat_gateway_id    TEXT    NOT NULL,
+    bytes_in          REAL    NOT NULL DEFAULT 0,
+    bytes_out         REAL    NOT NULL DEFAULT 0,
+    packets_in        INTEGER NOT NULL DEFAULT 0,
+    packets_out       INTEGER NOT NULL DEFAULT 0,
+    active_connections INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (timestamp, user_id, nat_gateway_id),
+    FOREIGN KEY (user_id) REFERENCES users(user_id)
+);
+
+CREATE INDEX idx_nat_gateway_metrics_user ON nat_gateway_metrics(user_id);
+CREATE INDEX idx_nat_gateway_metrics_ts   ON nat_gateway_metrics(timestamp);
+
+-- 2j. ELB_METRICS — Hourly load balancer traffic and response metrics
+
+CREATE TABLE IF NOT EXISTS elb_metrics (
+    timestamp         TEXT    NOT NULL,
+    user_id           TEXT    NOT NULL,
+    elb_arn           TEXT    NOT NULL,
+    request_count     INTEGER NOT NULL DEFAULT 0,
+    active_connections INTEGER NOT NULL DEFAULT 0,
+    new_connections   INTEGER NOT NULL DEFAULT 0,
+    processed_bytes   REAL    NOT NULL DEFAULT 0,
+    http_2xx          INTEGER NOT NULL DEFAULT 0,
+    http_3xx          INTEGER NOT NULL DEFAULT 0,
+    http_4xx          INTEGER NOT NULL DEFAULT 0,
+    http_5xx          INTEGER NOT NULL DEFAULT 0,
+    target_response_time_avg REAL NOT NULL DEFAULT 0,
+    PRIMARY KEY (timestamp, user_id, elb_arn),
+    FOREIGN KEY (user_id) REFERENCES users(user_id)
+);
+
+CREATE INDEX idx_elb_metrics_user ON elb_metrics(user_id);
+CREATE INDEX idx_elb_metrics_ts   ON elb_metrics(timestamp);
 
 -- ============================================================================
 -- 3. INVENTORY TABLES — What resources each user currently has
@@ -261,7 +350,7 @@ CREATE INDEX idx_dynamodb_metrics_ts   ON dynamodb_metrics(timestamp);
 
 -- 3a. EC2_INSTANCES — 8 rows (one per user, could be more)
 CREATE TABLE IF NOT EXISTS ec2_instances (
-    instance_id       TEXT PRIMARY KEY,                -- 'i-user001-001'
+    instance_id       TEXT    NOT NULL,                -- 'i-user001-001'
     user_id           TEXT    NOT NULL,
     instance_type     TEXT    NOT NULL,                -- 't3.medium', 'm5.xlarge'
     vcpus             INTEGER NOT NULL,
@@ -272,6 +361,7 @@ CREATE TABLE IF NOT EXISTS ec2_instances (
     availability_zone TEXT    NOT NULL DEFAULT 'us-east-1a',
     pricing_model     TEXT    NOT NULL DEFAULT 'on-demand',  -- 'on-demand','reserved','spot'
     monthly_cost      REAL    NOT NULL,
+    PRIMARY KEY (instance_id, user_id),
     FOREIGN KEY (user_id) REFERENCES users(user_id),
     CHECK (state IN ('running','stopped','terminated')),
     CHECK (pricing_model IN ('on-demand','reserved-1yr','reserved-3yr','spot'))
@@ -281,7 +371,7 @@ CREATE INDEX idx_ec2_instances_user ON ec2_instances(user_id);
 
 -- 3b. RDS_INSTANCES — ~5 rows
 CREATE TABLE IF NOT EXISTS rds_instances (
-    db_instance_id    TEXT PRIMARY KEY,                -- 'db-user003-001'
+    db_instance_id    TEXT    NOT NULL,                -- 'db-user003-001'
     user_id           TEXT    NOT NULL,
     db_instance_class TEXT    NOT NULL,                -- 'db.t3.medium', 'db.r5.large'
     engine            TEXT    NOT NULL,                -- 'mysql','postgres','mariadb'
@@ -291,6 +381,7 @@ CREATE TABLE IF NOT EXISTS rds_instances (
     multi_az          INTEGER NOT NULL DEFAULT 0,      -- 0=false, 1=true
     pricing_model     TEXT    NOT NULL DEFAULT 'on-demand',
     monthly_cost      REAL    NOT NULL,
+    PRIMARY KEY (db_instance_id, user_id),
     FOREIGN KEY (user_id) REFERENCES users(user_id),
     CHECK (pricing_model IN ('on-demand','reserved-1yr','reserved-3yr'))
 );
@@ -299,7 +390,7 @@ CREATE INDEX idx_rds_instances_user ON rds_instances(user_id);
 
 -- 3c. ELASTICACHE_NODES — ~4 rows
 CREATE TABLE IF NOT EXISTS elasticache_nodes (
-    cache_cluster_id  TEXT PRIMARY KEY,                -- 'cache-user003-001'
+    cache_cluster_id  TEXT    NOT NULL,                -- 'cache-user003-001'
     user_id           TEXT    NOT NULL,
     cache_node_type   TEXT    NOT NULL,                -- 'cache.t3.medium','cache.r5.large'
     engine            TEXT    NOT NULL,                -- 'redis','memcached'
@@ -307,6 +398,7 @@ CREATE TABLE IF NOT EXISTS elasticache_nodes (
     num_cache_nodes   INTEGER NOT NULL DEFAULT 1,
     pricing_model     TEXT    NOT NULL DEFAULT 'on-demand',
     monthly_cost      REAL    NOT NULL,
+    PRIMARY KEY (cache_cluster_id, user_id),
     FOREIGN KEY (user_id) REFERENCES users(user_id),
     CHECK (engine IN ('redis','memcached')),
     CHECK (pricing_model IN ('on-demand','reserved-1yr','reserved-3yr'))
@@ -316,7 +408,7 @@ CREATE INDEX idx_elasticache_nodes_user ON elasticache_nodes(user_id);
 
 -- 3d. ECS_SERVICES — ~5 rows
 CREATE TABLE IF NOT EXISTS ecs_services (
-    service_name      TEXT PRIMARY KEY,                -- 'ecs-user006-api'
+    service_name      TEXT    NOT NULL,                -- 'ecs-user006-api'
     user_id           TEXT    NOT NULL,
     cluster_name      TEXT    NOT NULL,                -- 'cluster-user006'
     launch_type       TEXT    NOT NULL DEFAULT 'FARGATE',  -- 'FARGATE','EC2'
@@ -324,6 +416,7 @@ CREATE TABLE IF NOT EXISTS ecs_services (
     cpu               INTEGER NOT NULL,                -- Fargate CPU units (256/512/1024/2048/4096)
     memory_mb         INTEGER NOT NULL,                -- Fargate memory in MB
     monthly_cost      REAL    NOT NULL,
+    PRIMARY KEY (service_name, user_id),
     FOREIGN KEY (user_id) REFERENCES users(user_id),
     CHECK (launch_type IN ('FARGATE','EC2'))
 );
@@ -332,7 +425,7 @@ CREATE INDEX idx_ecs_services_user ON ecs_services(user_id);
 
 -- 3e. LAMBDA_FUNCTIONS — ~12 rows
 CREATE TABLE IF NOT EXISTS lambda_functions (
-    function_name     TEXT PRIMARY KEY,                -- 'fn-user002-api-handler'
+    function_name     TEXT    NOT NULL,                -- 'fn-user002-api-handler'
     user_id           TEXT    NOT NULL,
     runtime           TEXT    NOT NULL,                -- 'python3.12','nodejs20.x'
     memory_mb         INTEGER NOT NULL,                -- 128, 256, 512, 1024, etc.
@@ -340,6 +433,7 @@ CREATE TABLE IF NOT EXISTS lambda_functions (
     avg_daily_invocations INTEGER NOT NULL DEFAULT 0,
     avg_duration_ms   REAL    NOT NULL DEFAULT 0,
     monthly_cost      REAL    NOT NULL,
+    PRIMARY KEY (function_name, user_id),
     FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
 
@@ -347,7 +441,7 @@ CREATE INDEX idx_lambda_functions_user ON lambda_functions(user_id);
 
 -- 3f. EBS_VOLUMES — ~12 rows
 CREATE TABLE IF NOT EXISTS ebs_volumes (
-    volume_id         TEXT PRIMARY KEY,                -- 'vol-user001-001'
+    volume_id         TEXT    NOT NULL,                -- 'vol-user001-001'
     user_id           TEXT    NOT NULL,
     volume_type       TEXT    NOT NULL,                -- 'gp2','gp3','io1','io2','st1','sc1'
     size_gb           INTEGER NOT NULL,
@@ -356,8 +450,8 @@ CREATE TABLE IF NOT EXISTS ebs_volumes (
     attached_instance_id TEXT,                         -- NULL if unattached (waste!)
     state             TEXT    NOT NULL DEFAULT 'in-use',  -- 'in-use','available'
     monthly_cost      REAL    NOT NULL,
+    PRIMARY KEY (volume_id, user_id),
     FOREIGN KEY (user_id) REFERENCES users(user_id),
-    FOREIGN KEY (attached_instance_id) REFERENCES ec2_instances(instance_id),
     CHECK (volume_type IN ('gp2','gp3','io1','io2','st1','sc1')),
     CHECK (state IN ('in-use','available'))
 );
@@ -366,7 +460,7 @@ CREATE INDEX idx_ebs_volumes_user ON ebs_volumes(user_id);
 
 -- 3g. S3_BUCKETS — ~12 rows
 CREATE TABLE IF NOT EXISTS s3_buckets (
-    bucket_name       TEXT PRIMARY KEY,                -- 's3-user001-blog-assets'
+    bucket_name       TEXT    NOT NULL,                -- 's3-user001-blog-assets'
     user_id           TEXT    NOT NULL,
     storage_class     TEXT    NOT NULL DEFAULT 'STANDARD',
     size_gb           REAL    NOT NULL,
@@ -374,6 +468,7 @@ CREATE TABLE IF NOT EXISTS s3_buckets (
     avg_daily_get_requests INTEGER NOT NULL DEFAULT 0,
     avg_daily_put_requests INTEGER NOT NULL DEFAULT 0,
     monthly_cost      REAL    NOT NULL,
+    PRIMARY KEY (bucket_name, user_id),
     FOREIGN KEY (user_id) REFERENCES users(user_id),
     CHECK (storage_class IN ('STANDARD','STANDARD_IA','ONEZONE_IA',
                              'INTELLIGENT_TIERING','GLACIER','DEEP_ARCHIVE'))
@@ -383,7 +478,7 @@ CREATE INDEX idx_s3_buckets_user ON s3_buckets(user_id);
 
 -- 3h. DYNAMODB_TABLES — ~6 rows
 CREATE TABLE IF NOT EXISTS dynamodb_tables (
-    table_name        TEXT PRIMARY KEY,                -- 'ddb-user002-sessions'
+    table_name        TEXT    NOT NULL,                -- 'ddb-user002-sessions'
     user_id           TEXT    NOT NULL,
     capacity_mode     TEXT    NOT NULL,                -- 'PROVISIONED','ON_DEMAND'
     provisioned_rcu   INTEGER DEFAULT NULL,            -- NULL if On-Demand
@@ -391,6 +486,7 @@ CREATE TABLE IF NOT EXISTS dynamodb_tables (
     storage_gb        REAL    NOT NULL DEFAULT 0,
     item_count        INTEGER NOT NULL DEFAULT 0,
     monthly_cost      REAL    NOT NULL,
+    PRIMARY KEY (table_name, user_id),
     FOREIGN KEY (user_id) REFERENCES users(user_id),
     CHECK (capacity_mode IN ('PROVISIONED','ON_DEMAND'))
 );
@@ -399,7 +495,7 @@ CREATE INDEX idx_dynamodb_tables_user ON dynamodb_tables(user_id);
 
 -- 3i. NAT_GATEWAYS — ~5 rows
 CREATE TABLE IF NOT EXISTS nat_gateways (
-    nat_gateway_id    TEXT PRIMARY KEY,                -- 'nat-user002-001'
+    nat_gateway_id    TEXT    NOT NULL,                -- 'nat-user002-001'
     user_id           TEXT    NOT NULL,
     vpc_id            TEXT    NOT NULL,
     subnet_id         TEXT    NOT NULL,
@@ -407,6 +503,7 @@ CREATE TABLE IF NOT EXISTS nat_gateways (
     monthly_hours     REAL    NOT NULL DEFAULT 730,    -- ~730 hrs/month
     monthly_data_processed_gb REAL NOT NULL DEFAULT 0,
     monthly_cost      REAL    NOT NULL,                -- $0.045/hr + $0.045/GB
+    PRIMARY KEY (nat_gateway_id, user_id),
     FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
 
@@ -414,7 +511,7 @@ CREATE INDEX idx_nat_gateways_user ON nat_gateways(user_id);
 
 -- 3j. ELB_INSTANCES — ~5 rows
 CREATE TABLE IF NOT EXISTS elb_instances (
-    elb_arn           TEXT PRIMARY KEY,                -- 'arn:aws:...:elb-user002-001'
+    elb_arn           TEXT    NOT NULL,                -- 'arn:aws:...:elb-user002-001'
     user_id           TEXT    NOT NULL,
     elb_name          TEXT    NOT NULL,                -- 'elb-user002-001'
     elb_type          TEXT    NOT NULL,                -- 'ALB','NLB','CLB'
@@ -423,6 +520,7 @@ CREATE TABLE IF NOT EXISTS elb_instances (
     healthy_target_count INTEGER NOT NULL DEFAULT 0,
     avg_daily_requests INTEGER NOT NULL DEFAULT 0,
     monthly_cost      REAL    NOT NULL,
+    PRIMARY KEY (elb_arn, user_id),
     FOREIGN KEY (user_id) REFERENCES users(user_id),
     CHECK (elb_type IN ('ALB','NLB','CLB')),
     CHECK (scheme IN ('internet-facing','internal'))
@@ -585,44 +683,49 @@ CREATE INDEX idx_anomalies_user ON anomalies(user_id);
 CREATE INDEX idx_anomalies_date ON anomalies(anomaly_date);
 
 -- ============================================================================
--- SUMMARY — 25 tables
+-- SUMMARY — 30 tables
 -- ============================================================================
 --
 -- CORE (2 tables):
 --   1  users                    (auth + profile + user_type)
 --   2  aws_connections          (IAM Role ARN — NO secret keys stored)
 --
--- COST DATA (2 tables):
---   3  daily_costs              (365 days × 8 users = 2,920 rows)
+-- COST DATA (3 tables):
+--   3  daily_costs              (365 days × N users)
 --   4  service_costs            (per-service daily breakdown)
+--   5  service_region_costs     (per-service per-region daily breakdown)
 --
--- METRICS (6 tables — CloudWatch-style):
---   5  ec2_metrics              (70,080 rows)
---   6  rds_metrics              (35,040 rows)
---   7  elasticache_metrics      (26,280 rows)
---   8  ecs_metrics              (26,280 rows)
---   9  lambda_metrics           (4,380 rows)
---   10 dynamodb_metrics         (39,420 rows)
+-- METRICS (11 tables — CloudWatch-style):
+--   6  ec2_metrics              (hourly compute metrics)
+--   7  rds_metrics              (hourly database metrics)
+--   8  elasticache_metrics      (hourly cache metrics)
+--   9  ecs_metrics              (hourly container metrics)
+--   10 lambda_metrics           (daily function metrics)
+--   11 dynamodb_metrics         (hourly table metrics)
+--   12 ebs_metrics              (hourly volume I/O)
+--   13 s3_metrics               (periodic bucket size)
+--   14 nat_gateway_metrics      (hourly NAT traffic)
+--   15 elb_metrics              (hourly load balancer traffic)
 --
 -- INVENTORY (10 tables — one per service):
---   11 ec2_instances            (~10 rows)
---   12 rds_instances            (~5 rows)
---   13 elasticache_nodes        (~4 rows)
---   14 ecs_services             (~5 rows)
---   15 lambda_functions         (~12 rows)
---   16 ebs_volumes              (~12 rows)
---   17 s3_buckets               (~12 rows)
---   18 dynamodb_tables          (~6 rows)
---   19 nat_gateways             (~5 rows)
---   20 elb_instances            (~5 rows)
+--   16 ec2_instances
+--   17 rds_instances
+--   18 elasticache_nodes
+--   19 ecs_services
+--   20 lambda_functions
+--   21 ebs_volumes
+--   22 s3_buckets
+--   23 dynamodb_tables
+--   24 nat_gateways
+--   25 elb_instances
 --
 -- PRICING (1 table):
---   21 instance_pricing         (~40 rows — EC2/RDS/ElastiCache)
+--   26 instance_pricing         (EC2/RDS/ElastiCache)
 --
 -- OUTPUT (4 tables — system produces these):
---   22 ai_recommendations       (new users — LLM responses)
---   23 forecasts                (ML predictions — any model)
---   24 recommendations          (optimizer — rightsizing/plan switch)
---   25 anomalies                (detected cost spikes)
+--   27 ai_recommendations       (new users — LLM responses)
+--   28 forecasts                (ML predictions — any model)
+--   29 recommendations          (optimizer — rightsizing/plan switch)
+--   30 anomalies                (detected cost spikes)
 --
 -- ============================================================================
