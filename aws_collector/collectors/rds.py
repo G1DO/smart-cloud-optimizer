@@ -51,6 +51,7 @@ class RDSCollector(BaseCollector):
             List of RDS instance dictionaries with inventory data.
         """
         all_instances = []
+        failed_regions = []
         total_regions = len(self.regions)
 
         logger.info("\n[RDS] Collecting RDS instances...")
@@ -97,8 +98,11 @@ class RDSCollector(BaseCollector):
                 logger.info(f"    Found {region_count} instances ({elapsed:.1f}s)")
             except Exception as e:
                 logger.error(f"    ERROR: {e}")
+                failed_regions.append(region)
 
         total_time = (datetime.now() - start_time).total_seconds()
+        if failed_regions:
+            logger.warning(f"  [RDS] Skipped {len(failed_regions)} regions: {failed_regions}")
         logger.info(
             f"\n[RDS] Completed: Found {len(all_instances)} instances in {total_time:.1f}s"
         )
@@ -233,6 +237,7 @@ class RDSCollector(BaseCollector):
         logger.info(f"\n  [RDS] Processing {total} instances for metrics...")
 
         count = 0
+        failed_instances = []
         for idx, instance in enumerate(instances, 1):
             try:
                 self._log_progress(idx, total)
@@ -257,6 +262,9 @@ class RDSCollector(BaseCollector):
                 logger.warning(
                     f"\n    [WARN] Failed {instance['db_instance_id']}: {e}"
                 )
+                failed_instances.append(instance["db_instance_id"])
 
+        if failed_instances:
+            logger.warning(f"  [RDS] Failed {len(failed_instances)} instances: {failed_instances[:5]}{'...' if len(failed_instances) > 5 else ''}")
         logger.info(f"\n  Collected RDS metrics for {count}/{total} instances")
         return count
