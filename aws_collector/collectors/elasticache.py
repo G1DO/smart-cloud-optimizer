@@ -47,6 +47,7 @@ class ElastiCacheCollector(BaseCollector):
             List of cluster dictionaries with inventory data.
         """
         all_clusters: List[Dict] = []
+        failed_regions = []
 
         logger.info(f"\n[{self.SERVICE_NAME}] Collecting inventory...")
         for region in self.regions:
@@ -70,7 +71,10 @@ class ElastiCacheCollector(BaseCollector):
                 logger.warning(
                     f"  [WARN] Failed to list ElastiCache clusters in {region}: {e}"
                 )
+                failed_regions.append(region)
 
+        if failed_regions:
+            logger.warning(f"  [ElastiCache] Skipped {len(failed_regions)} regions: {failed_regions}")
         logger.info(f"  Found {len(all_clusters)} ElastiCache clusters")
         return all_clusters
 
@@ -190,6 +194,7 @@ class ElastiCacheCollector(BaseCollector):
         # Step 3: Fetch and insert metrics for each cluster
         total = len(clusters)
         count = 0
+        failed_clusters = []
 
         for idx, cluster in enumerate(clusters, 1):
             try:
@@ -214,7 +219,10 @@ class ElastiCacheCollector(BaseCollector):
                     f"    [WARN] Failed ElastiCache metrics for "
                     f"{cluster['cache_cluster_id']}: {e}"
                 )
+                failed_clusters.append(cluster["cache_cluster_id"])
 
+        if failed_clusters:
+            logger.warning(f"  [ElastiCache] Failed {len(failed_clusters)} clusters: {failed_clusters[:5]}{'...' if len(failed_clusters) > 5 else ''}")
         logger.info(
             f"  Collected {self.SERVICE_NAME} metrics for {count}/{total} clusters"
         )
