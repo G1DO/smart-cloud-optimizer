@@ -1,12 +1,12 @@
 """
 Synthetic Data Generator for Smart Cloud Optimizer
 
-Generates realistic AWS usage data matching the exact CSV schemas
-produced by aws_collector/. The synthetic data simulates a mid-size
-SaaS startup with monthly bill ~$1,500-$2,500.
+Generates realistic AWS usage data and writes directly to SQLite
+via the storage API. Simulates a mid-size SaaS startup with
+monthly bill ~$1,500-$2,500.
 
 Usage:
-    python -m data_generation.synthetic --output-dir data/synthetic/ --days 365 --seed 42
+    python -m data_generation.synthetic --days 365 --seed 42
 """
 
 import argparse
@@ -16,11 +16,11 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional, Tuple
 
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+
+import config
+import storage
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +31,21 @@ logger = logging.getLogger(__name__)
 
 ACCOUNT_ID = "SYNTHETIC-001"
 REGION = "us-east-1"
+DEFAULT_END_DATE = datetime(2025, 6, 30)
+
+# Cost generation parameters
+BASE_DAILY_COST: float = 65.0
+DAILY_TREND_FACTOR: float = 0.0005  # +1.5% per month ≈ +0.05% per day
+WEEKDAY_COST_MULTIPLIER: float = 1.15
+WEEKEND_COST_MULTIPLIER: float = 0.70
+HOURS_PER_MONTH: float = 730.0
+COST_FLOOR: float = 20.0
+
+# Anomaly parameters
+MIN_ANOMALY_SPIKES: int = 4
+MAX_ANOMALY_SPIKES: int = 6
+ANOMALY_MULTIPLIER_LOW: float = 1.5
+ANOMALY_MULTIPLIER_HIGH: float = 3.0
 
 # EC2 fleet definition
 EC2_FLEET = [
@@ -89,7 +104,7 @@ def generate_daily_costs(days: int = 180, seed: int = 42) -> pd.DataFrame:
     - Month-end bumps
     """
     rng = np.random.default_rng(seed)
-    end_date = datetime(2025, 6, 30)
+    end_date = DEFAULT_END_DATE
     start_date = end_date - timedelta(days=days - 1)
     dates = pd.date_range(start_date, end_date, freq="D")
 
@@ -97,14 +112,14 @@ def generate_daily_costs(days: int = 180, seed: int = 42) -> pd.DataFrame:
     day_idx = np.arange(n, dtype=float)
 
     # Base daily cost ~$65
-    base = 65.0
+    base = BASE_DAILY_COST
 
     # Trend: +1.5% per month ≈ +0.05% per day
-    trend = base * (1.0 + 0.0005 * day_idx)
+    trend = base * (1.0 + DAILY_TREND_FACTOR * day_idx)
 
     # Weekly seasonality: weekdays 30% higher than weekends on average
     dow = np.array([d.weekday() for d in dates])
-    weekday_factor = np.where(dow < 5, 1.15, 0.70)
+    weekday_factor = np.where(dow < 5, WEEKDAY_COST_MULTIPLIER, WEEKEND_COST_MULTIPLIER)
 
     # Month-end bump: last 3 days of month get +8%
     month_end_bump = np.ones(n)
@@ -127,7 +142,7 @@ def generate_daily_costs(days: int = 180, seed: int = 42) -> pd.DataFrame:
         cost[idx] *= rng.uniform(2.0, 3.0)
 
     # Floor at $20
-    cost = np.maximum(cost, 20.0)
+    cost = np.maximum(cost, COST_FLOOR)
 
     df = pd.DataFrame({
         "account_id": ACCOUNT_ID,
@@ -148,7 +163,7 @@ def generate_service_costs(days: int = 180, seed: int = 42) -> pd.DataFrame:
     with distinct behavior patterns per service.
     """
     rng = np.random.default_rng(seed)
-    end_date = datetime(2025, 6, 30)
+    end_date = DEFAULT_END_DATE
     start_date = end_date - timedelta(days=days - 1)
     dates = pd.date_range(start_date, end_date, freq="D")
     n = len(dates)
@@ -236,6 +251,64 @@ def generate_service_costs(days: int = 180, seed: int = 42) -> pd.DataFrame:
                 "date": date_str,
                 "service_name": svc_name,
                 "cost_amount": round(float(costs[i]), 2),
+                "currency": "USD",
+            })
+
+    return pd.DataFrame(rows)
+
+
+def generate_service_region_costs(service_costs_df: pd.DataFrame,
+                                  seed: int = 42) -> pd.DataFrame:
+    """Derive per-service-per-region cost data from service_costs DataFrame.
+
+    Splits each service's daily cost across regions. Most services run
+    primarily in us-east-1, with a small fraction in us-west-2.
+
+    Args:
+        service_costs_df: Output of generate_service_costs().
+        seed: Random seed for reproducibility.
+
+    Returns:
+        DataFrame with columns: account_id, date, service_name, region,
+        cost_amount, currency.
+    """
+    rng = np.random.default_rng(seed + 99)
+
+    # Services that span multiple regions vs single-region
+    multi_region_services = {
+        "Amazon Elastic Compute Cloud - Compute",
+        "Amazon Relational Database Service",
+        "Amazon Simple Storage Service",
+        "AWS Data Transfer",
+    }
+
+    rows = []
+    for _, r in service_costs_df.iterrows():
+        cost = float(r["cost_amount"])
+        svc = r["service_name"]
+
+        if svc in multi_region_services and cost > 1.0:
+            # Split: 75-90% us-east-1, rest us-west-2
+            east_frac = rng.uniform(0.75, 0.90)
+            east_cost = round(cost * east_frac, 2)
+            west_cost = round(cost - east_cost, 2)
+            for region, amount in [("us-east-1", east_cost), ("us-west-2", west_cost)]:
+                if amount > 0:
+                    rows.append({
+                        "account_id": r["account_id"],
+                        "date": r["date"],
+                        "service_name": svc,
+                        "region": region,
+                        "cost_amount": amount,
+                        "currency": "USD",
+                    })
+        else:
+            rows.append({
+                "account_id": r["account_id"],
+                "date": r["date"],
+                "service_name": svc,
+                "region": "us-east-1",
+                "cost_amount": round(cost, 2),
                 "currency": "USD",
             })
 
@@ -478,6 +551,118 @@ def generate_ebs_volumes() -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def generate_elasticache_nodes() -> pd.DataFrame:
+    """Generate ElastiCache node inventory.
+
+    Columns: account_id, region, cache_cluster_id, cache_node_type, engine,
+             engine_version, num_cache_nodes
+    """
+    nodes = [
+        {"id": "prod-redis-sessions",   "type": "cache.r5.large",  "engine": "redis",     "version": "7.0", "count": 2},
+        {"id": "prod-memcached-cache",   "type": "cache.m5.large",  "engine": "memcached", "version": "1.6", "count": 1},
+        {"id": "staging-redis",          "type": "cache.t3.medium", "engine": "redis",     "version": "7.0", "count": 1},
+    ]
+    rows = []
+    for n in nodes:
+        rows.append({
+            "account_id": ACCOUNT_ID, "region": REGION,
+            "cache_cluster_id": n["id"], "cache_node_type": n["type"],
+            "engine": n["engine"], "engine_version": n["version"],
+            "num_cache_nodes": n["count"],
+        })
+    return pd.DataFrame(rows)
+
+
+def generate_ecs_services() -> pd.DataFrame:
+    """Generate ECS/Fargate service inventory.
+
+    Columns: account_id, region, service_name, cluster_name, launch_type,
+             desired_count, cpu, memory_mb
+    """
+    services = [
+        {"name": "prod-api-service",     "cluster": "prod-cluster",    "count": 3, "cpu": 512,  "mem": 1024},
+        {"name": "prod-worker-service",  "cluster": "prod-cluster",    "count": 2, "cpu": 256,  "mem": 512},
+        {"name": "staging-api-service",  "cluster": "staging-cluster", "count": 1, "cpu": 256,  "mem": 512},
+        {"name": "prod-scheduled-tasks", "cluster": "prod-cluster",    "count": 1, "cpu": 1024, "mem": 2048},
+    ]
+    rows = []
+    for s in services:
+        rows.append({
+            "account_id": ACCOUNT_ID, "region": REGION,
+            "service_name": s["name"], "cluster_name": s["cluster"],
+            "launch_type": "FARGATE", "desired_count": s["count"],
+            "cpu": s["cpu"], "memory_mb": s["mem"],
+        })
+    return pd.DataFrame(rows)
+
+
+def generate_dynamodb_tables() -> pd.DataFrame:
+    """Generate DynamoDB table inventory.
+
+    Columns: account_id, region, table_name, capacity_mode,
+             provisioned_rcu, provisioned_wcu, storage_gb, item_count
+    """
+    tables = [
+        {"name": "prod-sessions",       "mode": "ON_DEMAND",   "rcu": None, "wcu": None, "gb": 15.0, "items": 500000},
+        {"name": "prod-user-profiles",  "mode": "PROVISIONED", "rcu": 100,  "wcu": 50,   "gb": 8.0,  "items": 120000},
+        {"name": "staging-sessions",    "mode": "ON_DEMAND",   "rcu": None, "wcu": None, "gb": 2.0,  "items": 50000},
+    ]
+    rows = []
+    for t in tables:
+        rows.append({
+            "account_id": ACCOUNT_ID, "region": REGION,
+            "table_name": t["name"], "capacity_mode": t["mode"],
+            "provisioned_rcu": t["rcu"], "provisioned_wcu": t["wcu"],
+            "storage_gb": t["gb"], "item_count": t["items"],
+        })
+    return pd.DataFrame(rows)
+
+
+def generate_nat_gateways() -> pd.DataFrame:
+    """Generate NAT Gateway inventory.
+
+    Columns: account_id, region, nat_gateway_id, vpc_id, subnet_id, state
+    """
+    gateways = [
+        {"id": "nat-0synth00000000001", "az": f"{REGION}a"},
+        {"id": "nat-0synth00000000002", "az": f"{REGION}b"},
+    ]
+    rows = []
+    for gw in gateways:
+        rows.append({
+            "account_id": ACCOUNT_ID, "region": REGION,
+            "nat_gateway_id": gw["id"], "vpc_id": _vpc_id(),
+            "subnet_id": _subnet_id(gw["az"]), "state": "available",
+        })
+    return pd.DataFrame(rows)
+
+
+def generate_elb_instances() -> pd.DataFrame:
+    """Generate ELB/ALB inventory.
+
+    Columns: account_id, region, load_balancer_arn, load_balancer_name,
+             type, scheme, dns_name, vpc_id, state, created_time
+    """
+    elbs = [
+        {"name": "prod-web-alb",    "scheme": "internet-facing"},
+        {"name": "prod-api-alb",    "scheme": "internet-facing"},
+        {"name": "staging-web-alb", "scheme": "internet-facing"},
+    ]
+    rows = []
+    for e in elbs:
+        h = hashlib.md5(e["name"].encode()).hexdigest()[:32]
+        arn = f"arn:aws:elasticloadbalancing:{REGION}:000000000000:loadbalancer/app/{e['name']}/{h}"
+        rows.append({
+            "account_id": ACCOUNT_ID, "region": REGION,
+            "load_balancer_arn": arn, "load_balancer_name": e["name"],
+            "type": "application", "scheme": e["scheme"],
+            "dns_name": f"{e['name']}-000000000.{REGION}.elb.amazonaws.com",
+            "vpc_id": _vpc_id(), "state": "active",
+            "created_time": "2025-01-15T10:00:00+00:00",
+        })
+    return pd.DataFrame(rows)
+
+
 # ---------------------------------------------------------------------------
 # Metrics generators
 # ---------------------------------------------------------------------------
@@ -565,7 +750,7 @@ def generate_ec2_metrics(days: int = 90, seed: int = 42) -> pd.DataFrame:
     Synthetic data uses the CORRECT column order per the header.
     """
     rng = np.random.default_rng(seed)
-    end_date = datetime(2025, 6, 30)
+    end_date = DEFAULT_END_DATE
     start_date = end_date - timedelta(days=days - 1)
 
     rows = []
@@ -634,7 +819,7 @@ def generate_rds_metrics(days: int = 45, seed: int = 42) -> pd.DataFrame:
     Synthetic data uses the CORRECT column order per the header.
     """
     rng = np.random.default_rng(seed + 1)
-    end_date = datetime(2025, 6, 30)
+    end_date = DEFAULT_END_DATE
     start_date = end_date - timedelta(days=days - 1)
 
     rds_instances = [
@@ -698,13 +883,385 @@ def generate_rds_metrics(days: int = 45, seed: int = 42) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def generate_elasticache_metrics(days: int = 45, seed: int = 42) -> pd.DataFrame:
+    """Generate ElastiCache metrics with realistic cache hit/miss patterns.
+
+    Columns: account_id, region, cache_cluster_id, timestamp, cpu_util_avg,
+             memory_utilization_avg, curr_connections_avg, cache_hits,
+             cache_misses, evictions
+    """
+    rng = np.random.default_rng(seed + 10)
+    end_date = DEFAULT_END_DATE
+    start_date = end_date - timedelta(days=days - 1)
+
+    nodes = [
+        {"id": "prod-redis-sessions",  "cpu_mean": 18, "mem_mean": 68, "conns_mean": 120, "hits_mean": 3000, "miss_pct": 0.03},
+        {"id": "prod-memcached-cache",  "cpu_mean": 12, "mem_mean": 45, "conns_mean": 80,  "hits_mean": 2000, "miss_pct": 0.05},
+        {"id": "staging-redis",         "cpu_mean": 5,  "mem_mean": 25, "conns_mean": 10,  "hits_mean": 500,  "miss_pct": 0.04},
+    ]
+
+    rows = []
+    for node in nodes:
+        current = start_date
+        while current <= end_date:
+            for hour in range(24):
+                ts = current.replace(hour=hour)
+                is_wd = ts.weekday() < 5
+                bump = 1.2 if (is_wd and 9 <= hour <= 18) else 0.85
+
+                cpu = np.clip(rng.normal(node["cpu_mean"] * bump, 3), 1, 100)
+                mem = np.clip(rng.normal(node["mem_mean"], 4), 5, 99)
+                conns = max(0, int(rng.normal(node["conns_mean"] * bump, node["conns_mean"] * 0.15)))
+                hits = max(0, int(rng.normal(node["hits_mean"] * bump, node["hits_mean"] * 0.1)))
+                misses = max(0, int(hits * rng.normal(node["miss_pct"], 0.01)))
+                evictions = max(0, int(rng.exponential(2)))
+
+                rows.append({
+                    "account_id": ACCOUNT_ID, "region": REGION,
+                    "cache_cluster_id": node["id"],
+                    "timestamp": ts.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
+                    "cpu_util_avg": round(cpu, 2),
+                    "memory_utilization_avg": round(mem, 2),
+                    "curr_connections_avg": conns,
+                    "cache_hits": hits, "cache_misses": misses,
+                    "evictions": evictions,
+                })
+            current += timedelta(days=1)
+    return pd.DataFrame(rows)
+
+
+def generate_ecs_metrics(days: int = 45, seed: int = 42) -> pd.DataFrame:
+    """Generate ECS/Fargate metrics with diurnal CPU/memory patterns.
+
+    Columns: account_id, region, service_name, cluster_name, timestamp,
+             cpu_utilization_avg, memory_utilization_avg,
+             running_task_count, desired_task_count
+    """
+    rng = np.random.default_rng(seed + 11)
+    end_date = DEFAULT_END_DATE
+    start_date = end_date - timedelta(days=days - 1)
+
+    services = [
+        {"name": "prod-api-service",     "cluster": "prod-cluster",    "cpu_mean": 35, "mem_mean": 60, "desired": 3},
+        {"name": "prod-worker-service",  "cluster": "prod-cluster",    "cpu_mean": 70, "mem_mean": 75, "desired": 2},
+        {"name": "staging-api-service",  "cluster": "staging-cluster", "cpu_mean": 10, "mem_mean": 30, "desired": 1},
+        {"name": "prod-scheduled-tasks", "cluster": "prod-cluster",    "cpu_mean": 5,  "mem_mean": 20, "desired": 1},
+    ]
+
+    rows = []
+    for svc in services:
+        current = start_date
+        while current <= end_date:
+            for hour in range(24):
+                ts = current.replace(hour=hour)
+                is_wd = ts.weekday() < 5
+                bump = 1.3 if (is_wd and 9 <= hour <= 18) else 0.8
+
+                cpu = np.clip(rng.normal(svc["cpu_mean"] * bump, 5), 1, 100)
+                mem = np.clip(rng.normal(svc["mem_mean"], 5), 5, 99)
+                running = svc["desired"]
+                # Occasional scale-up for API during peak
+                if svc["name"].endswith("api-service") and bump > 1 and rng.random() < 0.1:
+                    running += 1
+
+                rows.append({
+                    "account_id": ACCOUNT_ID, "region": REGION,
+                    "service_name": svc["name"], "cluster_name": svc["cluster"],
+                    "timestamp": ts.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
+                    "cpu_utilization_avg": round(cpu, 2),
+                    "memory_utilization_avg": round(mem, 2),
+                    "running_task_count": running,
+                    "desired_task_count": svc["desired"],
+                })
+            current += timedelta(days=1)
+    return pd.DataFrame(rows)
+
+
+def generate_dynamodb_metrics(days: int = 45, seed: int = 42) -> pd.DataFrame:
+    """Generate DynamoDB metrics with consumed vs provisioned capacity.
+
+    Columns: account_id, region, table_name, timestamp,
+             consumed_read_units_avg, consumed_write_units_avg,
+             provisioned_read_units, provisioned_write_units,
+             throttled_requests
+    """
+    rng = np.random.default_rng(seed + 12)
+    end_date = DEFAULT_END_DATE
+    start_date = end_date - timedelta(days=days - 1)
+
+    tables = [
+        {"name": "prod-sessions",      "rcu_mean": 50, "wcu_mean": 25, "prov_rcu": None, "prov_wcu": None},
+        {"name": "prod-user-profiles", "rcu_mean": 60, "wcu_mean": 30, "prov_rcu": 100,  "prov_wcu": 50},
+        {"name": "staging-sessions",   "rcu_mean": 10, "wcu_mean": 5,  "prov_rcu": None, "prov_wcu": None},
+    ]
+
+    rows = []
+    for tbl in tables:
+        current = start_date
+        while current <= end_date:
+            for hour in range(24):
+                ts = current.replace(hour=hour)
+                is_wd = ts.weekday() < 5
+                bump = 1.3 if (is_wd and 9 <= hour <= 18) else 0.7
+
+                rcu = max(0, rng.normal(tbl["rcu_mean"] * bump, tbl["rcu_mean"] * 0.15))
+                wcu = max(0, rng.normal(tbl["wcu_mean"] * bump, tbl["wcu_mean"] * 0.15))
+                throttled = 0
+                if tbl["prov_rcu"] and rcu > tbl["prov_rcu"] * 0.9:
+                    throttled = max(0, int(rng.poisson(2)))
+
+                rows.append({
+                    "account_id": ACCOUNT_ID, "region": REGION,
+                    "table_name": tbl["name"],
+                    "timestamp": ts.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
+                    "consumed_read_units_avg": round(rcu, 2),
+                    "consumed_write_units_avg": round(wcu, 2),
+                    "provisioned_read_units": tbl["prov_rcu"],
+                    "provisioned_write_units": tbl["prov_wcu"],
+                    "throttled_requests": throttled,
+                })
+            current += timedelta(days=1)
+    return pd.DataFrame(rows)
+
+
+def generate_nat_gateway_metrics(days: int = 45, seed: int = 42) -> pd.DataFrame:
+    """Generate NAT Gateway metrics with traffic patterns.
+
+    Columns: account_id, region, nat_gateway_id, timestamp,
+             bytes_in_avg, bytes_out_avg, packets_in_avg,
+             packets_out_avg, active_connections_avg
+    """
+    rng = np.random.default_rng(seed + 13)
+    end_date = DEFAULT_END_DATE
+    start_date = end_date - timedelta(days=days - 1)
+
+    gateways = [
+        {"id": "nat-0synth00000000001", "traffic_scale": 1.0},
+        {"id": "nat-0synth00000000002", "traffic_scale": 0.7},
+    ]
+
+    rows = []
+    for gw in gateways:
+        current = start_date
+        while current <= end_date:
+            for hour in range(24):
+                ts = current.replace(hour=hour)
+                is_wd = ts.weekday() < 5
+                bump = 1.3 if (is_wd and 9 <= hour <= 18) else 0.6
+                scale = gw["traffic_scale"] * bump
+
+                bytes_in = max(0, rng.normal(100_000_000 * scale, 20_000_000))
+                bytes_out = max(0, rng.normal(200_000_000 * scale, 40_000_000))
+                pkts_in = max(0, int(rng.normal(80000 * scale, 15000)))
+                pkts_out = max(0, int(rng.normal(150000 * scale, 25000)))
+                conns = max(0, int(rng.normal(1000 * scale, 200)))
+
+                rows.append({
+                    "account_id": ACCOUNT_ID, "region": REGION,
+                    "nat_gateway_id": gw["id"],
+                    "timestamp": ts.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
+                    "bytes_in_avg": round(bytes_in, 2),
+                    "bytes_out_avg": round(bytes_out, 2),
+                    "packets_in_avg": pkts_in,
+                    "packets_out_avg": pkts_out,
+                    "active_connections_avg": conns,
+                })
+            current += timedelta(days=1)
+    return pd.DataFrame(rows)
+
+
+def generate_elb_metrics(days: int = 45, seed: int = 42) -> pd.DataFrame:
+    """Generate ELB/ALB metrics with request count and HTTP status patterns.
+
+    Columns: account_id, region, elb_arn, timestamp, request_count,
+             active_connections, new_connections, processed_bytes,
+             http_2xx, http_3xx, http_4xx, http_5xx,
+             target_response_time_avg
+    """
+    rng = np.random.default_rng(seed + 14)
+    end_date = DEFAULT_END_DATE
+    start_date = end_date - timedelta(days=days - 1)
+
+    elbs = [
+        {"name": "prod-web-alb",    "req_mean": 10000, "resp_ms": 100, "conns_mean": 300},
+        {"name": "prod-api-alb",    "req_mean": 5000,  "resp_ms": 50,  "conns_mean": 150},
+        {"name": "staging-web-alb", "req_mean": 1000,  "resp_ms": 120, "conns_mean": 30},
+    ]
+
+    rows = []
+    for elb in elbs:
+        h = hashlib.md5(elb["name"].encode()).hexdigest()[:32]
+        arn = f"arn:aws:elasticloadbalancing:{REGION}:000000000000:loadbalancer/app/{elb['name']}/{h}"
+        current = start_date
+        while current <= end_date:
+            for hour in range(24):
+                ts = current.replace(hour=hour)
+                is_wd = ts.weekday() < 5
+                bump = 1.4 if (is_wd and 9 <= hour <= 18) else 0.5
+
+                reqs = max(0, int(rng.normal(elb["req_mean"] * bump, elb["req_mean"] * 0.15)))
+                conns = max(0, int(rng.normal(elb["conns_mean"] * bump, elb["conns_mean"] * 0.2)))
+                new_conns = max(0, int(conns * rng.uniform(0.3, 0.6)))
+                proc_bytes = max(0, rng.normal(reqs * 5000, reqs * 1000))
+
+                http_2xx = max(0, int(reqs * rng.normal(0.90, 0.02)))
+                http_3xx = max(0, int(reqs * rng.normal(0.05, 0.01)))
+                http_4xx = max(0, int(reqs * rng.normal(0.04, 0.01)))
+                http_5xx = max(0, int(reqs * rng.normal(0.01, 0.005)))
+
+                resp_time = max(0.005, rng.normal(elb["resp_ms"] / 1000, 0.02))
+
+                rows.append({
+                    "account_id": ACCOUNT_ID, "region": REGION,
+                    "elb_arn": arn,
+                    "timestamp": ts.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
+                    "request_count": reqs,
+                    "active_connections": conns,
+                    "new_connections": new_conns,
+                    "processed_bytes": round(proc_bytes, 2),
+                    "http_2xx": http_2xx, "http_3xx": http_3xx,
+                    "http_4xx": http_4xx, "http_5xx": http_5xx,
+                    "target_response_time_avg": round(resp_time, 4),
+                })
+            current += timedelta(days=1)
+    return pd.DataFrame(rows)
+
+
+def generate_ebs_metrics(days: int = 45, seed: int = 42) -> pd.DataFrame:
+    """Generate EBS volume metrics tied to EC2 instance workload patterns.
+
+    Columns: account_id, region, volume_id, timestamp, read_ops_avg,
+             write_ops_avg, read_bytes_avg, write_bytes_avg,
+             idle_time_seconds
+    """
+    rng = np.random.default_rng(seed + 15)
+    end_date = DEFAULT_END_DATE
+    start_date = end_date - timedelta(days=days - 1)
+
+    rows = []
+    for inst in EC2_FLEET:
+        vid = _volume_id(inst["name"])
+        profile = _CPU_PROFILES[inst["name"]]
+        current = start_date
+        while current <= end_date:
+            for hour in range(24):
+                ts = current.replace(hour=hour)
+                is_wd = ts.weekday() < 5
+                cpu_avg, _ = _diurnal_cpu(hour, is_wd, profile, rng)
+                activity = cpu_avg / 50.0
+
+                r_ops = max(0, rng.normal(60 * activity, 15))
+                w_ops = max(0, rng.normal(35 * activity, 10))
+                r_bytes = max(0, rng.normal(600_000 * activity, 100_000))
+                w_bytes = max(0, rng.normal(350_000 * activity, 80_000))
+                idle = max(0, 3600 * (1.0 - min(activity, 1.0)) + rng.normal(0, 60))
+
+                rows.append({
+                    "account_id": ACCOUNT_ID, "region": REGION,
+                    "volume_id": vid,
+                    "timestamp": ts.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
+                    "read_ops_avg": round(r_ops, 2),
+                    "write_ops_avg": round(w_ops, 2),
+                    "read_bytes_avg": round(r_bytes, 2),
+                    "write_bytes_avg": round(w_bytes, 2),
+                    "idle_time_seconds": round(idle, 2),
+                })
+            current += timedelta(days=1)
+    return pd.DataFrame(rows)
+
+
+def generate_lambda_metrics(days: int = 45, seed: int = 42) -> pd.DataFrame:
+    """Generate Lambda invocation metrics per function per day.
+
+    Columns: account_id, region, function_name, date, invocations,
+             avg_duration_ms, max_duration_ms, errors, throttles,
+             avg_memory_used_mb, memory_allocated_mb
+    """
+    rng = np.random.default_rng(seed + 16)
+    end_date = DEFAULT_END_DATE
+    start_date = end_date - timedelta(days=days - 1)
+
+    functions = [
+        {"name": "image-resizer",   "inv_mean": 12000, "dur_mean": 200,  "mem_alloc": 512,  "mem_used_pct": 0.70},
+        {"name": "email-sender",    "inv_mean": 3000,  "dur_mean": 75,   "mem_alloc": 256,  "mem_used_pct": 0.55},
+        {"name": "log-processor",   "inv_mean": 1500,  "dur_mean": 2500, "mem_alloc": 1024, "mem_used_pct": 0.80},
+        {"name": "webhook-handler", "inv_mean": 20000, "dur_mean": 35,   "mem_alloc": 128,  "mem_used_pct": 0.60},
+    ]
+
+    rows = []
+    current = start_date
+    while current <= end_date:
+        is_wd = current.weekday() < 5
+        bump = 1.2 if is_wd else 0.6
+        for fn in functions:
+            inv = max(0, int(rng.normal(fn["inv_mean"] * bump, fn["inv_mean"] * 0.15)))
+            dur = max(1, rng.normal(fn["dur_mean"], fn["dur_mean"] * 0.15))
+            max_dur = dur * rng.uniform(1.5, 3.0)
+            errors = max(0, int(inv * rng.normal(0.003, 0.001)))
+            throttles = max(0, int(rng.exponential(1))) if rng.random() < 0.05 else 0
+            mem_used = fn["mem_alloc"] * rng.normal(fn["mem_used_pct"], 0.05)
+
+            rows.append({
+                "account_id": ACCOUNT_ID, "region": REGION,
+                "function_name": fn["name"],
+                "date": current.strftime("%Y-%m-%d"),
+                "invocations": inv,
+                "avg_duration_ms": round(dur, 2),
+                "max_duration_ms": round(max_dur, 2),
+                "errors": errors, "throttles": throttles,
+                "avg_memory_used_mb": round(mem_used, 2),
+                "memory_allocated_mb": fn["mem_alloc"],
+            })
+        current += timedelta(days=1)
+    return pd.DataFrame(rows)
+
+
+def generate_s3_metrics(days: int = 45, seed: int = 42) -> pd.DataFrame:
+    """Generate S3 bucket size/object metrics over time.
+
+    Columns: account_id, region, bucket_name, timestamp,
+             bucket_size_bytes, number_of_objects
+    """
+    rng = np.random.default_rng(seed + 17)
+    end_date = DEFAULT_END_DATE
+    start_date = end_date - timedelta(days=days - 1)
+
+    buckets = [
+        {"name": "app-user-uploads",  "size_gb": 500,  "growth": 0.005, "objects": 60000,  "obj_growth": 0.003},
+        {"name": "app-logs",          "size_gb": 120,  "growth": 0.001, "objects": 25000,  "obj_growth": 0.001},
+        {"name": "app-backups",       "size_gb": 250,  "growth": 0.002, "objects": 6000,   "obj_growth": 0.001},
+        {"name": "app-static-assets", "size_gb": 55,   "growth": 0.0005,"objects": 11000,  "obj_growth": 0.0003},
+    ]
+
+    rows = []
+    for b in buckets:
+        current = start_date
+        day_idx = 0
+        while current <= end_date:
+            ts = current.replace(hour=0)
+            size_bytes = b["size_gb"] * 1e9 * (1 + b["growth"] * day_idx)
+            size_bytes += rng.normal(0, size_bytes * 0.005)
+            objects = int(b["objects"] * (1 + b["obj_growth"] * day_idx))
+
+            rows.append({
+                "account_id": ACCOUNT_ID, "region": REGION,
+                "bucket_name": b["name"],
+                "timestamp": ts.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
+                "bucket_size_bytes": round(max(0, size_bytes), 2),
+                "number_of_objects": max(0, objects),
+            })
+            current += timedelta(days=1)
+            day_idx += 1
+    return pd.DataFrame(rows)
+
+
 # ---------------------------------------------------------------------------
 # Pricing generator
 # ---------------------------------------------------------------------------
 
 def generate_instance_pricing(real_pricing_path: Optional[Path] = None) -> Tuple[pd.DataFrame, int, int]:
     """
-    Generate instance pricing matching data/real/pricing/pricing_consolidated.csv schema.
+    Generate instance pricing data.
 
     If real_pricing_path is provided, extracts relevant rows from the real
     pricing file first and only generates synthetic rows for missing
@@ -872,64 +1429,39 @@ def generate_ai_recommendations_sample() -> pd.DataFrame:
 
 
 # ---------------------------------------------------------------------------
-# Cost preview plot
-# ---------------------------------------------------------------------------
-
-def _plot_cost_preview(daily_df: pd.DataFrame, service_df: pd.DataFrame,
-                       output_path: Path) -> None:
-    """Generate a cost preview PNG showing daily total and per-service breakdown."""
-    fig, axes = plt.subplots(2, 1, figsize=(14, 8), sharex=True)
-
-    dates = pd.to_datetime(daily_df["date"])
-    costs = daily_df["cost_amount"].values
-
-    # Top: total daily cost
-    ax = axes[0]
-    ax.plot(dates, costs, linewidth=0.8, color="#2563eb", alpha=0.9)
-    ax.fill_between(dates, 0, costs, alpha=0.15, color="#2563eb")
-
-    # Mark anomalies (>2x median)
-    median_cost = np.median(costs)
-    anomaly_mask = costs > 2.0 * median_cost
-    if anomaly_mask.any():
-        ax.scatter(dates[anomaly_mask], costs[anomaly_mask],
-                   color="red", s=40, zorder=5, label="Anomaly")
-        ax.legend()
-
-    ax.set_ylabel("Total Daily Cost (USD)")
-    ax.set_title("Synthetic Daily Cost — Total")
-    ax.grid(True, alpha=0.3)
-
-    # Bottom: stacked per-service
-    ax2 = axes[1]
-    pivot = service_df.pivot_table(index="date", columns="service_name",
-                                    values="cost_amount", aggfunc="sum").fillna(0)
-    pivot.index = pd.to_datetime(pivot.index)
-    pivot = pivot.sort_index()
-
-    colors = ["#2563eb", "#10b981", "#f59e0b", "#ef4444", "#6366f1", "#8b5cf6", "#64748b"]
-    pivot.plot.area(ax=ax2, stacked=True, alpha=0.7, linewidth=0.5, color=colors[:len(pivot.columns)])
-    ax2.set_ylabel("Cost (USD)")
-    ax2.set_title("Synthetic Daily Cost — By Service")
-    ax2.legend(loc="upper left", fontsize=7, ncol=2)
-    ax2.grid(True, alpha=0.3)
-
-    plt.tight_layout()
-    plt.savefig(output_path, dpi=120)
-    plt.close(fig)
-
-
-# ---------------------------------------------------------------------------
 # Main orchestrator
 # ---------------------------------------------------------------------------
 
+def _to_db_records(df: pd.DataFrame, rename: dict | None = None,
+                   service_name_map: dict | None = None) -> list[dict]:
+    """Convert generator DataFrame to list[dict] with DB-compatible column names.
+
+    Args:
+        df: Source DataFrame from a generate_* function.
+        rename: Column rename mapping {old_name: new_name}.
+        service_name_map: If provided, maps service_name (full AWS) → short name
+            and stores result in 'service' key.
+    """
+    if rename:
+        df = df.rename(columns=rename)
+    records = df.to_dict("records")
+    if service_name_map:
+        for r in records:
+            if "service_name" in r:
+                r["service"] = service_name_map.get(r.pop("service_name"),
+                                                     r.get("service_name", "Other"))
+            if "cost_amount" in r:
+                r["daily_cost"] = r.pop("cost_amount")
+    return records
+
+
 def main() -> None:
-    """Generate all synthetic datasets and save to output directory."""
+    """Generate all synthetic datasets and write to SQLite via storage API."""
+    config.setup_logging()
+
     parser = argparse.ArgumentParser(
         description="Generate synthetic AWS data for Smart Cloud Optimizer"
     )
-    parser.add_argument("--output-dir", type=str, default="data/synthetic/",
-                        help="Output directory (default: data/synthetic/)")
     parser.add_argument("--days", type=int, default=365,
                         help="Days of cost data (default: 365)")
     parser.add_argument("--seed", type=int, default=42,
@@ -938,17 +1470,12 @@ def main() -> None:
                         help="Path to real pricing CSV to merge (default: auto-detect)")
     args = parser.parse_args()
 
-    out = Path(args.output_dir)
-    out.mkdir(parents=True, exist_ok=True)
-
     # Auto-detect real pricing path
     real_pricing = None
     if args.real_pricing:
         real_pricing = Path(args.real_pricing)
     else:
-        # Try standard location
         candidates = [
-            Path("data/real/pricing/pricing_consolidated.csv"),
             Path("data/pricing/pricing_consolidated.csv"),
         ]
         for c in candidates:
@@ -957,49 +1484,206 @@ def main() -> None:
                 break
 
     logger.info(f"Generating synthetic data (days={args.days}, seed={args.seed})...")
-    logger.info(f"Output: {out.resolve()}")
     if real_pricing:
         logger.info(f"Real pricing: {real_pricing}")
 
+    # -- DB setup --
+    conn = storage.get_connection()
+    storage.ensure_schema(conn)
+    user_id = storage.ensure_user(conn, ACCOUNT_ID)
+    storage.clear_user_data(conn, user_id)
+    logger.info(f"DB user: {user_id}")
 
-    # -- Generate all datasets --
+    # -- Cost data --
     daily = generate_daily_costs(days=args.days, seed=args.seed)
-    daily.to_csv(out / "daily_costs.csv", index=False)
+    daily_records = [{"date": r["date"], "total_cost": r["cost_amount"]}
+                     for r in daily.to_dict("records")]
+    storage.insert_daily_costs(conn, user_id, daily_records)
 
     service = generate_service_costs(days=args.days, seed=args.seed)
-    service.to_csv(out / "service_costs.csv", index=False)
+    storage.insert_service_costs(conn, user_id, _to_db_records(
+        service, service_name_map=storage.SERVICE_NAME_MAP))
 
+    service_region = generate_service_region_costs(service, seed=args.seed)
+    storage.insert_service_region_costs(conn, user_id, _to_db_records(
+        service_region, service_name_map=storage.SERVICE_NAME_MAP))
+
+    # -- Inventory --
     ec2_inv = generate_ec2_instances()
-    ec2_inv.to_csv(out / "ec2_instances.csv", index=False)
+    ec2_inv_records = ec2_inv.rename(columns={"launch_time": "launch_date"}).to_dict("records")
+    storage.insert_ec2_instances(conn, user_id, ec2_inv_records)
 
     rds_inv = generate_rds_instances()
-    rds_inv.to_csv(out / "rds_instances.csv", index=False)
+    rds_inv_records = rds_inv.rename(columns={"allocated_storage_gb": "storage_gb"}).to_dict("records")
+    storage.insert_rds_instances(conn, user_id, rds_inv_records)
 
-    s3 = generate_s3_buckets()
-    s3.to_csv(out / "s3_buckets.csv", index=False)
+    s3_inv = generate_s3_buckets()
+    storage.insert_s3_buckets(conn, user_id, _to_db_records(s3_inv, rename={
+        "default_encryption": "encryption",
+    }))
 
     lam = generate_lambda_functions()
-    lam.to_csv(out / "lambda_functions.csv", index=False)
+    storage.insert_lambda_functions(conn, user_id, _to_db_records(lam, rename={
+        "memory_size": "memory_mb", "timeout": "timeout_sec",
+    }))
 
     ebs = generate_ebs_volumes()
-    ebs.to_csv(out / "ebs_volumes.csv", index=False)
+    storage.insert_ebs_volumes(conn, user_id, _to_db_records(ebs, rename={
+        "throughput": "throughput_mbps",
+    }))
 
+    elb_inv = generate_elb_instances()
+    _elb_type_map = {"application": "ALB", "network": "NLB", "classic": "CLB"}
+    elb_inv_records = elb_inv.rename(columns={
+        "load_balancer_arn": "elb_arn",
+        "load_balancer_name": "elb_name",
+        "type": "elb_type",
+        "scheme": "elb_scheme",
+    }).to_dict("records")
+    for r in elb_inv_records:
+        r["elb_type"] = _elb_type_map.get(r.get("elb_type", ""), r.get("elb_type", "ALB"))
+    storage.insert_elb_instances(conn, user_id, elb_inv_records)
+
+    elasticache_inv = generate_elasticache_nodes()
+    storage.insert_elasticache_nodes(conn, user_id, elasticache_inv.to_dict("records"))
+
+    ecs_inv = generate_ecs_services()
+    storage.insert_ecs_services(conn, user_id, ecs_inv.to_dict("records"))
+
+    dynamodb_inv = generate_dynamodb_tables()
+    storage.insert_dynamodb_tables(conn, user_id, dynamodb_inv.to_dict("records"))
+
+    nat_inv = generate_nat_gateways()
+    storage.insert_nat_gateways(conn, user_id, nat_inv.to_dict("records"))
+
+    # -- Metrics --
     ec2_metrics_days = min(args.days, 90)
     ec2_met = generate_ec2_metrics(days=ec2_metrics_days, seed=args.seed)
-    ec2_met.to_csv(out / "ec2_metrics.csv", index=False)
+    storage.insert_ec2_metrics(conn, user_id, _to_db_records(ec2_met, rename={
+        "cpu_avg": "cpu_utilization",
+        "memory_used_percent_avg": "memory_utilization",
+        "network_in_avg": "network_in_kbps",
+        "network_out_avg": "network_out_kbps",
+        "disk_read_bytes_avg": "disk_read_kbps",
+        "disk_write_bytes_avg": "disk_write_kbps",
+        "disk_read_ops_avg": "disk_read_ops",
+        "disk_write_ops_avg": "disk_write_ops",
+    }))
 
     rds_metrics_days = min(args.days, 45)
     rds_met = generate_rds_metrics(days=rds_metrics_days, seed=args.seed)
-    rds_met.to_csv(out / "rds_metrics.csv", index=False)
+    storage.insert_rds_metrics(conn, user_id, _to_db_records(rds_met, rename={
+        "cpu_util_avg": "cpu_utilization",
+        "free_mem_avg": "memory_utilization",
+        "read_iops_avg": "read_iops",
+        "write_iops_avg": "write_iops",
+        "db_conns_avg": "connections",
+        "free_storage_avg": "free_storage_gb",
+    }))
 
+    metrics_days = min(args.days, 45)
+
+    lambda_met = generate_lambda_metrics(days=metrics_days, seed=args.seed)
+    storage.insert_lambda_metrics(conn, user_id, lambda_met.to_dict("records"))
+
+    s3_met = generate_s3_metrics(days=metrics_days, seed=args.seed)
+    storage.insert_s3_metrics(conn, user_id, s3_met.to_dict("records"))
+
+    elasticache_met = generate_elasticache_metrics(days=metrics_days, seed=args.seed)
+    storage.insert_elasticache_metrics(conn, user_id, _to_db_records(elasticache_met, rename={
+        "cpu_util_avg": "cpu_utilization",
+        "memory_utilization_avg": "memory_utilization",
+        "curr_connections_avg": "curr_connections",
+    }))
+
+    ecs_met = generate_ecs_metrics(days=metrics_days, seed=args.seed)
+    storage.insert_ecs_metrics(conn, user_id, _to_db_records(ecs_met, rename={
+        "cpu_utilization_avg": "cpu_utilization",
+        "memory_utilization_avg": "memory_utilization",
+    }))
+
+    dynamodb_met = generate_dynamodb_metrics(days=metrics_days, seed=args.seed)
+    storage.insert_dynamodb_metrics(conn, user_id, _to_db_records(dynamodb_met, rename={
+        "consumed_read_units_avg": "consumed_read_units",
+        "consumed_write_units_avg": "consumed_write_units",
+    }))
+
+    nat_met = generate_nat_gateway_metrics(days=metrics_days, seed=args.seed)
+    storage.insert_nat_gateway_metrics(conn, user_id, _to_db_records(nat_met, rename={
+        "bytes_in_avg": "bytes_in",
+        "bytes_out_avg": "bytes_out",
+        "packets_in_avg": "packets_in",
+        "packets_out_avg": "packets_out",
+        "active_connections_avg": "active_connections",
+    }))
+
+    elb_met = generate_elb_metrics(days=metrics_days, seed=args.seed)
+    storage.insert_elb_metrics(conn, user_id, elb_met.to_dict("records"))
+
+    ebs_met = generate_ebs_metrics(days=metrics_days, seed=args.seed)
+    storage.insert_ebs_metrics(conn, user_id, _to_db_records(ebs_met, rename={
+        "read_ops_avg": "read_ops",
+        "write_ops_avg": "write_ops",
+        "read_bytes_avg": "read_bytes",
+        "write_bytes_avg": "write_bytes",
+    }))
+
+    # -- Pricing (no user_id — reference data) --
+    # Generator produces one row per (instance_type, pricing_type) with hourly_price_usd.
+    # DB expects one row per instance_type with on_demand_hourly, reserved_1yr_hourly, etc.
     pricing, real_price_rows, synth_price_rows = generate_instance_pricing(real_pricing)
-    pricing.to_csv(out / "instance_pricing.csv", index=False)
+    pricing_pivoted: dict[str, dict] = {}
+    for r in pricing.to_dict("records"):
+        itype = r["instance_type"]
+        if itype not in pricing_pivoted:
+            pricing_pivoted[itype] = {
+                "service": r.get("service", "EC2"),
+                "instance_type": itype,
+                "vcpus": storage.INSTANCE_SPECS.get(itype, (None, None))[0],
+                "memory_gb": storage.INSTANCE_SPECS.get(itype, (None, None))[1],
+            }
+        hourly = float(r["hourly_price_usd"])
+        ptype = r.get("pricing_type", "On-Demand")
+        entry = pricing_pivoted[itype]
+        if ptype == "On-Demand":
+            entry["on_demand_hourly"] = hourly
+            entry["on_demand_monthly"] = round(hourly * HOURS_PER_MONTH, 2)
+        elif ptype == "Reserved-1yr":
+            entry["reserved_1yr_hourly"] = hourly
+            entry["reserved_1yr_monthly"] = round(hourly * HOURS_PER_MONTH, 2)
+        elif ptype == "Reserved-3yr":
+            entry["reserved_3yr_hourly"] = hourly
+            entry["reserved_3yr_monthly"] = round(hourly * HOURS_PER_MONTH, 2)
+        elif ptype == "Spot":
+            entry["spot_hourly"] = hourly
+            entry["spot_monthly"] = round(hourly * HOURS_PER_MONTH, 2)
+    # Ensure on_demand defaults exist
+    for entry in pricing_pivoted.values():
+        entry.setdefault("on_demand_hourly", 0.0)
+        entry.setdefault("on_demand_monthly", 0.0)
+    storage.insert_instance_pricing(conn, list(pricing_pivoted.values()))
 
+    # -- AI recommendations sample --
     ai_recs = generate_ai_recommendations_sample()
-    ai_recs.to_csv(out / "ai_recommendations_sample.csv", index=False)
+    ai_recs_mapped = [
+        {
+            "app_type": r["app_type"],
+            "expected_users": r["daily_users"],
+            "uptime_hours": r["uptime_hours"],
+            "importance": r["importance"],
+            "budget_monthly": r["budget_usd"],
+            "prompt_text": f"{r['app_type']} with {r['daily_users']} daily users",
+            "recommended_setup": f"{r['recommended_instance']} ({r['recommended_pricing']})",
+            "estimated_cost": r["estimated_cost_usd"],
+            "explanation": r["explanation"],
+            "llm_model": "synthetic",
+        }
+        for r in ai_recs.to_dict("records")
+    ]
+    storage.insert_ai_recommendations(conn, user_id, ai_recs_mapped)
 
-    # -- Cost preview plot --
-    _plot_cost_preview(daily, service, out / "cost_preview.png")
+    conn.commit()
+    conn.close()
 
     # -- Summary --
     logger.info("=== Synthetic Data Summary ===")
@@ -1010,28 +1694,39 @@ def main() -> None:
     we_avg = daily.loc[~weekday_mask, "cost_amount"].mean()
     anomaly_count = (daily["cost_amount"] > 2.0 * daily["cost_amount"].median()).sum()
 
-    # Trend: compare first 14 days avg vs last 14 days avg
     first_14 = daily["cost_amount"].iloc[:14].mean()
     last_14 = daily["cost_amount"].iloc[-14:].mean()
     trend_pct = ((last_14 - first_14) / first_14) * 100
 
     lines = [
-        f"daily_costs.csv:              {len(daily):>6} rows | {daily['date'].iloc[0]} to {daily['date'].iloc[-1]}",
-        f"  Total cost range: ${daily['cost_amount'].min():.2f} - ${daily['cost_amount'].max():.2f} (mean: ${daily['cost_amount'].mean():.2f})",
+        f"daily_costs:              {len(daily):>6} rows",
+        f"  Range: ${daily['cost_amount'].min():.2f} - ${daily['cost_amount'].max():.2f} (mean: ${daily['cost_amount'].mean():.2f})",
         f"  Weekday avg: ${wd_avg:.2f} | Weekend avg: ${we_avg:.2f} (ratio: {wd_avg/we_avg:.2f}x)",
-        f"  Anomalies detected: {anomaly_count} dates",
-        f"  Trend: {trend_pct:+.1f}% over period",
-        f"service_costs.csv:            {len(service):>6} rows | {service['service_name'].nunique()} services x {args.days} days",
-        f"ec2_instances.csv:            {len(ec2_inv):>6} rows",
-        f"ec2_metrics.csv:              {len(ec2_met):>6} rows | {len(EC2_FLEET)} instances x 24h x {ec2_metrics_days}d",
-        f"rds_instances.csv:            {len(rds_inv):>6} rows",
-        f"rds_metrics.csv:              {len(rds_met):>6} rows | 2 instances x 24h x {rds_metrics_days}d",
-        f"s3_buckets.csv:               {len(s3):>6} rows",
-        f"lambda_functions.csv:         {len(lam):>6} rows",
-        f"ebs_volumes.csv:              {len(ebs):>6} rows",
-        f"instance_pricing.csv:         {len(pricing):>6} rows ({real_price_rows} from real data, {synth_price_rows} synthetic)",
-        f"ai_recommendations_sample.csv:{len(ai_recs):>6} rows",
-        f"cost_preview.png:             saved ✓",
+        f"  Anomalies: {anomaly_count} | Trend: {trend_pct:+.1f}%",
+        f"service_costs:            {len(service):>6} rows | {service['service_name'].nunique()} services",
+        f"service_region_costs:     {len(service_region):>6} rows",
+        f"ec2_instances:            {len(ec2_inv):>6} rows",
+        f"rds_instances:            {len(rds_inv):>6} rows",
+        f"s3_buckets:               {len(s3_inv):>6} rows",
+        f"lambda_functions:         {len(lam):>6} rows",
+        f"ebs_volumes:              {len(ebs):>6} rows",
+        f"elb_instances:            {len(elb_inv):>6} rows",
+        f"elasticache_nodes:        {len(elasticache_inv):>6} rows",
+        f"ecs_services:             {len(ecs_inv):>6} rows",
+        f"dynamodb_tables:          {len(dynamodb_inv):>6} rows",
+        f"nat_gateways:             {len(nat_inv):>6} rows",
+        f"ec2_metrics:              {len(ec2_met):>6} rows | {ec2_metrics_days}d",
+        f"rds_metrics:              {len(rds_met):>6} rows | {rds_metrics_days}d",
+        f"lambda_metrics:           {len(lambda_met):>6} rows | {metrics_days}d",
+        f"s3_metrics:               {len(s3_met):>6} rows | {metrics_days}d",
+        f"elasticache_metrics:      {len(elasticache_met):>6} rows | {metrics_days}d",
+        f"ecs_metrics:              {len(ecs_met):>6} rows | {metrics_days}d",
+        f"dynamodb_metrics:         {len(dynamodb_met):>6} rows | {metrics_days}d",
+        f"nat_gateway_metrics:      {len(nat_met):>6} rows | {metrics_days}d",
+        f"elb_metrics:              {len(elb_met):>6} rows | {metrics_days}d",
+        f"ebs_metrics:              {len(ebs_met):>6} rows | {metrics_days}d",
+        f"instance_pricing:         {len(pricing):>6} rows ({real_price_rows} real, {synth_price_rows} synth)",
+        f"ai_recommendations:       {len(ai_recs):>6} rows",
     ]
     for line in lines:
         logger.info(line)
