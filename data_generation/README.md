@@ -1,12 +1,26 @@
-# Synthetic Data Generator
+# Sample Data Generator
 
-Generates realistic AWS usage data for the Smart Cloud Optimizer ML pipeline.
+Generates sample AWS usage data for the Smart Cloud Optimizer ML pipeline, based on open-source datasets supplemented with generated data for full service coverage.
 
-## Why synthetic data?
+## Data Sources
 
-The real AWS data comes from a free-tier account: near-zero costs, single instance, no variation. The ML pipeline (Prophet, SARIMAX, PuLP) needs realistic cost patterns, multiple instances, and utilization variation to produce meaningful results.
+The sample data is built on publicly available open-source datasets:
 
-## The simulated scenario
+| Source | What it provides | Reference |
+|--------|------------------|-----------|
+| **Bitbrains GWA-T-12** | VM utilization metrics (CPU, memory, disk I/O, network) from 1,750 VMs | Kaggle / TU Delft |
+| **NAB (Numenta)** | Real AWS CloudWatch metrics with labeled anomaly windows | Kaggle / GitHub |
+| **EC2 Instance Metrics** | Real EC2 system metrics (CPU, memory, disk) | Kaggle (sakthivelank) |
+| **AWS Pricing Dataset** | Pre-scraped AWS pricing across all services | Kaggle (justsahil) |
+| **Cloud Workload Traces** | Job traces for forecasting benchmarks | Kaggle (zoya77) |
+
+See [DATA_RESOURCES.md](../documentation/DATA_RESOURCES.md) for full details, citations, and download links.
+
+### Generated supplement
+
+Open-source datasets cover EC2 metrics, anomaly patterns, and pricing well. To ensure full coverage across all **10 AWS services** in the pipeline, the generator creates supplementary data for services without public datasets (ECS, ElastiCache, DynamoDB, NAT Gateway, ELB, etc.) using realistic patterns modeled after the open-source data.
+
+## The sample scenario
 
 A mid-size SaaS startup with monthly AWS bill ~$1,500-$2,500:
 
@@ -25,7 +39,7 @@ EC2 fleet: 8 instances with deliberate optimization opportunities (over-provisio
 ## Usage
 
 ```bash
-# Generate all synthetic data (default: 365 days, seed 42)
+# Generate all sample data (default: 365 days, seed 42)
 # Writes directly to data/cloud_optimizer.db via storage.db API
 python -m data_generation.synthetic --days 365 --seed 42
 
@@ -39,7 +53,7 @@ The generator populates the following tables in `data/cloud_optimizer.db`:
 
 | Table | Approximate Rows | Description |
 | --- | --- | --- |
-| `users` | 1 | Synthetic user (SYNTHETIC-001) |
+| `users` | 1 | Demo user (DEMO-001) |
 | `daily_costs` | 365 | Daily total cost |
 | `service_costs` | ~2,555 | Per-service daily costs (7 services x 365 days) |
 | `ec2_instances` | 8 | EC2 instance inventory |
@@ -51,8 +65,8 @@ The generator populates the following tables in `data/cloud_optimizer.db`:
 | `ebs_volumes` | 8 | EBS volume inventory |
 | `instance_pricing` | ~60 | EC2 and RDS pricing reference data |
 
-## Known differences from real data
+## Notes
 
-- `account_id` is `SYNTHETIC-001` instead of a real AWS account number
-- All instances are in `us-east-1` (real data uses `eu-north-1`)
-- Reproducible via `--seed` flag
+- All instances are in `us-east-1`
+- Reproducible via `--seed` flag — same seed always produces identical output
+- All random values use `numpy.random.default_rng(seed)` for determinism

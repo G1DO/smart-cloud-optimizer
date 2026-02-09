@@ -1,6 +1,6 @@
 # Smart Cloud Optimizer
 
-AI-powered AWS cloud cost optimization platform. Collects real AWS data (or generates synthetic data for demo mode), forecasts usage with ML models, and recommends right-sizing and pricing strategies.
+AI-powered AWS cloud cost optimization platform. Collects real AWS data (or uses open-source datasets for demo mode), forecasts usage with ML models, and recommends right-sizing and pricing strategies.
 
 All data is stored in a single SQLite database (`data/cloud_optimizer.db`) accessed through the `storage.db` module.
 
@@ -19,10 +19,10 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### Demo Mode (synthetic data)
+### Demo Mode (sample data)
 
 ```bash
-# Generate synthetic data (writes to data/cloud_optimizer.db)
+# Load sample data into database (based on open-source datasets)
 python -m data_generation.synthetic --days 365 --seed 42
 
 # Run tests
@@ -59,14 +59,17 @@ cloud-gp/
 │       ├── cost.py            # Cost Explorer
 │       └── pricing.py         # AWS Pricing API
 │
-├── data_generation/           # Synthetic data generation
-│   └── synthetic.py           # Generates realistic AWS data into DB
+├── data_generation/           # Sample data generation
+│   └── synthetic.py           # Generates sample AWS data into DB
 │
 ├── storage/                   # Data persistence layer
 │   └── db.py                  # SQLite gateway (30 tables, insert_*/get_* API)
 │
-├── ml_engine/                 # ML forecasting models
-│   └── data_prep.py           # Data loading & feature engineering from DB
+├── ml_engine/                 # ML forecasting engine
+│   ├── data_prep.py           # Data loading & feature engineering from DB
+│   ├── anomaly.py             # Anomaly detection (Z-score + IQR)
+│   ├── forecaster.py          # 5 forecasting models (Naive, SNaive, ETS, Prophet, SARIMAX)
+│   └── evaluator.py           # Cross-validation & model comparison
 │
 ├── ai_module/                 # AI recommendation engine (stub)
 ├── optimizer/                 # Cost optimization logic (stub)
@@ -81,14 +84,15 @@ cloud-gp/
     ├── test_config.py
     ├── test_date_utils.py
     ├── test_storage.py
-    └── test_synthetic.py
+    ├── test_synthetic.py
+    └── test_ml_utils.py
 ```
 
 ## Architecture
 
 ```
 data_generation/synthetic.py ──┐
-  (demo mode)                  │
+  (open-source + generated)    │
                                ├──> storage.db.insert_*() ──> SQLite DB
 aws_collector/                 │         │
   (real AWS)                ───┘         ├──> ml_engine   (reads via storage.db.get_*())
@@ -134,7 +138,7 @@ All data is stored in **SQLite** via the `storage.db` module (30 tables total).
 
 | Variable         | Default       | Description                        |
 | ---------------- | ------------- | ---------------------------------- |
-| `DEMO_MODE`      | `true`        | Use synthetic data instead of AWS  |
+| `DEMO_MODE`      | `true`        | Use sample data instead of AWS     |
 | `AWS_REGION`     | `us-east-1`   | Default AWS region                 |
 | `OPENAI_API_KEY` | --            | OpenAI key for AI recommendations  |
 | `OPENAI_MODEL`   | `gpt-4o-mini` | Model for AI module                |

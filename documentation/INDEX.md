@@ -36,7 +36,7 @@
 | QUICKSTART | Setup, run, test | First day |
 | ARCHITECTURE | System diagram, module roles | Before coding |
 | MODULES | File-by-file breakdown | When lost |
-| DATA_PIPELINE | Collection + synthetic flow | Working on data |
+| DATA_PIPELINE | Collection + data pipeline flow | Working on data |
 | STORAGE_API | insert_*/get_* functions | Using the DB |
 | DATA_SCHEMAS | 30 table definitions | DB queries |
 | CONFIGURATION | Env vars, logging | Deployment |
@@ -48,7 +48,7 @@
 
 Smart Cloud Optimizer is an AI-powered AWS cost optimization platform:
 
-1. **Collect** — Gather AWS data (costs, metrics, pricing) or generate synthetic demo data
+1. **Collect** — Gather AWS data (costs, metrics, pricing) or use open-source sample data
 2. **Analyze** — Forecast usage with ML models (Prophet, SARIMAX)
 3. **Optimize** — Recommend right-sizing and pricing strategies
 
@@ -61,9 +61,9 @@ All data is stored in SQLite (`data/cloud_optimizer.db`) via the `storage/` modu
 ```
 cloud-gp/
 ├── aws_collector/      # AWS data collection (10 service collectors)
-├── data_generation/    # Synthetic data generator
+├── data_generation/    # Sample data generator
 ├── storage/            # SQLite gateway (30 tables)
-├── ml_engine/          # ML forecasting (partial)
+├── ml_engine/          # ML forecasting engine
 ├── ai_module/          # AI recommendations (stub)
 ├── optimizer/          # Cost optimization (stub)
 ├── dashboard/          # Streamlit UI (stub)

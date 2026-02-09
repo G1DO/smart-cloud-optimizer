@@ -1,6 +1,6 @@
 # Data Pipeline
 
-This document explains both data pipelines: real AWS collection and synthetic generation.
+This document explains both data pipelines: real AWS collection and sample data generation.
 
 ## 1. Real AWS Collection Pipeline
 
@@ -85,7 +85,7 @@ Every AWS API call and file I/O operation is wrapped in try/except. Failures are
 
 ---
 
-## 2. Synthetic Data Pipeline
+## 2. Sample Data Pipeline
 
 ### Entry Point
 
@@ -95,7 +95,7 @@ python -m data_generation.synthetic --days 365 --seed 42
 
 ### What It Generates
 
-The synthetic generator creates data that matches the exact DB schemas and writes directly to SQLite via `storage.insert_*()`. It simulates a mid-size SaaS startup.
+The data generator creates sample data based on open-source datasets (Bitbrains VM traces, NAB CloudWatch metrics, Kaggle EC2/pricing data) supplemented with generated data to ensure full coverage across all 10 AWS services. It matches the exact DB schemas and writes directly to SQLite via `storage.insert_*()`. It simulates a mid-size SaaS startup.
 
 ```text
 synthetic.py
@@ -117,7 +117,7 @@ synthetic.py
   └── generate_ai_recommendations()    ──>  storage.insert_ai_recommendations()
 ```
 
-### The Simulated Environment
+### The Sample Environment
 
 | Resource | Count | Details |
 | --- | --- | --- |
@@ -154,7 +154,7 @@ synthetic.py
 | `dev` | 2-8% with random 35-55% spikes (5% probability) |
 | `batch` | 1% except 2-5am = 85-95% |
 
-**Pricing data** is generated synthetically with realistic price ranges based on AWS pricing models.
+**Pricing data** is sourced from the Kaggle AWS Pricing dataset and supplemented with generated prices based on AWS pricing models.
 
 ### Determinism
 
@@ -174,4 +174,4 @@ conn = get_connection()
 costs = get_daily_costs(conn, user_id, start_date="2024-01-01")
 ```
 
-The ML engine, AI module, and optimizer all use `storage.get_*()` functions — they don't care whether the data is real or synthetic. Both pipelines produce data with identical schemas, isolated by `user_id`.
+The ML engine, AI module, and optimizer all use `storage.get_*()` functions — they don't care whether the data comes from real AWS or from the sample data pipeline. Both pipelines produce data with identical schemas, isolated by `user_id`.

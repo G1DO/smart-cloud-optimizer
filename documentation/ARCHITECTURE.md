@@ -4,7 +4,7 @@
 
 Smart Cloud Optimizer is an AI-powered platform that helps reduce AWS cloud costs. It works in three stages:
 
-1. **Collect** — Gather real AWS data (costs, metrics, pricing, inventory) or generate synthetic data for demo mode
+1. **Collect** — Gather real AWS data (costs, metrics, pricing, inventory) or use open-source sample data for demo mode
 2. **Analyze** — Use ML models to forecast future usage and detect anomalies
 3. **Optimize** — Recommend right-sizing instances, switching pricing plans, and eliminating waste
 
@@ -15,13 +15,13 @@ Smart Cloud Optimizer is an AI-powered platform that helps reduce AWS cloud cost
 │                        DATA SOURCES                             │
 │                                                                 │
 │   ┌──────────────────┐         ┌──────────────────────┐        │
-│   │  AWS Account     │         │  Synthetic Generator  │        │
-│   │  (real data)     │         │  (demo mode)          │        │
-│   │                  │         │                       │        │
-│   │  - Cost Explorer │         │  - Fake 8-instance    │        │
-│   │  - CloudWatch    │         │    EC2 fleet          │        │
-│   │  - Pricing API   │         │  - 365 days of costs  │        │
-│   │  - EC2/RDS/S3..  │         │  - Realistic metrics  │        │
+│   │  AWS Account     │         │  Data Generator        │        │
+│   │  (real data)     │         │  (open-source based)   │        │
+│   │                  │         │                        │        │
+│   │  - Cost Explorer │         │  - Bitbrains VM traces │        │
+│   │  - CloudWatch    │         │  - NAB CloudWatch      │        │
+│   │  - Pricing API   │         │  - Kaggle pricing      │        │
+│   │  - EC2/RDS/S3..  │         │  - Generated for 10 svc│        │
 │   └────────┬─────────┘         └───────────┬──────────┘        │
 │            │                                │                   │
 │            ▼                                ▼                   │
@@ -69,7 +69,7 @@ Smart Cloud Optimizer is an AI-powered platform that helps reduce AWS cloud cost
 
 ### Demo Mode (`DEMO_MODE=true`, default)
 
-No AWS credentials needed. The synthetic generator creates realistic data that mimics a mid-size SaaS startup (~$1,500-$2,500/month AWS bill). This mode lets you demo the full platform without a real AWS account.
+No AWS credentials needed. The data generator creates sample data based on open-source datasets (Bitbrains VM traces, NAB CloudWatch metrics, Kaggle pricing) supplemented with generated data to cover all 10 AWS services. It mimics a mid-size SaaS startup (~$1,500-$2,500/month AWS bill). This mode lets you demo the full platform without a real AWS account.
 
 ```text
 data_generation/synthetic.py  ──>  storage.insert_*()  ──>  SQLite DB  ──>  dashboard
@@ -91,9 +91,9 @@ Both modes write to the same SQLite database through `storage.insert_*()`. Downs
 | --- | --- | --- |
 | `config.py` | Project-wide constants, paths, env vars | Done |
 | `aws_collector/` | Real AWS data collection pipeline | Done |
-| `data_generation/` | Synthetic data generator | Done |
+| `data_generation/` | Sample data generator (open-source based) | Done |
 | `storage/` | SQLite gateway (30 tables, `insert_*`/`get_*` API) | Done |
-| `ml_engine/` | Data prep utilities + time-series forecasting (Prophet, ARIMA) | Partial |
+| `ml_engine/` | Data prep, anomaly detection, time-series forecasting, evaluation | Done |
 | `ai_module/` | LLM-based instance recommendations (OpenAI) | Stub |
 | `optimizer/` | Cost minimization via linear programming (PuLP) | Stub |
 | `dashboard/` | Streamlit web UI | Stub |
@@ -105,6 +105,6 @@ Both modes write to the same SQLite database through `storage.insert_*()`. Downs
 
 **Two config files** — `config.py` (root) holds project-level settings like paths and ML constants. `aws_collector/config.py` holds boto3 session management. They don't overlap — one is about the project, the other is about AWS.
 
-**Upsert on primary keys** — `INSERT OR REPLACE` handles deduplication automatically. Re-running the collector or synthetic generator won't create duplicate rows. Downstream modules just call `storage.get_*()`.
+**Upsert on primary keys** — `INSERT OR REPLACE` handles deduplication automatically. Re-running the collector or data generator won't create duplicate rows. Downstream modules just call `storage.get_*()`.
 
 **Collector pattern** — Each AWS service has its own collector class in `aws_collector/collectors/` (EC2Collector, RDSCollector, LambdaCollector, etc.). All inherit from `BaseCollector` and implement `list_resources()`, `get_metrics()`, and `collect()`. The `CollectorRunner` in `runner.py` orchestrates them month-by-month. This makes it easy to add new services without touching existing code.

@@ -19,7 +19,7 @@ The project has two separate config files with no overlap:
 
 | Variable | Default | Description |
 | --- | --- | --- |
-| `DEMO_MODE` | `true` | `true` = use synthetic data, `false` = connect to real AWS |
+| `DEMO_MODE` | `true` | `true` = use sample data, `false` = connect to real AWS |
 | `AWS_REGION` | `us-east-1` | Default AWS region |
 | `AWS_ACCOUNT_ID` | `SYNTHETIC-001` | Account ID (overridden automatically in real mode) |
 | `OPENAI_API_KEY` | (empty) | OpenAI API key for the AI recommendation module |
@@ -34,7 +34,7 @@ Set these in a `.env` file or export them before running.
 ### Demo Mode (`DEMO_MODE=true`)
 
 - No AWS credentials needed
-- Synthetic data must be generated first: `python -m data_generation.synthetic`
+- Sample data must be generated first: `python -m data_generation.synthetic`
 - Data is read from SQLite DB (`data/cloud_optimizer.db`)
 - All modules (ML, AI, optimizer, dashboard) work identically
 
@@ -65,7 +65,7 @@ Both modes write to the same SQLite database through `storage.insert_*()`. Downs
 | Constant | Value | Description |
 | --- | --- | --- |
 | `DEFAULT_COLLECTION_MONTHS` | `12` | How many months of history to collect |
-| `DEFAULT_SYNTHETIC_DAYS` | `365` | Days of synthetic data to generate |
+| `DEFAULT_SYNTHETIC_DAYS` | `365` | Days of sample data to generate |
 | `API_TIMEOUT` | `30` | AWS API call timeout (seconds) |
 | `MAX_RETRIES` | `3` | Retry count for failed API calls |
 | `CHUNK_SIZE` | `100` | Batch size for bulk operations |

@@ -136,11 +136,11 @@ Exports all 57+ public functions, plus `INSTANCE_SPECS` and `SERVICE_NAME_MAP` c
 
 ---
 
-## `data_generation/` — Synthetic Data
+## `data_generation/` — Sample Data Generation
 
 ### `synthetic.py`
 
-Generates realistic AWS data and writes directly to SQLite via `storage.insert_*()`. CLI: `python -m data_generation.synthetic --days 365 --seed 42`.
+Generates sample AWS data based on open-source datasets (Bitbrains, NAB, Kaggle) supplemented with generated data for full 10-service coverage. Writes directly to SQLite via `storage.insert_*()`. CLI: `python -m data_generation.synthetic --days 365 --seed 42`.
 
 Key functions:
 
@@ -158,19 +158,44 @@ All random values use `numpy.random.default_rng(seed)` for deterministic output.
 
 ---
 
-## `ml_engine/` — ML Forecasting (Partial)
+## `ml_engine/` — ML Forecasting Engine
 
 ### `data_prep.py`
 
 Data loading and feature engineering from SQLite:
 
-- **Loaders**: `load_cost_data(conn, user_id, ...)`, `load_ec2_metrics(conn, ...)`, `load_rds_metrics(conn, ...)` — return DataFrames
+- **Loaders**: `load_cost_data(conn, user_id, ...)`, `load_ec2_metrics(conn, ...)`, `load_rds_metrics(conn, ...)`, plus 7 more service loaders — return DataFrames
+- **Dispatcher**: `load_service_metrics(conn, user_id, service)` — loads any service by name
 - **Feature engineering**: `add_time_features(df, timestamp_col)` — creates hour, day_of_week, month, is_weekend, sine/cos encodings
 - **Lag features**: `create_lag_features(df, columns, lags=[1, 7, 30])`
 - **Aggregation**: `aggregate_metrics(df, group_by, agg_funcs)`
 - **Training prep**: `prepare_for_training(df, target_col, exclude_cols)` — splits X/y, fills NaNs
 
-Forecasting models (Prophet, SARIMAX) not yet implemented.
+### `anomaly.py`
+
+Anomaly detection for cost time series. Run before forecasting to exclude outliers from training:
+
+- **`detect_zscore(series, window, threshold)`** — Rolling Z-score detection (default: window=30, threshold=3.0)
+- **`detect_iqr(series, multiplier)`** — IQR-based outlier detection (default: multiplier=1.5)
+- **`flag_anomalies(df, value_col)`** — Combines both methods (union), adds `is_anomaly` column
+
+### `forecaster.py`
+
+5 forecasting models with a unified `fit(df)` / `predict(horizon)` interface. All return DataFrame with `[date, forecast, lower, upper]`:
+
+- **`NaiveForecaster`** — Repeats last value (baseline)
+- **`SeasonalNaiveForecaster`** — Weekly pattern repetition
+- **`ETSForecaster`** — Exponential Smoothing (statsmodels). Falls back to non-seasonal with < 2 weeks data
+- **`ProphetForecaster`** — Facebook Prophet with weekly + yearly seasonality
+- **`SARIMAXForecaster`** — Auto-tuned SARIMAX via pmdarima
+
+### `evaluator.py`
+
+Model evaluation via walk-forward cross-validation:
+
+- **`calc_metrics(y_true, y_pred)`** — Returns MAPE, RMSE, MAE
+- **`time_series_cv(model, df, ...)`** — Expanding window CV, returns metrics per fold
+- **`compare_models(models, df, ...)`** — Runs CV on multiple models, returns comparison table sorted by MAPE
 
 ## `ai_module/` — AI Recommendations (Stub)
 
@@ -198,7 +223,7 @@ Tests for date utilities in `aws_collector/metrics.py`: month range generation, 
 
 ### `test_ml_utils.py`
 
-Tests for `ml_engine/data_prep.py`: data loading, feature engineering, lag creation.
+Tests for `ml_engine/`: data loading, feature engineering, anomaly detection, forecasters (Naive, SeasonalNaive, ETS), evaluator metrics and cross-validation.
 
 ### `test_storage.py`
 

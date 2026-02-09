@@ -31,7 +31,7 @@ pip install -r requirements.txt
 
 ## Demo Mode (Recommended Start)
 
-Generate synthetic data to explore the system without AWS credentials:
+Load sample data to explore the system without AWS credentials:
 
 ```bash
 python -m data_generation.synthetic --days 365 --seed 42

@@ -14,7 +14,7 @@ Tests live in `tests/`. Current coverage:
 | --- | --- |
 | `test_config.py` | Root config paths, types, `DB_PATH` |
 | `test_date_utils.py` | Month range generation, edge cases |
-| `test_ml_utils.py` | Data loading, feature engineering, lag creation (`ml_engine/data_prep.py`) |
+| `test_ml_utils.py` | Data loading, feature engineering, anomaly detection, forecasters, evaluation |
 | `test_storage.py` | Insert/query API, upsert behavior, user isolation, schema creation |
 | `test_synthetic.py` | DB table population, schema validation, row counts, determinism, value ranges |
 
@@ -125,4 +125,4 @@ data/
   cloud_optimizer.db   ← single SQLite database (all data)
 ```
 
-Both the synthetic generator and AWS collector write to the same DB. Downstream modules read via `storage.get_*()` and don't know which source produced the data.
+Both the data generator and AWS collector write to the same DB. Downstream modules read via `storage.get_*()` and don't know which source produced the data.

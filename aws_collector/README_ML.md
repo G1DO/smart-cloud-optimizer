@@ -12,17 +12,17 @@ from storage.db import get_connection, get_daily_costs, get_ec2_metrics, get_ec2
 conn = get_connection()
 
 # Cost data
-costs = get_daily_costs(conn, user_id="aws-SYNTHETIC-001")
-costs_filtered = get_daily_costs(conn, user_id="aws-SYNTHETIC-001",
+costs = get_daily_costs(conn, user_id="aws-DEMO-001")
+costs_filtered = get_daily_costs(conn, user_id="aws-DEMO-001",
                                   start_date="2025-01-01", end_date="2025-06-30")
 
 # EC2 metrics
-metrics = get_ec2_metrics(conn, user_id="aws-SYNTHETIC-001")
-metrics_single = get_ec2_metrics(conn, user_id="aws-SYNTHETIC-001",
+metrics = get_ec2_metrics(conn, user_id="aws-DEMO-001")
+metrics_single = get_ec2_metrics(conn, user_id="aws-DEMO-001",
                                   instance_id="i-abcdef1234567890")
 
 # Inventory
-instances = get_ec2_instances(conn, user_id="aws-SYNTHETIC-001")
+instances = get_ec2_instances(conn, user_id="aws-DEMO-001")
 ```
 
 ### Via ml_engine.data_prep (ML-ready DataFrames)
@@ -34,7 +34,7 @@ from ml_engine.data_prep import load_cost_data
 conn = get_connection()
 
 # Load cost data as DataFrame
-cost_df = load_cost_data(conn, user_id="aws-SYNTHETIC-001")
+cost_df = load_cost_data(conn, user_id="aws-DEMO-001")
 # Columns: date, total_cost
 ```
 
@@ -72,7 +72,7 @@ from storage.db import get_connection
 from ml_engine.data_prep import load_cost_data
 
 conn = get_connection()
-df = load_cost_data(conn, user_id="aws-SYNTHETIC-001")
+df = load_cost_data(conn, user_id="aws-DEMO-001")
 
 # df is ready for Prophet, SARIMAX, etc.
 from prophet import Prophet
