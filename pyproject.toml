@@ -3,7 +3,7 @@ testpaths = ["tests"]
 addopts = "-v --tb=short"
 
 [tool.coverage.run]
-source = ["aws_collector", "storage", "data_generation", "ml_engine", "config"]
+source = ["aws_collector", "storage", "data_generation", "ml_engine", "optimizer", "config"]
 omit = ["tests/*"]
 
 [tool.coverage.report]
