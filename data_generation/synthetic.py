@@ -41,6 +41,42 @@ WEEKEND_COST_MULTIPLIER: float = 0.70
 HOURS_PER_MONTH: float = 730.0
 COST_FLOOR: float = 20.0
 
+# Service pricing constants (us-east-1, for monthly_cost computation)
+EBS_PRICE_PER_GB = {"gp2": 0.10, "gp3": 0.08, "io2": 0.125}
+EBS_IO2_IOPS_PRICE = 0.065  # per provisioned IOPS/month
+S3_PRICE_STANDARD_PER_GB = 0.023
+LAMBDA_PRICE_PER_GB_SEC = 0.0000166667
+LAMBDA_PRICE_PER_REQUEST = 0.0000002
+DYNAMO_PRICE_RCU_MONTH = 0.09   # per provisioned RCU/month
+DYNAMO_PRICE_WCU_MONTH = 0.47   # per provisioned WCU/month
+DYNAMO_PRICE_READ_REQ_M = 1.25  # per million read request units (on-demand)
+DYNAMO_PRICE_WRITE_REQ_M = 6.25  # per million write request units (on-demand)
+NAT_PRICE_HOURLY = 0.045
+NAT_PRICE_PER_GB = 0.045
+ELB_ALB_HOURLY = 0.0225
+
+# On-Demand hourly prices for monthly_cost computation
+OD_HOURLY = {
+    "t3.micro": 0.0104, "t3.small": 0.0208, "t3.medium": 0.0416,
+    "t3.large": 0.0832, "t3.xlarge": 0.1664,
+    "m5.large": 0.0960, "m5.xlarge": 0.1920, "m5.2xlarge": 0.3840,
+    "c5.large": 0.0850, "c5.xlarge": 0.1700, "c5.2xlarge": 0.3400,
+    "r5.large": 0.1260, "r5.xlarge": 0.2520,
+}
+RI1_DISCOUNT = 0.63  # reserved-1yr = 63% of on-demand
+
+# RDS On-Demand hourly
+RDS_OD_HOURLY = {
+    "db.t4g.micro": 0.016, "db.t4g.medium": 0.065,
+    "db.r5.large": 0.240, "db.r5.xlarge": 0.480,
+}
+
+# ElastiCache On-Demand hourly
+ELASTICACHE_OD_HOURLY = {
+    "cache.t3.micro": 0.017, "cache.t3.medium": 0.068,
+    "cache.m5.large": 0.142, "cache.r5.large": 0.226,
+}
+
 # Anomaly parameters
 MIN_ANOMALY_SPIKES: int = 4
 MAX_ANOMALY_SPIKES: int = 6
@@ -329,6 +365,9 @@ def generate_ec2_instances() -> pd.DataFrame:
              monitoring, cpu_cores, threads_per_core, security_groups,
              ebs_volumes, network_interfaces, tags
     """
+    # Production web instances on reserved pricing (committed workload)
+    reserved_instances = {"prod-web-1", "prod-web-2"}
+
     rows = []
     base_ip = 10
     for i, inst in enumerate(EC2_FLEET):
@@ -336,6 +375,13 @@ def generate_ec2_instances() -> pd.DataFrame:
         vid = _volume_id(inst["name"])
         eid = _eni_id(inst["name"])
         launch = datetime(2025, 1, 10 + i, 8, 30, 0)
+
+        pricing_model = "reserved-1yr" if inst["name"] in reserved_instances else "on-demand"
+        od_rate = OD_HOURLY.get(inst["type"], 0.10)
+        if pricing_model == "reserved-1yr":
+            monthly_cost = round(od_rate * RI1_DISCOUNT * HOURS_PER_MONTH, 2)
+        else:
+            monthly_cost = round(od_rate * HOURS_PER_MONTH, 2)
 
         tags = f"Name={inst['name']};Environment={inst['env']}"
         rows.append({
@@ -361,6 +407,8 @@ def generate_ec2_instances() -> pd.DataFrame:
             "ebs_volumes": vid,
             "network_interfaces": eid,
             "tags": tags,
+            "pricing_model": pricing_model,
+            "monthly_cost": monthly_cost,
         })
 
     return pd.DataFrame(rows)
@@ -406,6 +454,12 @@ def generate_rds_instances() -> pd.DataFrame:
 
     rows = []
     for inst in instances:
+        od_rate = RDS_OD_HOURLY.get(inst["db_instance_class"], 0.10)
+        monthly_cost = round(od_rate * HOURS_PER_MONTH, 2)
+        # Multi-AZ doubles the cost
+        if inst["multi_az"]:
+            monthly_cost = round(monthly_cost * 2, 2)
+
         rows.append({
             "account_id": ACCOUNT_ID,
             "region": REGION,
@@ -427,6 +481,8 @@ def generate_rds_instances() -> pd.DataFrame:
             "deletion_protection": inst["deletion_protection"],
             "instance_create_time": inst["create_time"],
             "tags": f"Environment={'production' if 'prod' in inst['db_instance_id'] else 'staging'}",
+            "pricing_model": "on-demand",
+            "monthly_cost": monthly_cost,
         })
 
     return pd.DataFrame(rows)
@@ -440,15 +496,16 @@ def generate_s3_buckets() -> pd.DataFrame:
              default_encryption, public_access_block
     """
     buckets = [
-        {"name": "app-user-uploads",  "created": "2024-06-15T10:00:00+00:00", "versioning": "Enabled"},
-        {"name": "app-logs",          "created": "2024-06-15T10:05:00+00:00", "versioning": "Suspended"},
-        {"name": "app-backups",       "created": "2024-07-01T08:00:00+00:00", "versioning": "Enabled"},
-        {"name": "app-static-assets", "created": "2024-06-15T10:10:00+00:00", "versioning": ""},
+        {"name": "app-user-uploads",  "created": "2024-06-15T10:00:00+00:00", "versioning": "Enabled",   "size_gb": 500.0, "gets": 150, "puts": 80},
+        {"name": "app-logs",          "created": "2024-06-15T10:05:00+00:00", "versioning": "Suspended", "size_gb": 120.0, "gets": 5,   "puts": 200},
+        {"name": "app-backups",       "created": "2024-07-01T08:00:00+00:00", "versioning": "Enabled",   "size_gb": 250.0, "gets": 2,   "puts": 10},
+        {"name": "app-static-assets", "created": "2024-06-15T10:10:00+00:00", "versioning": "",          "size_gb": 55.0,  "gets": 5000, "puts": 20},
     ]
 
     rows = []
     block = "{'BlockPublicAcls': True, 'IgnorePublicAcls': True, 'BlockPublicPolicy': True, 'RestrictPublicBuckets': True}"
     for b in buckets:
+        monthly_cost = round(b["size_gb"] * S3_PRICE_STANDARD_PER_GB, 2)
         rows.append({
             "account_id": ACCOUNT_ID,
             "bucket_name": b["name"],
@@ -457,6 +514,12 @@ def generate_s3_buckets() -> pd.DataFrame:
             "versioning": b["versioning"],
             "default_encryption": "AES256",
             "public_access_block": block,
+            "size_gb": b["size_gb"],
+            "num_objects": 0,  # will be set in main() from metrics
+            "avg_daily_get_requests": b["gets"],
+            "avg_daily_put_requests": b["puts"],
+            "monthly_cost": monthly_cost,
+            "storage_class": "STANDARD",
         })
 
     return pd.DataFrame(rows)
@@ -471,15 +534,23 @@ def generate_lambda_functions() -> pd.DataFrame:
              description, vpc_subnet_ids, vpc_security_group_ids, tags
     """
     functions = [
-        {"name": "image-resizer",   "runtime": "python3.12", "memory": 512,  "timeout": 30,  "handler": "index.handler", "size": 5242880,  "desc": "Resize uploaded images"},
-        {"name": "email-sender",    "runtime": "python3.12", "memory": 256,  "timeout": 15,  "handler": "index.handler", "size": 2097152,  "desc": "Send transactional emails"},
-        {"name": "log-processor",   "runtime": "python3.12", "memory": 1024, "timeout": 300, "handler": "index.handler", "size": 10485760, "desc": "Process and aggregate logs"},
-        {"name": "webhook-handler", "runtime": "nodejs20.x", "memory": 128,  "timeout": 10,  "handler": "index.handler", "size": 1048576,  "desc": "Handle incoming webhooks"},
+        {"name": "image-resizer",   "runtime": "python3.12", "memory": 512,  "timeout": 30,  "handler": "index.handler", "size": 5242880,  "desc": "Resize uploaded images",  "inv_mean": 12000, "dur_mean_ms": 200},
+        {"name": "email-sender",    "runtime": "python3.12", "memory": 256,  "timeout": 15,  "handler": "index.handler", "size": 2097152,  "desc": "Send transactional emails", "inv_mean": 3000,  "dur_mean_ms": 75},
+        {"name": "log-processor",   "runtime": "python3.12", "memory": 1024, "timeout": 300, "handler": "index.handler", "size": 10485760, "desc": "Process and aggregate logs", "inv_mean": 1500,  "dur_mean_ms": 2500},
+        {"name": "webhook-handler", "runtime": "nodejs20.x", "memory": 256,  "timeout": 10,  "handler": "index.handler", "size": 1048576,  "desc": "Handle incoming webhooks", "inv_mean": 20000, "dur_mean_ms": 35},
     ]
 
     rows = []
     for fn in functions:
         arn = f"arn:aws:lambda:{REGION}:000000000000:function:{fn['name']}"
+        # Estimate monthly cost: (memory_GB * duration_sec * invocations * 30) * price + request price
+        mem_gb = fn["memory"] / 1024
+        dur_sec = fn["dur_mean_ms"] / 1000
+        monthly_invocations = fn["inv_mean"] * 30
+        compute_cost = mem_gb * dur_sec * monthly_invocations * LAMBDA_PRICE_PER_GB_SEC
+        request_cost = monthly_invocations * LAMBDA_PRICE_PER_REQUEST
+        monthly_cost = round(compute_cost + request_cost, 2)
+
         rows.append({
             "account_id": ACCOUNT_ID,
             "region": REGION,
@@ -494,7 +565,10 @@ def generate_lambda_functions() -> pd.DataFrame:
             "description": fn["desc"],
             "vpc_subnet_ids": "",
             "vpc_security_group_ids": "",
-            "tags": f"Environment=production",
+            "tags": "Environment=production",
+            "avg_daily_invocations": fn["inv_mean"],
+            "avg_duration_ms": fn["dur_mean_ms"],
+            "monthly_cost": monthly_cost,
         })
 
     return pd.DataFrame(rows)
@@ -531,6 +605,11 @@ def generate_ebs_volumes() -> pd.DataFrame:
         throughput = 125 if vtype == "gp3" else ""
         launch = datetime(2025, 1, 10 + i, 8, 30, 0)
 
+        # Compute monthly cost
+        base_cost = EBS_PRICE_PER_GB.get(vtype, 0.10) * size
+        iops_cost = EBS_IO2_IOPS_PRICE * iops if vtype == "io2" else 0
+        monthly_cost = round(base_cost + iops_cost, 2)
+
         rows.append({
             "account_id": ACCOUNT_ID,
             "region": REGION,
@@ -546,7 +625,29 @@ def generate_ebs_volumes() -> pd.DataFrame:
             "create_time": launch.strftime("%Y-%m-%dT%H:%M:%S.000000+00:00"),
             "attachments": f"{iid}:/dev/xvda",
             "tags": f"Name={inst['name']}-root;Environment={inst['env']}",
+            "attached_instance_id": iid,
+            "monthly_cost": monthly_cost,
         })
+
+    # Add 1 unattached volume (orphaned after terminated instance)
+    rows.append({
+        "account_id": ACCOUNT_ID,
+        "region": REGION,
+        "volume_id": _volume_id("orphan-data"),
+        "size_gb": 50,
+        "volume_type": "gp2",
+        "iops": 150,
+        "throughput": "",
+        "encrypted": True,
+        "state": "available",
+        "availability_zone": f"{REGION}a",
+        "snapshot_id": "",
+        "create_time": "2025-02-01T10:00:00.000000+00:00",
+        "attachments": "",
+        "tags": "Name=orphan-data-volume;Environment=production",
+        "attached_instance_id": None,
+        "monthly_cost": round(EBS_PRICE_PER_GB["gp2"] * 50, 2),
+    })
 
     return pd.DataFrame(rows)
 
@@ -564,11 +665,15 @@ def generate_elasticache_nodes() -> pd.DataFrame:
     ]
     rows = []
     for n in nodes:
+        od_rate = ELASTICACHE_OD_HOURLY.get(n["type"], 0.10)
+        monthly_cost = round(od_rate * HOURS_PER_MONTH * n["count"], 2)
         rows.append({
             "account_id": ACCOUNT_ID, "region": REGION,
             "cache_cluster_id": n["id"], "cache_node_type": n["type"],
             "engine": n["engine"], "engine_version": n["version"],
             "num_cache_nodes": n["count"],
+            "pricing_model": "on-demand",
+            "monthly_cost": monthly_cost,
         })
     return pd.DataFrame(rows)
 
@@ -579,6 +684,10 @@ def generate_ecs_services() -> pd.DataFrame:
     Columns: account_id, region, service_name, cluster_name, launch_type,
              desired_count, cpu, memory_mb
     """
+    # Fargate pricing: $0.04048/vCPU/hr + $0.004445/GB/hr
+    FARGATE_VCPU_HR = 0.04048
+    FARGATE_GB_HR = 0.004445
+
     services = [
         {"name": "prod-api-service",     "cluster": "prod-cluster",    "count": 3, "cpu": 512,  "mem": 1024},
         {"name": "prod-worker-service",  "cluster": "prod-cluster",    "count": 2, "cpu": 256,  "mem": 512},
@@ -587,11 +696,16 @@ def generate_ecs_services() -> pd.DataFrame:
     ]
     rows = []
     for s in services:
+        vcpu = s["cpu"] / 1024
+        mem_gb = s["mem"] / 1024
+        hourly = (vcpu * FARGATE_VCPU_HR + mem_gb * FARGATE_GB_HR) * s["count"]
+        monthly_cost = round(hourly * HOURS_PER_MONTH, 2)
         rows.append({
             "account_id": ACCOUNT_ID, "region": REGION,
             "service_name": s["name"], "cluster_name": s["cluster"],
             "launch_type": "FARGATE", "desired_count": s["count"],
             "cpu": s["cpu"], "memory_mb": s["mem"],
+            "monthly_cost": monthly_cost,
         })
     return pd.DataFrame(rows)
 
@@ -603,17 +717,31 @@ def generate_dynamodb_tables() -> pd.DataFrame:
              provisioned_rcu, provisioned_wcu, storage_gb, item_count
     """
     tables = [
-        {"name": "prod-sessions",       "mode": "ON_DEMAND",   "rcu": None, "wcu": None, "gb": 15.0, "items": 500000},
-        {"name": "prod-user-profiles",  "mode": "PROVISIONED", "rcu": 100,  "wcu": 50,   "gb": 8.0,  "items": 120000},
-        {"name": "staging-sessions",    "mode": "ON_DEMAND",   "rcu": None, "wcu": None, "gb": 2.0,  "items": 50000},
+        {"name": "prod-sessions",       "mode": "ON_DEMAND",   "rcu": None, "wcu": None, "gb": 15.0, "items": 500000, "avg_rcu": 50, "avg_wcu": 25},
+        {"name": "prod-user-profiles",  "mode": "PROVISIONED", "rcu": 100,  "wcu": 50,   "gb": 8.0,  "items": 120000, "avg_rcu": 60, "avg_wcu": 30},
+        {"name": "staging-sessions",    "mode": "ON_DEMAND",   "rcu": None, "wcu": None, "gb": 2.0,  "items": 50000,  "avg_rcu": 10, "avg_wcu": 5},
     ]
     rows = []
     for t in tables:
+        if t["mode"] == "PROVISIONED":
+            # Provisioned: RCU * price + WCU * price
+            monthly_cost = round(t["rcu"] * DYNAMO_PRICE_RCU_MONTH + t["wcu"] * DYNAMO_PRICE_WCU_MONTH, 2)
+        else:
+            # On-demand: estimate from avg consumed units * 30 days * 24 hours
+            monthly_reads = t["avg_rcu"] * 30 * 24  # ~hourly avg * hours/month
+            monthly_writes = t["avg_wcu"] * 30 * 24
+            monthly_cost = round(
+                (monthly_reads / 1_000_000) * DYNAMO_PRICE_READ_REQ_M +
+                (monthly_writes / 1_000_000) * DYNAMO_PRICE_WRITE_REQ_M +
+                t["gb"] * 0.25,  # $0.25/GB/month storage
+                2
+            )
         rows.append({
             "account_id": ACCOUNT_ID, "region": REGION,
             "table_name": t["name"], "capacity_mode": t["mode"],
             "provisioned_rcu": t["rcu"], "provisioned_wcu": t["wcu"],
             "storage_gb": t["gb"], "item_count": t["items"],
+            "monthly_cost": monthly_cost,
         })
     return pd.DataFrame(rows)
 
@@ -624,15 +752,20 @@ def generate_nat_gateways() -> pd.DataFrame:
     Columns: account_id, region, nat_gateway_id, vpc_id, subnet_id, state
     """
     gateways = [
-        {"id": "nat-0synth00000000001", "az": f"{REGION}a"},
-        {"id": "nat-0synth00000000002", "az": f"{REGION}b"},
+        {"id": "nat-0synth00000000001", "az": f"{REGION}a", "data_gb": 250.0},
+        {"id": "nat-0synth00000000002", "az": f"{REGION}b", "data_gb": 170.0},
     ]
     rows = []
     for gw in gateways:
+        fixed_cost = NAT_PRICE_HOURLY * HOURS_PER_MONTH
+        data_cost = NAT_PRICE_PER_GB * gw["data_gb"]
+        monthly_cost = round(fixed_cost + data_cost, 2)
         rows.append({
             "account_id": ACCOUNT_ID, "region": REGION,
             "nat_gateway_id": gw["id"], "vpc_id": _vpc_id(),
             "subnet_id": _subnet_id(gw["az"]), "state": "available",
+            "monthly_data_processed_gb": gw["data_gb"],
+            "monthly_cost": monthly_cost,
         })
     return pd.DataFrame(rows)
 
@@ -644,14 +777,16 @@ def generate_elb_instances() -> pd.DataFrame:
              type, scheme, dns_name, vpc_id, state, created_time
     """
     elbs = [
-        {"name": "prod-web-alb",    "scheme": "internet-facing"},
-        {"name": "prod-api-alb",    "scheme": "internet-facing"},
-        {"name": "staging-web-alb", "scheme": "internet-facing"},
+        {"name": "prod-web-alb",    "scheme": "internet-facing", "targets": 2, "healthy": 2, "req_mean": 10000},
+        {"name": "prod-api-alb",    "scheme": "internet-facing", "targets": 1, "healthy": 1, "req_mean": 5000},
+        {"name": "staging-web-alb", "scheme": "internet-facing", "targets": 1, "healthy": 1, "req_mean": 1000},
     ]
     rows = []
     for e in elbs:
         h = hashlib.md5(e["name"].encode()).hexdigest()[:32]
         arn = f"arn:aws:elasticloadbalancing:{REGION}:000000000000:loadbalancer/app/{e['name']}/{h}"
+        monthly_cost = round(ELB_ALB_HOURLY * 720, 2)  # base ALB cost
+        avg_daily_requests = e["req_mean"] * 24  # hourly mean * 24h
         rows.append({
             "account_id": ACCOUNT_ID, "region": REGION,
             "load_balancer_arn": arn, "load_balancer_name": e["name"],
@@ -659,6 +794,10 @@ def generate_elb_instances() -> pd.DataFrame:
             "dns_name": f"{e['name']}-000000000.{REGION}.elb.amazonaws.com",
             "vpc_id": _vpc_id(), "state": "active",
             "created_time": "2025-01-15T10:00:00+00:00",
+            "target_count": e["targets"],
+            "healthy_target_count": e["healthy"],
+            "avg_daily_requests": avg_daily_requests,
+            "monthly_cost": monthly_cost,
         })
     return pd.DataFrame(rows)
 
@@ -1185,7 +1324,7 @@ def generate_lambda_metrics(days: int = 45, seed: int = 42) -> pd.DataFrame:
         {"name": "image-resizer",   "inv_mean": 12000, "dur_mean": 200,  "mem_alloc": 512,  "mem_used_pct": 0.70},
         {"name": "email-sender",    "inv_mean": 3000,  "dur_mean": 75,   "mem_alloc": 256,  "mem_used_pct": 0.55},
         {"name": "log-processor",   "inv_mean": 1500,  "dur_mean": 2500, "mem_alloc": 1024, "mem_used_pct": 0.80},
-        {"name": "webhook-handler", "inv_mean": 20000, "dur_mean": 35,   "mem_alloc": 128,  "mem_used_pct": 0.60},
+        {"name": "webhook-handler", "inv_mean": 20000, "dur_mean": 35,   "mem_alloc": 256,  "mem_used_pct": 0.25},
     ]
 
     rows = []
@@ -1362,6 +1501,21 @@ def generate_instance_pricing(real_pricing_path: Optional[Path] = None) -> Tuple
                 "region": REGION,
                 "hourly_price_usd": price,
                 "product_family": "Database Instance",
+            })
+
+    # ElastiCache pricing
+    for itype, od_hr in ELASTICACHE_OD_HOURLY.items():
+        ri1_hr = round(od_hr * 0.63, 4)
+        for ptype, price in [("On-Demand", od_hr), ("Reserved-1yr", ri1_hr)]:
+            rows.append({
+                "account_id": ACCOUNT_ID,
+                "month": month,
+                "service": "ElastiCache",
+                "pricing_type": ptype,
+                "instance_type": itype,
+                "region": REGION,
+                "hourly_price_usd": price,
+                "product_family": "Cache Instance",
             })
 
     df = pd.DataFrame(rows)
@@ -1633,14 +1787,26 @@ def main() -> None:
     # DB expects one row per instance_type with on_demand_hourly, reserved_1yr_hourly, etc.
     pricing, real_price_rows, synth_price_rows = generate_instance_pricing(real_pricing)
     pricing_pivoted: dict[str, dict] = {}
+    # Specs for RDS and ElastiCache (not in config.INSTANCE_SPECS)
+    _extra_specs = {
+        "db.t4g.micro": (2, 1.0), "db.t4g.medium": (2, 4.0),
+        "db.r5.large": (2, 16.0), "db.r5.xlarge": (4, 32.0),
+        "cache.t3.micro": (2, 0.5), "cache.t3.medium": (2, 3.09),
+        "cache.m5.large": (2, 6.38), "cache.r5.large": (2, 13.07),
+    }
+
     for r in pricing.to_dict("records"):
         itype = r["instance_type"]
         if itype not in pricing_pivoted:
+            ec2_spec = storage.INSTANCE_SPECS.get(itype, (None, None))
+            extra_spec = _extra_specs.get(itype, (None, None))
+            vcpus = ec2_spec[0] or extra_spec[0]
+            memory_gb = ec2_spec[1] or extra_spec[1]
             pricing_pivoted[itype] = {
                 "service": r.get("service", "EC2"),
                 "instance_type": itype,
-                "vcpus": storage.INSTANCE_SPECS.get(itype, (None, None))[0],
-                "memory_gb": storage.INSTANCE_SPECS.get(itype, (None, None))[1],
+                "vcpus": vcpus,
+                "memory_gb": memory_gb,
             }
         hourly = float(r["hourly_price_usd"])
         ptype = r.get("pricing_type", "On-Demand")
