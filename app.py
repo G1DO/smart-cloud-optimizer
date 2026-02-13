@@ -41,31 +41,14 @@ def main() -> None:
         home.render()
 
     elif page == "💰 Costs":
-        # Placeholder for Costs page (Phase 2)
-        st.info("📊 Cost Analysis page coming soon...")
-        st.markdown(
-            """
-            **Planned Features:**
-            - Daily cost trends (line chart)
-            - Cost breakdown by service (bar chart)
-            - Top 5 most expensive resources
-            - Date range selector
-            - Export to CSV
-            """
-        )
+        from dashboard import costs
+
+        costs.render()
 
     elif page == "📈 Forecasts":
-        # Placeholder for Forecasts page (Phase 2)
-        st.info("🔮 Forecasts page coming soon...")
-        st.markdown(
-            """
-            **Planned Features:**
-            - Cost predictions (30/60/90 days)
-            - Confidence intervals
-            - Model comparison (Prophet, SARIMAX, ETS)
-            - Forecast accuracy metrics (RMSE, MAE, MAPE)
-            """
-        )
+        from dashboard import forecasts
+
+        forecasts.render()
 
     elif page == "💡 Recommendations":
         # Placeholder for Recommendations page (Phase 3)
