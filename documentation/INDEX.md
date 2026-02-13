@@ -3,6 +3,7 @@
 ## Quick Links
 
 - **New here?** Start with [QUICKSTART.md](QUICKSTART.md)
+- **Project status?** See [PROJECT_STATUS.md](PROJECT_STATUS.md) ⭐ **NEW**
 - **How does it work?** See [ARCHITECTURE.md](ARCHITECTURE.md)
 - **Where's the code for X?** See [MODULES.md](MODULES.md)
 
@@ -13,19 +14,20 @@
 ### Level 1: Get Running (15 min)
 
 1. [QUICKSTART.md](QUICKSTART.md) — Setup and first run
+2. [PROJECT_STATUS.md](PROJECT_STATUS.md) — What's done, what's missing, what's next ⭐
 
 ### Level 2: Understand the System (30 min)
 
-2. [ARCHITECTURE.md](ARCHITECTURE.md) — How components fit together
-3. [MODULES.md](MODULES.md) — What each file does
-4. [DATA_PIPELINE.md](DATA_PIPELINE.md) — How data flows
+1. [ARCHITECTURE.md](ARCHITECTURE.md) — How components fit together
+2. [MODULES.md](MODULES.md) — What each file does
+3. [DATA_PIPELINE.md](DATA_PIPELINE.md) — How data flows
 
 ### Level 3: Deep Dives (as needed)
 
-5. [STORAGE_API.md](STORAGE_API.md) — Database API reference
-6. [DATA_SCHEMAS.md](DATA_SCHEMAS.md) — All 30 database tables
-7. [CONFIGURATION.md](CONFIGURATION.md) — Environment variables
-8. [DATA_RESOURCES.md](DATA_RESOURCES.md) — External data sources
+1. [STORAGE_API.md](STORAGE_API.md) — Database API reference
+2. [DATA_SCHEMAS.md](DATA_SCHEMAS.md) — All 30 database tables
+3. [CONFIGURATION.md](CONFIGURATION.md) — Environment variables
+4. [DATA_RESOURCES.md](DATA_RESOURCES.md) — External data sources
 
 ---
 
@@ -34,6 +36,7 @@
 | File | Topic | When to Read |
 |------|-------|--------------|
 | QUICKSTART | Setup, run, test | First day |
+| PROJECT_STATUS | What's done, gaps, roadmap | Planning next work ⭐ |
 | ARCHITECTURE | System diagram, module roles | Before coding |
 | MODULES | File-by-file breakdown | When lost |
 | DATA_PIPELINE | Collection + data pipeline flow | Working on data |
@@ -60,12 +63,12 @@ All data is stored in SQLite (`data/cloud_optimizer.db`) via the `storage/` modu
 
 ```
 cloud-gp/
-├── aws_collector/      # AWS data collection (10 service collectors)
-├── data_generation/    # Sample data generator
-├── storage/            # SQLite gateway (30 tables)
-├── ml_engine/          # ML forecasting engine
-├── ai_module/          # AI recommendations (stub)
-├── optimizer/          # Cost optimization (stub)
-├── dashboard/          # Streamlit UI (stub)
-└── tests/              # 117 tests
+├── aws_collector/      # AWS data collection (11 service collectors) ✅
+├── data_generation/    # Sample data generator ✅
+├── storage/            # SQLite gateway (30 tables) ✅
+├── ml_engine/          # ML forecasting engine (5 models) ✅
+├── ai_module/          # AI recommendations (Gemini 2.5) ✅
+├── optimizer/          # Cost optimization (LP solver + rules) ✅
+├── dashboard/          # Streamlit UI (stub) ❌
+└── tests/              # 183 tests (182 passing)
 ```
