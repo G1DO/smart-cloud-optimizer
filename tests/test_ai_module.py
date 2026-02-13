@@ -135,9 +135,9 @@ class TestPromptBuilder:
 
 class TestAIRecommender:
 
-    @patch("ai_module.recommender.genai.GenerativeModel")
+    @patch("ai_module.recommender.genai.Client")
     @patch("ai_module.recommender.config.GOOGLE_API_KEY", "test-key-123")
-    def test_successful_api_call(self, mock_model_class):
+    def test_successful_api_call(self, mock_client_class):
         """get_ai_recommendations should parse valid JSON response."""
         # Mock API response
         mock_response = Mock()
@@ -155,9 +155,10 @@ class TestAIRecommender:
         Some extra text after
         '''
 
-        mock_model = Mock()
-        mock_model.generate_content.return_value = mock_response
-        mock_model_class.return_value = mock_model
+        # Mock the new Client-based API
+        mock_client = Mock()
+        mock_client.models.generate_content.return_value = mock_response
+        mock_client_class.return_value = mock_client
 
         prompt = "Design an architecture"
         parsed, raw = get_ai_recommendations(prompt)
@@ -167,13 +168,13 @@ class TestAIRecommender:
         assert "Lambda" in parsed["recommended_setup"]["compute"]
         assert raw == mock_response.text.strip()
 
-    @patch("ai_module.recommender.genai.GenerativeModel")
+    @patch("ai_module.recommender.genai.Client")
     @patch("ai_module.recommender.config.GOOGLE_API_KEY", "test-key-123")
-    def test_handles_api_exception(self, mock_model_class):
+    def test_handles_api_exception(self, mock_client_class):
         """get_ai_recommendations should return error dict on API failure."""
-        mock_model = Mock()
-        mock_model.generate_content.side_effect = Exception("Network error")
-        mock_model_class.return_value = mock_model
+        mock_client = Mock()
+        mock_client.models.generate_content.side_effect = Exception("Network error")
+        mock_client_class.return_value = mock_client
 
         parsed, raw = get_ai_recommendations("test prompt")
 
@@ -181,16 +182,16 @@ class TestAIRecommender:
         assert "Network error" in parsed["error"]
         assert raw == ""
 
-    @patch("ai_module.recommender.genai.GenerativeModel")
+    @patch("ai_module.recommender.genai.Client")
     @patch("ai_module.recommender.config.GOOGLE_API_KEY", "test-key-123")
-    def test_handles_invalid_json(self, mock_model_class):
+    def test_handles_invalid_json(self, mock_client_class):
         """get_ai_recommendations should return error dict on malformed JSON."""
         mock_response = Mock()
         mock_response.text = "This is not JSON at all, just plain text"
 
-        mock_model = Mock()
-        mock_model.generate_content.return_value = mock_response
-        mock_model_class.return_value = mock_model
+        mock_client = Mock()
+        mock_client.models.generate_content.return_value = mock_response
+        mock_client_class.return_value = mock_client
 
         parsed, raw = get_ai_recommendations("test prompt")
 
@@ -206,16 +207,16 @@ class TestAIRecommender:
         assert "GOOGLE_API_KEY" in parsed["error"]
         assert raw == ""
 
-    @patch("ai_module.recommender.genai.GenerativeModel")
+    @patch("ai_module.recommender.genai.Client")
     @patch("ai_module.recommender.config.GOOGLE_API_KEY", "test-key-123")
-    def test_empty_response(self, mock_model_class):
+    def test_empty_response(self, mock_client_class):
         """get_ai_recommendations should handle empty API response."""
         mock_response = Mock()
         mock_response.text = ""
 
-        mock_model = Mock()
-        mock_model.generate_content.return_value = mock_response
-        mock_model_class.return_value = mock_model
+        mock_client = Mock()
+        mock_client.models.generate_content.return_value = mock_response
+        mock_client_class.return_value = mock_client
 
         parsed, raw = get_ai_recommendations("test prompt")
 

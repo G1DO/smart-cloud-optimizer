@@ -90,8 +90,11 @@ class ECSCollector(BaseCollector):
                                     )["taskDefinition"]
                                     cpu = int(td.get("cpu", 256))
                                     memory_mb = int(td.get("memory", 512))
-                                except Exception:
-                                    pass
+                                except Exception as e:
+                                    logger.warning(
+                                        f"Failed to fetch task definition '{task_def_arn}' "
+                                        f"in {region}: {e}. Using defaults: CPU={cpu}, Memory={memory_mb}MB"
+                                    )
 
                             launch_type = svc.get("launchType", "FARGATE")
                             # Fargate capacity providers also count
