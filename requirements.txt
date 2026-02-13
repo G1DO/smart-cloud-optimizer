@@ -13,6 +13,7 @@ pulp>=2.7.0
 
 # AI
 openai>=1.10.0
+google-genai>=1.63.0
 
 # Dashboard
 streamlit>=1.30.0

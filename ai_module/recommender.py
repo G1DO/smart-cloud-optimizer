@@ -9,17 +9,15 @@ Part of the Smart Cloud Optimizer graduation project.
 import json
 import logging
 
-import google.generativeai as genai
+from google import genai
 
 import config
 
 logger = logging.getLogger(__name__)
 
-# Validate and configure API key at module load
+# Validate API key at module load
 if not config.GOOGLE_API_KEY:
     logger.warning("GOOGLE_API_KEY not set - ai_module will fail at runtime")
-else:
-    genai.configure(api_key=config.GOOGLE_API_KEY)
 
 
 def get_ai_recommendations(prompt: str) -> tuple[dict, str]:
@@ -47,11 +45,13 @@ def get_ai_recommendations(prompt: str) -> tuple[dict, str]:
         return {"error": "GOOGLE_API_KEY not set. Please set environment variable."}, ""
 
     try:
-        model = genai.GenerativeModel(config.GOOGLE_MODEL)
+        # Create client and generate content using new API
+        client = genai.Client(api_key=config.GOOGLE_API_KEY)
 
-        response = model.generate_content(
-            prompt,
-            generation_config={"temperature": 0.3}
+        response = client.models.generate_content(
+            model=config.GOOGLE_MODEL,
+            contents=prompt,
+            config={"temperature": 0.3}
         )
 
         if not response or not response.text:

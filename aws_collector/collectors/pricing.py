@@ -421,7 +421,9 @@ class PricingCollector:
                     if usd is not None:
                         return float(usd)
             return None
-        except Exception:
+        except Exception as e:
+            logger.error(f"Failed to parse pricing JSON: {e}")
+            logger.debug(f"Problematic price item: {price_item[:200]}...")  # First 200 chars
             return None
 
     # ------------------------------------------------------------------
