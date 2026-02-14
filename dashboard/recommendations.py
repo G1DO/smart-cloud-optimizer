@@ -48,7 +48,7 @@ def render():
             instruction=(
                 "Generate recommendations by running the optimizer:\n\n"
                 "```bash\n"
-                f"python -m optimizer.main --user-id {user_id}\n"
+                f"python -m optimizer --user-id {user_id}\n"
                 "```\n\n"
                 "Or generate sample data first:\n"
                 "```bash\n"
