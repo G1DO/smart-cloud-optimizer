@@ -63,13 +63,16 @@ def render():
 
     try:
         conn = components.get_db_connection()
-        df_historical = components.db.get_cost_data(
+        # Get up to 365 days of historical data, constrained to available range
+        start_date, end_date = components.calculate_date_range(user_id, days=365)
+        historical_costs = components.db.get_daily_costs(
             conn,
             user_id,
-            start_date=(datetime.now() - timedelta(days=365)).date(),
-            end_date=datetime.now().date(),
+            start_date=start_date,
+            end_date=end_date,
         )
-        conn.close()
+        df_historical = pd.DataFrame(historical_costs)
+        # Note: Don't close cached connection - cache manages lifecycle
 
     except Exception as e:
         components.show_error(

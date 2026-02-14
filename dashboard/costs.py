@@ -46,7 +46,7 @@ def create_stacked_area_chart(
     )
 
     rows = cursor.fetchall()
-    conn.close()
+    # Note: Don't close cached connection - cache manages lifecycle
 
     if not rows:
         # Return empty chart
@@ -145,34 +145,29 @@ def render():
         )
 
     # Calculate date range based on preset
-    end_date = datetime.now().date()
+    # Get available date range
+    available_start, available_end = components.get_available_date_range(user_id)
 
-    if date_preset == "Last 7 Days":
-        start_date = end_date - timedelta(days=7)
-    elif date_preset == "Last 30 Days":
-        start_date = end_date - timedelta(days=30)
-    elif date_preset == "Last 90 Days":
-        start_date = end_date - timedelta(days=90)
-    elif date_preset == "Last 6 Months":
-        start_date = end_date - timedelta(days=180)
-    elif date_preset == "Last Year":
-        start_date = end_date - timedelta(days=365)
-    elif date_preset == "All Time":
-        start_date = end_date - timedelta(days=730)  # 2 years max
-    else:  # Custom
+    # Calculate based on preset
+    if date_preset == "Custom":
         with col2:
             start_date = st.date_input(
                 "Start Date",
-                value=end_date - timedelta(days=30),
-                max_value=end_date,
+                value=max(available_end - timedelta(days=30), available_start),
+                min_value=available_start,
+                max_value=available_end,
             )
         with col3:
             end_date = st.date_input(
                 "End Date",
-                value=end_date,
-                max_value=end_date,
+                value=available_end,
                 min_value=start_date,
+                max_value=available_end,
             )
+    else:
+        start_date, end_date = components.calculate_date_range(
+            user_id, preset=date_preset
+        )
 
     # Calculate number of days
     num_days = (end_date - start_date).days + 1
@@ -186,13 +181,14 @@ def render():
     try:
         # Load cost data for date range
         conn = components.get_db_connection()
-        df_daily = components.db.get_cost_data(conn, user_id, start_date, end_date)
+        daily_costs = components.db.get_daily_costs(conn, user_id, start_date, end_date)
+        df_daily = pd.DataFrame(daily_costs)
 
         # Load service costs
         cursor = conn.cursor()
         cursor.execute(
             """
-            SELECT service, SUM(cost) as total_cost
+            SELECT service, SUM(daily_cost) as total_cost
             FROM service_costs
             WHERE user_id = ? AND date >= ? AND date <= ?
             GROUP BY service
@@ -205,7 +201,7 @@ def render():
             service_rows, columns=["service", "total_cost"]
         ) if service_rows else pd.DataFrame()
 
-        conn.close()
+        # Note: Don't close cached connection - cache manages lifecycle
 
     except Exception as e:
         components.show_error(

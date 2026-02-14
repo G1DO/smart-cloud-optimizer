@@ -81,7 +81,7 @@ def format_date(value: datetime | str) -> str:
 # ==============================================================================
 
 
-@st.cache_data(ttl=300)  # Cache for 5 minutes
+@st.cache_resource(ttl=300)  # Cache for 5 minutes
 def get_db_connection():
     """Get database connection.
 
@@ -91,8 +91,100 @@ def get_db_connection():
     Note:
         Cached to avoid reconnecting on every query.
         TTL = 5 minutes to allow data refresh.
+        Uses cache_resource (not cache_data) because connections aren't serializable.
     """
-    return sqlite3.connect(str(config.DB_PATH))
+    conn = sqlite3.connect(str(config.DB_PATH))
+    conn.row_factory = sqlite3.Row  # Enable dict-like row access
+    return conn
+
+
+@st.cache_data(ttl=300)
+def get_available_date_range(user_id: str) -> tuple[datetime.date, datetime.date]:
+    """Get the actual available date range for a user's data.
+
+    Queries the database to find MIN and MAX dates where data exists.
+    Falls back to current date if no data available.
+
+    Args:
+        user_id: User identifier
+
+    Returns:
+        Tuple of (start_date, end_date) representing available data range
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Query MIN/MAX from daily_costs table
+    cursor.execute("""
+        SELECT MIN(date) as min_date, MAX(date) as max_date
+        FROM daily_costs
+        WHERE user_id = ?
+    """, (user_id,))
+
+    row = cursor.fetchone()
+
+    # Fallback if no data exists
+    if not row or not row['min_date'] or not row['max_date']:
+        today = datetime.now().date()
+        return (today - timedelta(days=30), today)
+
+    # Parse date strings to date objects
+    min_date = datetime.strptime(row['min_date'], '%Y-%m-%d').date()
+    max_date = datetime.strptime(row['max_date'], '%Y-%m-%d').date()
+
+    return (min_date, max_date)
+
+
+def calculate_date_range(
+    user_id: str,
+    days: Optional[int] = None,
+    preset: Optional[str] = None
+) -> tuple[datetime.date, datetime.date]:
+    """Calculate smart date range based on available data.
+
+    Uses actual data availability to constrain requested date ranges.
+
+    Args:
+        user_id: User identifier
+        days: Number of days to look back (e.g., 30, 90, 365)
+        preset: Preset name ("Last 7 Days", "Last 30 Days", "All Time", etc.)
+
+    Returns:
+        Tuple of (start_date, end_date) constrained to available data
+    """
+    # Get available data range
+    available_start, available_end = get_available_date_range(user_id)
+
+    # Handle "All Time" preset
+    if preset == "All Time":
+        return (available_start, available_end)
+
+    # Calculate requested range based on days parameter
+    if days:
+        requested_end = available_end  # Use available end, not datetime.now()
+        requested_start = requested_end - timedelta(days=days)
+    elif preset:
+        # Map preset to days
+        preset_days = {
+            "Last 7 Days": 7,
+            "Last 30 Days": 30,
+            "Last 90 Days": 90,
+            "Last 6 Months": 180,
+            "Last Year": 365,
+        }
+        days = preset_days.get(preset, 30)
+        requested_end = available_end
+        requested_start = requested_end - timedelta(days=days)
+    else:
+        # Default: last 30 days of available data
+        requested_end = available_end
+        requested_start = requested_end - timedelta(days=30)
+
+    # Constrain to available range
+    start_date = max(requested_start, available_start)
+    end_date = min(requested_end, available_end)
+
+    return (start_date, end_date)
 
 
 @st.cache_data(ttl=300)
@@ -106,7 +198,7 @@ def load_users() -> list[dict]:
     cursor = conn.cursor()
     cursor.execute("SELECT user_id, email FROM users ORDER BY user_id")
     users = [{"user_id": row[0], "email": row[1]} for row in cursor.fetchall()]
-    conn.close()
+    # Note: Don't close cached connection - cache manages lifecycle
     return users
 
 
@@ -126,14 +218,14 @@ def load_cost_summary(user_id: str, days: int = 30) -> dict:
         - avg_daily: Average daily cost
     """
     conn = get_db_connection()
-    end_date = datetime.now().date()
-    start_date = end_date - timedelta(days=days)
+    start_date, end_date = calculate_date_range(user_id, days=days)
 
     # Get daily costs
-    df = db.get_cost_data(conn, user_id, start_date, end_date)
+    result = db.get_daily_costs(conn, user_id, start_date, end_date)
+    df = pd.DataFrame(result)
 
     if df.empty:
-        conn.close()
+        # Note: Don't close cached connection - cache manages lifecycle
         return {
             "total": 0.0,
             "daily": pd.DataFrame(),
@@ -156,7 +248,7 @@ def load_cost_summary(user_id: str, days: int = 30) -> dict:
     else:
         change_pct = 0.0
 
-    conn.close()
+    # Note: Don't close cached connection - cache manages lifecycle
     return {
         "total": total,
         "daily": df,
@@ -177,13 +269,12 @@ def load_service_costs(user_id: str, days: int = 30) -> pd.DataFrame:
         DataFrame with columns: service, total_cost (sorted by cost desc)
     """
     conn = get_db_connection()
-    end_date = datetime.now().date()
-    start_date = end_date - timedelta(days=days)
+    start_date, end_date = calculate_date_range(user_id, days=days)
 
     cursor = conn.cursor()
     cursor.execute(
         """
-        SELECT service, SUM(cost) as total_cost
+        SELECT service, SUM(daily_cost) as total_cost
         FROM service_costs
         WHERE user_id = ? AND date >= ? AND date <= ?
         GROUP BY service
@@ -193,7 +284,7 @@ def load_service_costs(user_id: str, days: int = 30) -> pd.DataFrame:
     )
 
     rows = cursor.fetchall()
-    conn.close()
+    # Note: Don't close cached connection - cache manages lifecycle
 
     if not rows:
         return pd.DataFrame(columns=["service", "total_cost"])
@@ -217,7 +308,7 @@ def load_recommendations(
     """
     conn = get_db_connection()
     recs = db.get_recommendations(conn, user_id, min_savings=min_savings)
-    conn.close()
+    # Note: Don't close cached connection - cache manages lifecycle
 
     if limit:
         recs = recs[:limit]
@@ -237,11 +328,10 @@ def load_anomalies(user_id: str, days: int = 30) -> list[dict]:
         List of anomaly dicts
     """
     conn = get_db_connection()
-    end_date = datetime.now().date()
-    start_date = end_date - timedelta(days=days)
+    start_date, end_date = calculate_date_range(user_id, days=days)
 
     anomalies = db.get_anomalies(conn, user_id)
-    conn.close()
+    # Note: Don't close cached connection - cache manages lifecycle
 
     # Filter to date range
     filtered = [
