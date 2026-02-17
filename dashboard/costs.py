@@ -37,7 +37,7 @@ def create_stacked_area_chart(
 
     cursor.execute(
         """
-        SELECT date, service, cost
+        SELECT date, service, daily_cost
         FROM service_costs
         WHERE user_id = ? AND date >= ? AND date <= ?
         ORDER BY date, service
@@ -69,11 +69,11 @@ def create_stacked_area_chart(
         return fig
 
     # Convert to DataFrame
-    df = pd.DataFrame(rows, columns=["date", "service", "cost"])
+    df = pd.DataFrame(rows, columns=["date", "service", "daily_cost"])
 
     # Pivot to get services as columns
     df_pivot = df.pivot_table(
-        index="date", columns="service", values="cost", fill_value=0
+        index="date", columns="service", values="daily_cost", fill_value=0
     )
 
     # Create stacked area chart
