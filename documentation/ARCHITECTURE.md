@@ -43,7 +43,7 @@ Smart Cloud Optimizer is an AI-powered platform that helps reduce AWS cloud cost
 │   │  Time-series │  │  LLM-based   │  │  Linear          │    │
 │   │  forecasting │  │  instance    │  │  programming     │    │
 │   │  (Prophet,   │  │  recommender │  │  cost            │    │
-│   │   ARIMA)     │  │  (OpenAI)    │  │  minimization    │    │
+│   │   ARIMA)     │  │  (Gemini)    │  │  minimization    │    │
 │   └──────┬───────┘  └──────┬───────┘  └────────┬─────────┘    │
 │          │                 │                    │               │
 │          └─────────────────┼────────────────────┘               │
@@ -94,9 +94,9 @@ Both modes write to the same SQLite database through `storage.insert_*()`. Downs
 | `data_generation/` | Sample data generator (open-source based) | Done |
 | `storage/` | SQLite gateway (30 tables, `insert_*`/`get_*` API) | Done |
 | `ml_engine/` | Data prep, anomaly detection, time-series forecasting, evaluation | Done |
-| `ai_module/` | LLM-based instance recommendations (OpenAI) | Stub |
-| `optimizer/` | Cost minimization via linear programming (PuLP) | Stub |
-| `dashboard/` | Streamlit web UI | Stub |
+| `ai_module/` | LLM-based architecture recommendations (Google Gemini 2.5 Flash) | Done |
+| `optimizer/` | Cost minimization via LP (PuLP) + 8 rule-based checks | Done |
+| `dashboard/` | Streamlit web UI (6 pages: Home, Costs, Forecasts, Recommendations, Settings) | Done |
 | `tests/` | Unit tests (pytest) | Done |
 
 ## Why This Architecture

@@ -28,6 +28,10 @@
 2. [DATA_SCHEMAS.md](DATA_SCHEMAS.md) — All 30 database tables
 3. [CONFIGURATION.md](CONFIGURATION.md) — Environment variables
 4. [DATA_RESOURCES.md](DATA_RESOURCES.md) — External data sources
+5. [ai_module.md](ai_module.md) — AI recommendation engine
+6. [optimizer.md](optimizer.md) — Cost optimization logic
+7. [forecasting_models.md](forecasting_models.md) — ML model details
+8. [STARTUP.md](STARTUP.md) — Startup and CLI guide
 
 ---
 
@@ -44,6 +48,10 @@
 | DATA_SCHEMAS | 30 table definitions | DB queries |
 | CONFIGURATION | Env vars, logging | Deployment |
 | DATA_RESOURCES | External datasets | Research |
+| STARTUP | Launch dashboard, CLI tools | First run |
+| ai_module | AI recommendation engine | AI features |
+| optimizer | Cost optimization logic | Optimization |
+| forecasting_models | ML model details | Forecasting |
 
 ---
 
@@ -69,6 +77,6 @@ cloud-gp/
 ├── ml_engine/          # ML forecasting engine (5 models) ✅
 ├── ai_module/          # AI recommendations (Gemini 2.5) ✅
 ├── optimizer/          # Cost optimization (LP solver + rules) ✅
-├── dashboard/          # Streamlit UI (stub) ❌
-└── tests/              # 183 tests (182 passing)
+├── dashboard/          # Streamlit UI (6 pages) ✅
+└── tests/              # 183 tests
 ```

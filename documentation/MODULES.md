@@ -23,7 +23,7 @@ This file does NOT touch boto3. AWS client setup lives in `aws_collector/config.
 
 ### `app.py`
 
-Streamlit entry point (stub). Will import from `dashboard/` and launch the web UI.
+Streamlit entry point. Multi-page routing with sidebar navigation. Imports page modules from `dashboard/` and dispatches to `render()` functions. Pages: Home, Costs, Forecasts, Recommendations, Settings.
 
 ### `pyproject.toml`
 
@@ -197,17 +197,77 @@ Model evaluation via walk-forward cross-validation:
 - **`time_series_cv(model, df, ...)`** — Expanding window CV, returns metrics per fold
 - **`compare_models(models, df, ...)`** — Runs CV on multiple models, returns comparison table sorted by MAPE
 
-## `ai_module/` — AI Recommendations (Stub)
+## `ai_module/` -- AI Recommendation Engine
 
-Will use OpenAI API to recommend instance types based on workload profiles. Reads inventory and metrics via `storage.get_*()`, outputs recommendations.
+For **new users with no AWS data**, generates initial architecture recommendations via Google Gemini 2.5 Flash based on business requirements.
 
-## `optimizer/` — Cost Optimization (Stub)
+### `guided_questions.py`
 
-Will use PuLP linear programming to find the cheapest instance mix that meets performance constraints. Reads forecasts and pricing via `storage.get_*()`, outputs an optimized plan.
+Returns 9 structured questions: business_type, expected_users, uptime_requirement, optimization_priority, traffic_pattern, availability_zones, monthly_budget, aws_experience, additional_notes.
 
-## `dashboard/` — Web UI (Stub)
+### `prompt_builder.py`
 
-Streamlit dashboard. Will display cost trends, anomaly charts, right-sizing recommendations, and pricing comparisons.
+Converts user answers into a structured LLM prompt. Specifies JSON output format. Instructs: prefer serverless, Graviton, match experience level.
+
+### `recommender.py`
+
+Calls Google Gemini 2.5 Flash API via `google.genai` client. Returns `(parsed_dict, raw_response_text)`. Handles API failures, JSON parsing errors, missing API keys.
+
+### `ui.py`
+
+Streamlit rendering for AI recommendations -- service breakdown cards, estimated monthly cost, architecture explanation, implementation steps.
+
+---
+
+## `optimizer/` -- Cost Optimization Engine
+
+Uses PuLP linear programming + rule-based heuristics to find savings.
+
+### `compute_lp.py`
+
+MILP solver for optimal resource allocation:
+- `optimize_ec2(conn, user_id, budget_cap)` -- Minimizes total cost subject to CPU/memory demand + budget constraints
+- `optimize_rds(conn, user_id, budget_cap)` -- Finds best RDS instance type for workload
+
+### `rules.py`
+
+8 heuristic checks across AWS services: EC2 (RI/Spot), RDS (RI, Multi-AZ), Lambda (memory right-sizing), EBS (unattached volumes), S3 (Intelligent-Tiering), DynamoDB (On-Demand vs provisioned), NAT Gateway (consolidation), ELB (idle elimination).
+
+### `engine.py`
+
+Orchestrator. Runs LP solver + rules, deduplicates (keeps highest savings per resource), writes all recommendations to database, returns sorted by savings.
+
+### `__main__.py`
+
+CLI entry point: `python -m optimizer --user-id aws-SYNTHETIC-001`
+
+---
+
+## `dashboard/` -- Streamlit Web UI (6 pages)
+
+### `components.py` (563 lines)
+
+Reusable UI components: metric cards (cost, savings, anomaly count), chart templates (line, bar, area via Plotly), data formatters (currency, percentages), loading states, error displays.
+
+### `home.py`
+
+Home page: user selection dropdown, overview metrics (total cost, projected savings), top recommendations, quick stats cards.
+
+### `costs.py`
+
+Cost analysis page: daily cost line chart (Plotly), service breakdown bar chart, top expensive resources table, date range selector, export to CSV.
+
+### `forecasts.py`
+
+Forecasts page: forecast visualization (actuals vs predictions), confidence intervals (shaded regions), model comparison table (RMSE, MAE, MAPE), forecast horizon selector (7, 14, 30, 60 days).
+
+### `recommendations.py`
+
+Recommendations page: savings cards with priority badges, estimated monthly savings, filters by service/type/priority, sort by savings/priority/risk.
+
+### `settings.py`
+
+Settings page: user profile management, AWS account connection (stub), forecast/optimization parameters, demo mode toggle, data refresh controls.
 
 ---
 
@@ -232,3 +292,11 @@ Tests for `storage/db.py`: insert/query API, upsert behavior (`INSERT OR REPLACE
 ### `test_synthetic.py`
 
 Tests for `data_generation/synthetic.py`: DB table population, schema validation, row counts, determinism (same seed = same output), value ranges.
+
+### `test_optimizer.py`
+
+Tests for `optimizer/`: LP solver constraints, rule-based recommendations, orchestrator deduplication, DB write verification. 27 tests (26 passing, 1 failing).
+
+### `test_ai_module.py`
+
+Tests for `ai_module/`: guided questions structure, prompt builder output, recommender API mocking, JSON parsing, error handling. 13 tests.

@@ -22,8 +22,10 @@ The project has two separate config files with no overlap:
 | `DEMO_MODE` | `true` | `true` = use sample data, `false` = connect to real AWS |
 | `AWS_REGION` | `us-east-1` | Default AWS region |
 | `AWS_ACCOUNT_ID` | `SYNTHETIC-001` | Account ID (overridden automatically in real mode) |
-| `OPENAI_API_KEY` | (empty) | OpenAI API key for the AI recommendation module |
-| `OPENAI_MODEL` | `gpt-4o-mini` | Which OpenAI model to use |
+| `OPENAI_API_KEY` | (empty) | OpenAI API key (legacy, unused) |
+| `OPENAI_MODEL` | `gpt-4o-mini` | OpenAI model (legacy, unused) |
+| `GOOGLE_API_KEY` | (empty) | Google API key for AI recommendations (Gemini) |
+| `GOOGLE_MODEL` | `gemini-2.5-flash` | Google Gemini model for AI module |
 
 Set these in a `.env` file or export them before running.
 

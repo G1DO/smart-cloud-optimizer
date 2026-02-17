@@ -62,7 +62,7 @@ Run the test suite:
 python -m pytest tests/ -v
 ```
 
-Expected: 117 tests pass.
+Expected: 183 tests collected.
 
 ---
 
@@ -86,13 +86,23 @@ This collects 12 months of data across all enabled AWS regions.
 
 ---
 
-## Run the Dashboard (Stub)
+## Run the Dashboard
 
 ```bash
 streamlit run app.py
 ```
 
-Note: Dashboard is partially implemented.
+Opens at `http://localhost:8501`. Pages: Home, Costs, Forecasts, Recommendations, Settings.
+
+## CLI Tools
+
+```bash
+# Run optimizer (generates cost-saving recommendations)
+python -m optimizer --user-id aws-SYNTHETIC-001
+
+# Run ML forecasting
+python -m ml_engine --user-id aws-SYNTHETIC-001
+```
 
 ---
 
