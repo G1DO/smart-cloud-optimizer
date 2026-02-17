@@ -93,7 +93,7 @@ def get_db_connection():
         TTL = 5 minutes to allow data refresh.
         Uses cache_resource (not cache_data) because connections aren't serializable.
     """
-    conn = sqlite3.connect(str(config.DB_PATH))
+    conn = sqlite3.connect(str(config.DB_PATH), check_same_thread=False)
     conn.row_factory = sqlite3.Row  # Enable dict-like row access
     return conn
 
@@ -307,8 +307,12 @@ def load_recommendations(
         List of recommendation dicts sorted by savings (highest first)
     """
     conn = get_db_connection()
-    recs = db.get_recommendations(conn, user_id, min_savings=min_savings)
+    recs = db.get_recommendations(conn, user_id)
     # Note: Don't close cached connection - cache manages lifecycle
+
+    # Filter by min_savings in Python (db function doesn't support this parameter)
+    if min_savings > 0.0:
+        recs = [r for r in recs if r.get("monthly_savings", 0.0) >= min_savings]
 
     if limit:
         recs = recs[:limit]
@@ -337,7 +341,7 @@ def load_anomalies(user_id: str, days: int = 30) -> list[dict]:
     filtered = [
         a
         for a in anomalies
-        if start_date <= datetime.fromisoformat(a["date"]).date() <= end_date
+        if start_date <= datetime.fromisoformat(a["anomaly_date"]).date() <= end_date
     ]
 
     return filtered
