@@ -245,12 +245,16 @@ def render():
         # Extract recommendation details
         service = rec.get("service", "unknown").lower()
         rec_type = rec.get("recommendation_type", "optimization").replace("_", " ").title()
-        description = rec.get("description", "No description available")
         resource_id = rec.get("resource_id", "N/A")
         monthly_savings = rec.get("monthly_savings", 0.0)
         priority = rec.get("priority", "medium")
-        risk = rec.get("risk", "unknown")
-        confidence = rec.get("confidence", 0.0)
+        confidence = rec.get("confidence", "unknown")
+        current_config = rec.get("current_config", "N/A")
+        recommended_config = rec.get("recommended_config", "N/A")
+        current_cost = rec.get("current_monthly_cost", 0.0)
+        estimated_cost = rec.get("estimated_monthly_cost", 0.0)
+        savings_pct = rec.get("savings_percent", 0.0)
+        reasoning = rec.get("reasoning", "")
 
         # Get emojis
         service_emoji = service_emojis.get(service, "☁️")
@@ -258,7 +262,7 @@ def render():
 
         # Build card
         with st.container():
-            # Header row
+            # Header row: type + savings + priority
             col1, col2, col3 = st.columns([6, 2, 2])
 
             with col1:
@@ -279,21 +283,29 @@ def render():
                 }.get(priority, "⚪ Unknown")
                 st.markdown(f"## {priority_color}")
 
-            # Description
-            st.markdown(f"**Description:** {description}")
+            # Change: current → recommended
+            st.markdown(f"**Change:** `{current_config}`  →  `{recommended_config}`")
 
-            # Metadata
-            col1, col2, col3 = st.columns(3)
+            # Cost comparison
+            st.markdown(
+                f"**Cost:** {components.format_currency(current_cost)}/mo  →  "
+                f"{components.format_currency(estimated_cost)}/mo  "
+                f"({savings_pct:.1f}% savings)"
+            )
+
+            # Reasoning
+            if reasoning:
+                st.markdown(f"**Why:** {reasoning}")
+
+            # Metadata row
+            col1, col2 = st.columns(2)
 
             with col1:
                 st.caption(f"**Resource:** `{resource_id}`")
 
             with col2:
-                st.caption(f"**Risk Level:** {risk.capitalize()}")
-
-            with col3:
-                if confidence > 0:
-                    st.caption(f"**Confidence:** {confidence:.0%}")
+                if confidence and confidence != "unknown":
+                    st.caption(f"**Confidence:** {confidence.capitalize()}")
 
             # Implementation guidance
             with st.expander("📝 Implementation Details"):
