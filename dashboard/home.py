@@ -235,9 +235,9 @@ def render():
         st.subheader("⚠️ Recent Anomalies")
 
         for anomaly in anomalies[:5]:  # Show up to 5
-            date_str = components.format_date(anomaly["date"])
-            cost = components.format_currency(anomaly["value"])
-            reason = anomaly.get("reason", "Unknown")
+            date_str = components.format_date(anomaly["anomaly_date"])
+            cost = components.format_currency(anomaly["actual_cost"])
+            reason = anomaly.get("description", "Unknown")
 
             st.warning(
                 f"**{date_str}**: Unusual cost of {cost} detected ({reason})"
