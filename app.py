@@ -51,32 +51,14 @@ def main() -> None:
         forecasts.render()
 
     elif page == "💡 Recommendations":
-        # Placeholder for Recommendations page (Phase 3)
-        st.info("💡 Recommendations page coming soon...")
-        st.markdown(
-            """
-            **Planned Features:**
-            - All optimization recommendations
-            - Filter by service, type, priority
-            - Sort by savings, risk, priority
-            - Estimated monthly savings
-            - Implementation instructions
-            """
-        )
+        from dashboard import recommendations
+
+        recommendations.render()
 
     elif page == "⚙️ Settings":
-        # Placeholder for Settings page (Phase 3)
-        st.info("⚙️ Settings page coming soon...")
-        st.markdown(
-            """
-            **Planned Features:**
-            - User profile management
-            - AWS account connection
-            - Forecast/optimization parameters
-            - Demo mode toggle
-            - Data refresh controls
-            """
-        )
+        from dashboard import settings
+
+        settings.render()
 
     # Footer
     st.sidebar.markdown("---")
