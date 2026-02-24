@@ -13,10 +13,14 @@ Transaction contract
 
 Part of the Smart Cloud Optimizer graduation project.
 """
+import hashlib
+import hmac
 import logging
+import os
 import sqlite3
 from pathlib import Path
 from typing import Callable, Dict, List, Optional
+from uuid import uuid4
 
 import config
 from config import INSTANCE_SPECS, SERVICE_NAME_MAP
@@ -44,7 +48,9 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 CREATE TABLE IF NOT EXISTS aws_connections (
-    user_id           TEXT PRIMARY KEY,
+    id                INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id           TEXT    NOT NULL,
+    connection_name   TEXT,
     aws_account_id    TEXT    NOT NULL,
     iam_role_arn      TEXT    NOT NULL,
     external_id       TEXT,
@@ -55,6 +61,7 @@ CREATE TABLE IF NOT EXISTS aws_connections (
     error_message     TEXT,
     connected_at      TEXT    NOT NULL DEFAULT (datetime('now')),
     FOREIGN KEY (user_id) REFERENCES users(user_id),
+    UNIQUE(user_id, aws_account_id),
     CHECK (sync_status IN ('never','success','failed','in_progress'))
 );
 
@@ -622,6 +629,201 @@ def ensure_user(conn: sqlite3.Connection, account_id: str) -> str:
     conn.commit()
     logger.info(f"Created user {user_id}")
     return user_id
+
+
+# ===================================================================
+# Password hashing (stdlib only — no new dependencies)
+# ===================================================================
+
+def hash_password(password: str) -> str:
+    """Hash a password with PBKDF2-HMAC-SHA256 and a random 16-byte salt.
+
+    Returns:
+        String in the format ``"salt_hex:hash_hex"``.
+    """
+    salt = os.urandom(16)
+    pw_hash = hashlib.pbkdf2_hmac(
+        "sha256", password.encode("utf-8"), salt, iterations=260_000,
+    )
+    return f"{salt.hex()}:{pw_hash.hex()}"
+
+
+def verify_password(password: str, stored_hash: str) -> bool:
+    """Verify *password* against a stored ``"salt:hash"`` string.
+
+    Uses constant-time comparison to prevent timing attacks.
+    """
+    try:
+        salt_hex, hash_hex = stored_hash.split(":", 1)
+    except ValueError:
+        return False
+    salt = bytes.fromhex(salt_hex)
+    expected = bytes.fromhex(hash_hex)
+    actual = hashlib.pbkdf2_hmac(
+        "sha256", password.encode("utf-8"), salt, iterations=260_000,
+    )
+    return hmac.compare_digest(actual, expected)
+
+
+# ===================================================================
+# Auth user management
+# ===================================================================
+
+def register_user(conn: sqlite3.Connection, email: str, password: str,
+                  profile_name: str = "") -> str:
+    """Register a new auth user.
+
+    Args:
+        conn: Open database connection.
+        email: User email (must be unique).
+        password: Plaintext password to hash.
+        profile_name: Display name.
+
+    Returns:
+        The new ``user_id`` (format ``"usr-{hex}"``)
+
+    Raises:
+        ValueError: If the email is already registered.
+    """
+    # Check for duplicate email
+    existing = conn.execute(
+        "SELECT user_id FROM users WHERE email = ?", (email,)
+    ).fetchone()
+    if existing:
+        raise ValueError(f"Email already registered: {email}")
+
+    user_id = f"usr-{uuid4().hex[:12]}"
+    pw_hash = hash_password(password)
+    conn.execute(
+        "INSERT INTO users (user_id, email, password_hash, profile_name, user_type) "
+        "VALUES (?, ?, ?, ?, ?)",
+        (user_id, email, pw_hash, profile_name or email.split("@")[0], "new"),
+    )
+    conn.commit()
+    logger.info(f"Registered user {user_id} ({email})")
+    return user_id
+
+
+def authenticate_user(conn: sqlite3.Connection, email: str,
+                      password: str) -> Optional[dict]:
+    """Authenticate a user by email and password.
+
+    Returns:
+        Dict with ``user_id``, ``email``, ``profile_name``, ``user_type``
+        on success, or ``None`` on failure.
+    """
+    row = conn.execute(
+        "SELECT user_id, email, password_hash, profile_name, user_type "
+        "FROM users WHERE email = ?", (email,)
+    ).fetchone()
+    if not row:
+        return None
+    if not verify_password(password, row["password_hash"]):
+        return None
+    # Update last_login_at
+    conn.execute(
+        "UPDATE users SET last_login_at = datetime('now') WHERE user_id = ?",
+        (row["user_id"],),
+    )
+    conn.commit()
+    return {
+        "user_id": row["user_id"],
+        "email": row["email"],
+        "profile_name": row["profile_name"],
+        "user_type": row["user_type"],
+    }
+
+
+def get_user_by_id(conn: sqlite3.Connection, user_id: str) -> Optional[dict]:
+    """Look up a user by ID.
+
+    Returns:
+        Dict with user fields, or ``None`` if not found.
+    """
+    row = conn.execute(
+        "SELECT user_id, email, profile_name, user_type, created_at, last_login_at "
+        "FROM users WHERE user_id = ?", (user_id,)
+    ).fetchone()
+    return dict(row) if row else None
+
+
+def update_user_profile(conn: sqlite3.Connection, user_id: str,
+                        profile_name: str) -> bool:
+    """Update a user's display name.
+
+    Returns:
+        ``True`` if a row was updated.
+    """
+    cur = conn.execute(
+        "UPDATE users SET profile_name = ? WHERE user_id = ?",
+        (profile_name, user_id),
+    )
+    conn.commit()
+    return cur.rowcount > 0
+
+
+# ===================================================================
+# AWS connection CRUD (1 user : many accounts)
+# ===================================================================
+
+def add_aws_connection(conn: sqlite3.Connection, user_id: str,
+                       aws_account_id: str, iam_role_arn: str,
+                       connection_name: str = "",
+                       external_id: str = "",
+                       aws_region: str = "us-east-1") -> int:
+    """Add an AWS account connection for a user.
+
+    Returns:
+        The new connection ``id``.
+
+    Raises:
+        sqlite3.IntegrityError: On duplicate ``(user_id, aws_account_id)``.
+    """
+    cur = conn.execute(
+        "INSERT INTO aws_connections "
+        "(user_id, connection_name, aws_account_id, iam_role_arn, "
+        "external_id, aws_region) VALUES (?, ?, ?, ?, ?, ?)",
+        (user_id, connection_name or f"AWS {aws_account_id}",
+         aws_account_id, iam_role_arn, external_id, aws_region),
+    )
+    conn.commit()
+    logger.info(f"Added AWS connection {aws_account_id} for user {user_id}")
+    return cur.lastrowid
+
+
+def get_aws_connections(conn: sqlite3.Connection,
+                        user_id: str) -> List[dict]:
+    """Get all AWS connections for a user."""
+    return _rows_to_dicts(conn.execute(
+        "SELECT * FROM aws_connections WHERE user_id = ? "
+        "ORDER BY connected_at", (user_id,)))
+
+
+def delete_aws_connection(conn: sqlite3.Connection, connection_id: int,
+                          user_id: str) -> bool:
+    """Delete a connection by ID (scoped to user for safety).
+
+    Returns:
+        ``True`` if a row was deleted.
+    """
+    cur = conn.execute(
+        "DELETE FROM aws_connections WHERE id = ? AND user_id = ?",
+        (connection_id, user_id),
+    )
+    conn.commit()
+    return cur.rowcount > 0
+
+
+def update_aws_connection_status(conn: sqlite3.Connection, connection_id: int,
+                                 sync_status: str,
+                                 error_message: str = "") -> None:
+    """Update sync status on a connection."""
+    conn.execute(
+        "UPDATE aws_connections SET sync_status = ?, error_message = ?, "
+        "last_sync_at = datetime('now') WHERE id = ?",
+        (sync_status, error_message, connection_id),
+    )
+    conn.commit()
 
 
 def clear_user_data(conn: sqlite3.Connection, user_id: str) -> None:

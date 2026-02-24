@@ -12,6 +12,18 @@ from .db import (
     create_schema,
     ensure_user,
     clear_user_data,
+    # Auth & password
+    hash_password,
+    verify_password,
+    register_user,
+    authenticate_user,
+    get_user_by_id,
+    update_user_profile,
+    # AWS connection CRUD
+    add_aws_connection,
+    get_aws_connections,
+    delete_aws_connection,
+    update_aws_connection_status,
     # Write API — cost
     insert_daily_costs,
     insert_service_costs,
@@ -82,6 +94,10 @@ from .db import (
 
 __all__ = [
     "get_connection", "ensure_schema", "create_schema", "ensure_user", "clear_user_data",
+    "hash_password", "verify_password",
+    "register_user", "authenticate_user", "get_user_by_id", "update_user_profile",
+    "add_aws_connection", "get_aws_connections", "delete_aws_connection",
+    "update_aws_connection_status",
     "INSTANCE_SPECS", "SERVICE_NAME_MAP",
     # insert_*
     "insert_daily_costs", "insert_service_costs", "insert_service_region_costs",
