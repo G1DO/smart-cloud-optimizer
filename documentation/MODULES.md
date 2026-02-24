@@ -15,15 +15,15 @@ Single source of truth for project-wide settings. Contains:
 - **AWS**: `AWS_REGION`, `AWS_ACCOUNT_ID`
 - **ML**: `FORECAST_HORIZON_DAYS`, `MIN_TRAINING_DAYS`, `SEASONALITY_PERIOD`
 - **Optimization**: `DEFAULT_BUDGET_CAP`, `SPOT_RELIABILITY`
-- **API keys**: `OPENAI_API_KEY`, `OPENAI_MODEL`
-- **Reference data**: `INSTANCE_SPECS` (17 instance types), `SERVICE_NAME_MAP` (AWS name → short DB name)
+- **API keys**: `OPENAI_API_KEY`, `OPENAI_MODEL` (legacy), `GOOGLE_API_KEY`, `GOOGLE_MODEL`
+- **Reference data**: `INSTANCE_SPECS` (17 instance types), `SERVICE_NAME_MAP` (AWS name -> short DB name)
 - **Functions**: `setup_logging()`
 
 This file does NOT touch boto3. AWS client setup lives in `aws_collector/config.py`.
 
 ### `app.py`
 
-Streamlit entry point. Multi-page routing with sidebar navigation. Imports page modules from `dashboard/` and dispatches to `render()` functions. Pages: Home, Costs, Forecasts, Recommendations, Settings.
+Streamlit entry point. Runs an **authentication gate** before showing the dashboard: calls `init_session_state()`, checks `is_authenticated()`, renders `render_auth_page()` if not logged in. Once authenticated, shows sidebar navigation with 5 pages (Home, Costs, Forecasts, Recommendations, Settings), an account switcher, and a logout button. Imports page modules from `dashboard/` and dispatches to `render()` functions.
 
 ### `pyproject.toml`
 
@@ -42,13 +42,14 @@ Exports `CollectorRunner`, `AWSConfig`, `init_config`, `get_config`.
 AWS-specific configuration. Creates and manages boto3 clients.
 
 - **`AWSConfig`** class: Holds `session`, `ce` (Cost Explorer), `ec2`, `cloudwatch`, `pricing`, `s3` clients. Also fetches `account_id` via STS and `regions` via `ec2.describe_regions()`.
-- **`get_config()`**: Singleton accessor — returns existing `AWSConfig` or creates one.
+- **`AWSConfig.from_role(role_arn, external_id, region)`**: Class method that creates an `AWSConfig` by assuming an IAM role via STS. Used for multi-account support -- each `aws_connections` row stores a role ARN.
+- **`get_config()`**: Singleton accessor -- returns existing `AWSConfig` or creates one.
 - **`init_config(session)`**: Initializes the singleton with a specific boto3 session.
-- Regional clients created on-demand via `get_ec2_client(region)`, `get_rds_client(region)`, `get_lambda_client(region)`, `get_cloudwatch_client(region)`.
+- Regional clients created on-demand via `get_ec2_client(region)`, `get_rds_client(region)`, `get_lambda_client(region)`, `get_cloudwatch_client(region)`, `get_elasticache_client(region)`, `get_ecs_client(region)`, `get_dynamodb_client(region)`.
 
 ### `runner.py`
 
-Thin orchestrator (~165 lines). Initializes all service collectors and runs them month-by-month:
+Thin orchestrator (~187 lines). Initializes all service collectors and runs them month-by-month:
 
 ```python
 class CollectorRunner:
@@ -58,6 +59,8 @@ class CollectorRunner:
             self.ec2.collect(start, end)
             # ... each collector handles its own inventory + metrics
 ```
+
+Also provides `CollectorRunner.from_connection(connection, user_id, conn)` -- a class method that creates a runner from an `aws_connections` database row. Assumes the IAM role stored in the connection, enabling per-user data collection from the dashboard.
 
 ### `metrics.py`
 
@@ -123,38 +126,26 @@ class ServiceCollector(BaseCollector):
 
 Single data gateway for the entire project. Contains:
 
-- **Schema DDL**: 30 `CREATE TABLE` statements (inline, not a separate SQL file)
-- **Connection management**: `get_connection(db_path)` — opens SQLite with WAL mode, foreign keys enabled
+- **Schema DDL**: 30 `CREATE TABLE` statements (inline, not a separate SQL file). Includes `users` and `aws_connections` tables for authentication and multi-account support.
+- **Connection management**: `get_connection(db_path)` -- opens SQLite with WAL mode, foreign keys enabled
 - **Schema lifecycle**: `ensure_schema(conn)` (create tables/indexes if missing, non-destructive), `create_schema(conn)` (drop + recreate, destructive; tests/dev only), `ensure_user(conn, account_id)`, `clear_user_data(conn, user_id)`
-- **Insert functions** (30): One per table — `insert_daily_costs()`, `insert_ec2_instances()`, `insert_ec2_metrics()`, etc. All accept `(conn, user_id, rows: list[dict])`. Do not commit — caller batches and commits.
-- **Get functions** (27): One per table — `get_daily_costs()`, `get_ec2_instances()`, `get_ec2_metrics()`, etc. Support filtering by date range and resource ID. Return `list[dict]`.
+- **Authentication functions**: `hash_password()`, `verify_password()` (HMAC-SHA256 with random salt), `register_user()`, `authenticate_user()`, `get_user_by_id()`, `update_user_profile()`
+- **AWS connection CRUD**: `add_aws_connection()`, `get_aws_connections()`, `delete_aws_connection()`, `update_aws_connection_status()` -- manages per-user AWS account links with IAM role ARNs, sync status, and scoped deletion (users can only delete their own connections)
+- **Insert functions** (24): One per data table -- `insert_daily_costs()`, `insert_ec2_instances()`, `insert_ec2_metrics()`, etc. All accept `(conn, user_id, rows: list[dict])`. Do not commit -- caller batches and commits.
+- **Get functions** (24): One per data table -- `get_daily_costs()`, `get_ec2_instances()`, `get_ec2_metrics()`, etc. Support filtering by date range and resource ID. Return `list[dict]`.
 - **Internal helpers**: `_safe_float()`, `_safe_int()`, `_build_tuples()`, `_executemany_insert()`, `_rows_to_dicts()`, `_query_metrics()`
 
 ### `__init__.py`
 
-Exports all 57+ public functions, plus `INSTANCE_SPECS` and `SERVICE_NAME_MAP` constants.
+Exports all 70+ public functions (including auth and AWS connection CRUD), plus `INSTANCE_SPECS` and `SERVICE_NAME_MAP` constants.
 
 ---
 
-## `data_generation/` — Sample Data Generation
+## `data_generation/` -- Sample Data Generation (removed from repo)
 
-### `synthetic.py`
+**Note:** This module was removed from the git repository (commit `3a77b1b`). The synthetic data it generated is pre-loaded in `data/cloud_optimizer.db` and available via Demo Mode. The files may still exist locally but are not tracked.
 
-Generates sample AWS data based on open-source datasets (Bitbrains, NAB, Kaggle) supplemented with generated data for full 10-service coverage. Writes directly to SQLite via `storage.insert_*()`. CLI: `python -m data_generation.synthetic --days 365 --seed 42`.
-
-Key functions:
-
-- `generate_daily_costs()` — Realistic cost curve with seasonality, trend, anomalies, noise
-- `generate_service_costs()` — Breaks daily cost into per-service amounts
-- `generate_ec2_instances()` — 8 instances with realistic metadata
-- `generate_ec2_metrics()` — Per-instance CPU profiles (diurnal, spiky, steady, batch)
-- `generate_rds_instances()` — 2 RDS instances
-- `generate_rds_metrics()` — RDS CPU, storage, connections
-- Plus generators for ElastiCache, ECS, DynamoDB, S3, Lambda, EBS, NAT Gateway, ELB
-- `generate_instance_pricing()` — Pricing for all instance types
-- `generate_ai_recommendations()` — Sample AI recommendations
-
-All random values use `numpy.random.default_rng(seed)` for deterministic output.
+When it existed, `synthetic.py` generated sample AWS data based on open-source datasets (Bitbrains, NAB, Kaggle) supplemented with generated data for full 10-service coverage. Wrote directly to SQLite via `storage.insert_*()`.
 
 ---
 
@@ -243,31 +234,48 @@ CLI entry point: `python -m optimizer --user-id aws-SYNTHETIC-001`
 
 ---
 
-## `dashboard/` -- Streamlit Web UI (6 pages)
+## `dashboard/` -- Streamlit Web UI (auth gate + 5 nav pages)
 
-### `components.py` (563 lines)
+### `auth.py`
 
-Reusable UI components: metric cards (cost, savings, anomaly count), chart templates (line, bar, area via Plotly), data formatters (currency, percentages), loading states, error displays.
+Authentication module. Provides:
+
+- **`init_session_state()`** -- Sets default auth keys in `st.session_state` (safe to call repeatedly)
+- **`is_authenticated()`** -- Returns `True` if user is logged in or in demo mode
+- **`login(email, password)`** -- Validates credentials via `storage.db.authenticate_user()`, sets session state
+- **`logout()`** -- Clears auth state and reruns the app
+- **`register(email, password, confirm_password, profile_name)`** -- Creates account via `storage.db.register_user()`, auto-logs in on success
+- **`render_auth_page()`** -- Full login/register UI with two tabs (Login, Register) plus a "Try Demo Mode" button that logs in as `demo@cis.asu.edu.eg`
+
+### `components.py` (~578 lines)
+
+Reusable UI components:
+- **Data formatters**: `format_currency()`, `format_number()`, `format_percent()`, `format_date()`
+- **Data loaders** (cached): `get_db_connection()`, `load_users()`, `load_cost_summary()`, `load_service_costs()`, `load_recommendations()`, `load_anomalies()`
+- **Date range helpers**: `get_available_date_range()`, `calculate_date_range()` -- smart date ranges constrained to actual data availability
+- **Chart helpers**: `create_cost_line_chart()`, `create_service_bar_chart()` (Plotly)
+- **UI state**: `show_loading()`, `show_error()`, `show_empty_state()`, `display_metric_card()`
+- **Account management**: `get_current_user_id()` -- returns the active data-user_id (calls `st.stop()` if none selected), `render_account_switcher()` -- sidebar selectbox of connected AWS accounts, `select_user()` -- legacy wrapper
 
 ### `home.py`
 
-Home page: user selection dropdown, overview metrics (total cost, projected savings), top recommendations, quick stats cards.
+Home page: overview metrics (total cost, projected savings, anomalies), cost trend chart (last 30 days), top services by cost, top 3 recommendations with priority badges, recent anomalies.
 
 ### `costs.py`
 
-Cost analysis page: daily cost line chart (Plotly), service breakdown bar chart, top expensive resources table, date range selector, export to CSV.
+Cost analysis page: date range selector (presets + custom), summary metrics (total/avg/min/max), daily cost line chart, service breakdown (bar + pie charts), stacked area chart of service costs over time, detailed service cost table, daily records, CSV export.
 
 ### `forecasts.py`
 
-Forecasts page: forecast visualization (actuals vs predictions), confidence intervals (shaded regions), model comparison table (RMSE, MAE, MAPE), forecast horizon selector (7, 14, 30, 60 days).
+Forecasts page: model selector (Prophet, SARIMAX, ETS, Seasonal Naive, Naive), forecast horizon selector (7-90 days), live model training with progress spinners, forecast visualization with confidence intervals, forecast data table, multi-model comparison mode, CSV export.
 
 ### `recommendations.py`
 
-Recommendations page: savings cards with priority badges, estimated monthly savings, filters by service/type/priority, sort by savings/priority/risk.
+Recommendations page: summary metrics (count, total savings, avg per rec, high-priority count), multi-select filters (service, type, priority, min savings), sorting (savings, priority, service), detailed cards with current/recommended config, cost comparison, reasoning, implementation guidance expanders, CSV export.
 
 ### `settings.py`
 
-Settings page: user profile management, AWS account connection (stub), forecast/optimization parameters, demo mode toggle, data refresh controls.
+Settings page: user profile editing (display name), AWS account connection management (add/test/remove via IAM role ARN), system status display, forecast parameters (read-only), optimization parameters (read-only), ML model selection, notification placeholders, advanced settings (collection interval, retention, API settings).
 
 ---
 
@@ -300,3 +308,13 @@ Tests for `optimizer/`: LP solver constraints, rule-based recommendations, orche
 ### `test_ai_module.py`
 
 Tests for `ai_module/`: guided questions structure, prompt builder output, recommender API mocking, JSON parsing, error handling. 13 tests.
+
+### `test_auth.py`
+
+Tests for authentication and AWS connection CRUD in `storage/db.py`:
+
+- **`TestPasswordHashing`** -- Round-trip hashing, wrong password rejection, different salts, malformed hash handling
+- **`TestRegisterUser`** -- User creation (returns `usr-` prefixed ID), duplicate email rejection, default profile name derivation
+- **`TestAuthenticateUser`** -- Valid/invalid credentials, nonexistent email, `last_login_at` update on success
+- **`TestUserProfile`** -- Profile name update, nonexistent user handling
+- **`TestAWSConnectionCRUD`** -- Add/get connections, multiple accounts per user, unique constraint enforcement, scoped deletion (users cannot delete other users' connections), sync status updates with error messages

@@ -85,17 +85,9 @@ Every AWS API call and file I/O operation is wrapped in try/except. Failures are
 
 ---
 
-## 2. Sample Data Pipeline
+## 2. Sample Data (Pre-loaded in Database)
 
-### Entry Point
-
-```bash
-python -m data_generation.synthetic --days 365 --seed 42
-```
-
-### What It Generates
-
-The data generator creates sample data based on open-source datasets (Bitbrains VM traces, NAB CloudWatch metrics, Kaggle EC2/pricing data) supplemented with generated data to ensure full coverage across all 10 AWS services. It matches the exact DB schemas and writes directly to SQLite via `storage.insert_*()`. It simulates a mid-size SaaS startup.
+**Note:** The `data_generation/` module was removed from the git repository (commit `3a77b1b`). The synthetic data it generated is pre-loaded in `data/cloud_optimizer.db` and available via Demo Mode on the login screen. The data was originally generated from open-source datasets (Bitbrains VM traces, NAB CloudWatch metrics, Kaggle EC2/pricing data) supplemented with generated data for full 10-service coverage. It simulates a mid-size SaaS startup.
 
 ```text
 synthetic.py
@@ -162,9 +154,9 @@ All random values use `numpy.random.default_rng(seed)`. Instance IDs are derived
 
 ---
 
-## 3. How the Two Pipelines Connect
+## 3. How Data Sources Connect
 
-Both pipelines write to the same SQLite database (`data/cloud_optimizer.db`) through `storage.insert_*()`. Downstream modules read via `storage.get_*()`:
+Both sources (real AWS collection and pre-loaded sample data) use the same SQLite database (`data/cloud_optimizer.db`) with identical schemas. Downstream modules read via `storage.get_*()`:
 
 ```python
 # In any downstream module:
@@ -174,4 +166,4 @@ conn = get_connection()
 costs = get_daily_costs(conn, user_id, start_date="2024-01-01")
 ```
 
-The ML engine, AI module, and optimizer all use `storage.get_*()` functions — they don't care whether the data comes from real AWS or from the sample data pipeline. Both pipelines produce data with identical schemas, isolated by `user_id`.
+The ML engine, AI module, optimizer, and dashboard all use `storage.get_*()` functions -- they don't care whether the data comes from real AWS or from the pre-loaded sample data. All data is isolated by `user_id`.

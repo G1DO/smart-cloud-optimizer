@@ -2,6 +2,8 @@
 
 AI-powered AWS cloud cost optimization platform. Collects real AWS data (or uses open-source datasets for demo mode), forecasts usage with ML models, and recommends right-sizing and pricing strategies.
 
+Includes user authentication (login/register with hashed passwords), multi-account AWS support via IAM role assumption, and a demo mode for exploring without credentials.
+
 All data is stored in a single SQLite database (`data/cloud_optimizer.db`) accessed through the `storage.db` module.
 
 ## Quick Start
@@ -19,16 +21,17 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### Demo Mode (sample data)
+### Launch the Dashboard
 
 ```bash
-# Load sample data into database (based on open-source datasets)
-python -m data_generation.synthetic --days 365 --seed 42
-
-# Launch the dashboard
 streamlit run app.py
+```
 
-# Run tests
+The app opens at `http://localhost:8501` with a login screen. Choose **"Try Demo Mode"** to explore with pre-loaded synthetic data, or register an account to connect real AWS accounts.
+
+### Run Tests
+
+```bash
 python -m pytest tests/ -v
 ```
 
@@ -54,12 +57,12 @@ python -m aws_collector.main
 ```
 cloud-gp/
 ├── config.py                  # Project-wide settings (paths, DB_PATH, env)
-├── app.py                     # Streamlit entry point (multi-page routing)
+├── app.py                     # Streamlit entry point (auth gate + multi-page routing)
 ├── requirements.txt
 │
 ├── aws_collector/             # AWS data collection pipeline
-│   ├── config.py              # boto3 client configuration
-│   ├── runner.py              # Thin orchestrator
+│   ├── config.py              # boto3 client config + IAM role assumption
+│   ├── runner.py              # Thin orchestrator (supports role-based collection)
 │   ├── metrics.py             # CloudWatch helpers + metric maps
 │   ├── transforms.py          # Data transformation helpers
 │   ├── pricing_constants.py   # Pricing lookup constants
@@ -72,11 +75,8 @@ cloud-gp/
 │       ├── cost.py            # Cost Explorer
 │       └── pricing.py         # AWS Pricing API
 │
-├── data_generation/           # Sample data generation
-│   └── synthetic.py           # Generates sample AWS data into DB
-│
 ├── storage/                   # Data persistence layer
-│   └── db.py                  # SQLite gateway (30 tables, insert_*/get_* API)
+│   └── db.py                  # SQLite gateway (30 tables, auth + insert_*/get_* API)
 │
 ├── ml_engine/                 # ML forecasting engine
 │   ├── data_prep.py           # Data loading & feature engineering from DB
@@ -96,13 +96,14 @@ cloud-gp/
 │   ├── engine.py              # Orchestrator (dedup + DB write)
 │   └── __main__.py            # CLI entry point
 │
-├── dashboard/                 # Streamlit dashboard (6 pages)
-│   ├── components.py          # Reusable charts, cards, formatters
+├── dashboard/                 # Streamlit dashboard (auth + 5 nav pages)
+│   ├── auth.py                # Login, register, demo mode, session management
+│   ├── components.py          # Reusable charts, cards, formatters, account switcher
 │   ├── home.py                # Overview metrics, top recommendations
 │   ├── costs.py               # Cost analysis with charts + date range
 │   ├── forecasts.py           # ML predictions + model comparison
 │   ├── recommendations.py     # Savings cards, filters, sorting
-│   └── settings.py            # User config, parameters, demo toggle
+│   └── settings.py            # User profile, AWS connections, parameters
 │
 ├── data/
 │   └── cloud_optimizer.db     # SQLite database (all data)
@@ -116,23 +117,30 @@ cloud-gp/
     ├── test_synthetic.py
     ├── test_ml_utils.py
     ├── test_optimizer.py
-    └── test_ai_module.py
+    ├── test_ai_module.py
+    └── test_auth.py           # Auth, password hashing, AWS connection CRUD
 ```
 
 ## Architecture
 
 ```
-data_generation/synthetic.py ──┐
-  (open-source + generated)    │
-                               ├──> storage.db.insert_*() ──> SQLite DB
-aws_collector/                 │         │
-  (real AWS)                ───┘         ├──> ml_engine   (reads via storage.db.get_*())
-                                         ├──> optimizer   (reads via storage.db.get_*())
-                                         ├──> ai_module   (reads via storage.db.get_*())
-                                         └──> dashboard   (reads via storage.db.get_*())
+aws_collector/                              ┌──> ml_engine   (forecasting)
+  (real AWS via IAM role) ──┐               ├──> optimizer   (cost optimization)
+                            ├──> storage ──>├──> ai_module   (AI recommendations)
+  pre-loaded synthetic data ┘    (SQLite)   └──> dashboard   (Streamlit UI)
+                                   │
+                            users + aws_connections
+                            (auth, multi-account)
 ```
 
-All tables are keyed by `user_id` -- each AWS account's data is isolated.
+```
+User ──> auth gate (login/register/demo) ──> sidebar nav ──> 5 pages
+                                                  │
+                                           account switcher
+                                           (select AWS account)
+```
+
+All data tables are keyed by `user_id` -- each AWS account's data is isolated. The `users` and `aws_connections` tables manage authentication and multi-account support.
 
 ## Collected Data
 
@@ -163,7 +171,7 @@ All tables are keyed by `user_id` -- each AWS account's data is isolated.
 - RDS instance pricing
 - ElastiCache instance pricing
 
-All data is stored in **SQLite** via the `storage.db` module (30 tables total).
+All data is stored in **SQLite** via the `storage.db` module (30 tables total, including `users` and `aws_connections` for authentication).
 
 ## Configuration
 
@@ -188,9 +196,9 @@ For detailed documentation, see [documentation/INDEX.md](documentation/INDEX.md)
 | [STARTUP](documentation/STARTUP.md) | Dashboard launch and CLI tools |
 | [ARCHITECTURE](documentation/ARCHITECTURE.md) | System design |
 | [MODULES](documentation/MODULES.md) | File-by-file breakdown |
-| [PROJECT_STATUS](documentation/PROJECT_STATUS.md) | What's done, gaps, roadmap |
-| [DATA_SCHEMAS](documentation/DATA_SCHEMAS.md) | Database tables |
+| [DATA_SCHEMAS](documentation/DATA_SCHEMAS.md) | Database tables (30 tables) |
 | [STORAGE_API](documentation/STORAGE_API.md) | Storage function reference |
+| [CONFIGURATION](documentation/CONFIGURATION.md) | Environment variables and modes |
 
 ## Requirements
 
@@ -198,9 +206,11 @@ For detailed documentation, see [documentation/INDEX.md](documentation/INDEX.md)
 - `pandas`, `numpy` -- Data processing
 - `prophet`, `statsmodels`, `pmdarima` -- ML forecasting
 - `pulp` -- Optimization (MILP)
-- `openai` -- AI recommendations
+- `google-genai` -- AI recommendations (Gemini 2.5 Flash)
+- `openai` -- Legacy (unused, kept for compatibility)
 - `streamlit`, `plotly` -- Dashboard
 - `matplotlib` -- Visualization
+- `python-dotenv`, `tenacity` -- Utilities
 - `pytest`, `pytest-cov` -- Testing
 
 For real data collection, AWS credentials need these IAM permissions:

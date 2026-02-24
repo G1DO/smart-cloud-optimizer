@@ -31,26 +31,20 @@ pip install -r requirements.txt
 
 ## Demo Mode (Recommended Start)
 
-Load sample data to explore the system without AWS credentials:
+The database ships with pre-loaded synthetic data -- no generation step needed.
 
 ```bash
-python -m data_generation.synthetic --days 365 --seed 42
+streamlit run app.py
 ```
 
-This creates a SQLite database at `data/cloud_optimizer.db` with:
+On the login screen, click **"Try Demo Mode"**. This logs in with a pre-seeded demo account and gives you access to:
 
 - 365 days of cost data (~$50-$150/day)
 - 8 EC2 instances with realistic CPU profiles
 - 2 RDS instances, 3 ElastiCache nodes, 4 ECS services
 - 4 Lambda functions, 3 DynamoDB tables, 4 S3 buckets
 - Pricing data for all services
-
-Options:
-
-| Flag | Default | Description |
-|------|---------|-------------|
-| `--days` | `365` | Number of days to simulate |
-| `--seed` | `42` | Random seed for reproducibility |
+- Pre-generated optimization recommendations
 
 ---
 
@@ -61,8 +55,6 @@ Run the test suite:
 ```bash
 python -m pytest tests/ -v
 ```
-
-Expected: 183 tests collected.
 
 ---
 
@@ -92,7 +84,13 @@ This collects 12 months of data across all enabled AWS regions.
 streamlit run app.py
 ```
 
-Opens at `http://localhost:8501`. Pages: Home, Costs, Forecasts, Recommendations, Settings.
+Opens at `http://localhost:8501`. You will see a login screen with three options:
+
+1. **Login** -- Sign in with an existing account
+2. **Register** -- Create a new account
+3. **Try Demo Mode** -- Explore with pre-loaded synthetic data (no account required)
+
+After authentication, the dashboard shows 5 pages: Home, Costs, Forecasts, Recommendations, Settings.
 
 ## CLI Tools
 
