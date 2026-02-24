@@ -10,6 +10,9 @@ Multi-page dashboard for AWS cost optimization:
 """
 import streamlit as st
 
+from dashboard.auth import init_session_state, is_authenticated, render_auth_page, logout
+from dashboard.components import render_account_switcher
+
 
 def main() -> None:
     """Streamlit app entry point."""
@@ -20,6 +23,12 @@ def main() -> None:
         layout="wide",
         initial_sidebar_state="expanded",
     )
+
+    # --- Auth gate ---
+    init_session_state()
+    if not is_authenticated():
+        render_auth_page()
+        st.stop()
 
     # App header
     st.title("☁️ Smart Cloud Optimizer")
@@ -33,6 +42,9 @@ def main() -> None:
         ["🏠 Home", "💰 Costs", "📈 Forecasts", "💡 Recommendations", "⚙️ Settings"],
         label_visibility="collapsed",
     )
+
+    # Account switcher (below nav)
+    render_account_switcher()
 
     # Route to appropriate page
     if page == "🏠 Home":
@@ -62,9 +74,13 @@ def main() -> None:
 
     # Footer
     st.sidebar.markdown("---")
-    st.sidebar.markdown("**Smart Cloud Optimizer**")
-    st.sidebar.markdown("Version: 0.1.0 (Alpha)")
-    st.sidebar.markdown("Last Updated: Feb 2026")
+    user_label = st.session_state.get("user_email", "")
+    if st.session_state.get("demo_mode"):
+        user_label = "Demo Mode"
+    st.sidebar.markdown(f"**{user_label}**")
+    if st.sidebar.button("Logout", use_container_width=True):
+        logout()
+    st.sidebar.caption("Smart Cloud Optimizer v0.2.0")
 
 
 if __name__ == "__main__":
