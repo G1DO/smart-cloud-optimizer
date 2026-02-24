@@ -66,6 +66,27 @@ class CollectorRunner:
         self.cost = CostCollector(self.config, self.conn, self.user_id)
         self.pricing = PricingCollector(self.config, self.conn, self.user_id)
 
+    @classmethod
+    def from_connection(cls, connection: dict, user_id: str,
+                        conn=None) -> "CollectorRunner":
+        """Create a runner from an aws_connections row.
+
+        Args:
+            connection: Dict with ``iam_role_arn``, ``external_id``,
+                ``aws_region``, ``aws_account_id``.
+            user_id: The data-user_id (``"aws-{account_id}"``).
+            conn: Optional SQLite connection.
+
+        Returns:
+            A configured :class:`CollectorRunner`.
+        """
+        aws_cfg = AWSConfig.from_role(
+            role_arn=connection["iam_role_arn"],
+            external_id=connection.get("external_id", ""),
+            region=connection.get("aws_region", "us-east-1"),
+        )
+        return cls(config=aws_cfg, conn=conn, user_id=user_id)
+
     def run(self, months: int = 12) -> None:
         """Run complete data collection for the last N months.
 

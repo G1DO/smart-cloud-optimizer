@@ -39,6 +39,36 @@ class AWSConfig:
         # Available regions
         self.regions: List[str] = self._get_regions()
 
+    @classmethod
+    def from_role(cls, role_arn: str, external_id: str = "",
+                  region: str = "us-east-1") -> "AWSConfig":
+        """Create an AWSConfig by assuming an IAM role.
+
+        Args:
+            role_arn: The ARN of the IAM role to assume.
+            external_id: Optional external ID for STS.
+            region: Default AWS region for the session.
+
+        Returns:
+            An :class:`AWSConfig` backed by temporary credentials.
+        """
+        sts = boto3.client("sts")
+        params = {
+            "RoleArn": role_arn,
+            "RoleSessionName": "cloud-optimizer",
+        }
+        if external_id:
+            params["ExternalId"] = external_id
+
+        creds = sts.assume_role(**params)["Credentials"]
+        session = boto3.Session(
+            aws_access_key_id=creds["AccessKeyId"],
+            aws_secret_access_key=creds["SecretAccessKey"],
+            aws_session_token=creds["SessionToken"],
+            region_name=region,
+        )
+        return cls(session=session)
+
     def _get_regions(self) -> List[str]:
         """Fetch the list of enabled AWS regions.
 
