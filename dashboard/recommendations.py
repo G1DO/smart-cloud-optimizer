@@ -16,8 +16,8 @@ from dashboard import components
 
 def render():
     """Render the Recommendations page."""
-    # User selection
-    user_id = components.select_user()
+    # Get active AWS account
+    user_id = components.get_current_user_id()
 
     # Page header
     st.header("💡 Cost Optimization Recommendations")
