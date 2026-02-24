@@ -522,42 +522,56 @@ def display_metric_card(
 # ==============================================================================
 
 
-def select_user() -> str:
-    """Display user selector and return selected user_id.
+def get_current_user_id() -> str:
+    """Return the active data-user_id from session state.
 
-    Returns:
-        Selected user_id string
-
-    Note:
-        Uses st.session_state to persist selection across page navigation.
+    This is the ``"aws-{account_id}"`` user whose data the dashboard
+    queries — NOT the auth user_id.  Calls ``st.stop()`` if no account
+    is selected.
     """
-    users = load_users()
-
-    if not users:
-        show_error(
-            "No users found in database",
-            details=(
-                "Run the following command to generate sample data:\n"
-                "python -m data_generation.synthetic --days 365"
-            ),
+    user_id = st.session_state.get("selected_user")
+    if not user_id:
+        show_empty_state(
+            "No AWS account selected",
+            instruction="Connect an AWS account in Settings, or use Demo Mode.",
         )
         st.stop()
+    return user_id
 
-    # Initialize session state for user selection
-    if "selected_user" not in st.session_state:
-        st.session_state.selected_user = users[0]["user_id"]
 
-    # User selector in sidebar
-    user_options = {u["user_id"]: f"{u['user_id']} ({u['email']})" for u in users}
+def render_account_switcher() -> None:
+    """Show connected AWS accounts in the sidebar selectbox.
+
+    Queries the user's ``aws_connections`` and maps each to a
+    data-user_id ``"aws-{account_id}"``.
+    """
+    from storage.db import get_aws_connections
+
+    auth_uid = st.session_state.get("auth_user_id", "")
+    conn = get_db_connection()
+    connections = get_aws_connections(conn, auth_uid)
+
+    if not connections:
+        st.sidebar.info("No AWS accounts connected. Go to Settings to add one.")
+        st.session_state.selected_user = ""
+        return
+
+    # Build options: map display label -> data-user_id
+    options = {
+        f"aws-{c['aws_account_id']}": c.get("connection_name") or c["aws_account_id"]
+        for c in connections
+    }
 
     selected = st.sidebar.selectbox(
-        "Select User",
-        options=list(user_options.keys()),
-        format_func=lambda x: user_options[x],
-        key="user_selector",
+        "AWS Account",
+        options=list(options.keys()),
+        format_func=lambda x: options[x],
+        key="account_switcher",
     )
-
-    # Update session state
     st.session_state.selected_user = selected
 
-    return selected
+
+# Keep select_user as a thin wrapper for backwards compat during transition
+def select_user() -> str:
+    """Legacy wrapper — returns get_current_user_id()."""
+    return get_current_user_id()

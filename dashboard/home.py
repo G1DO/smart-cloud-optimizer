@@ -14,8 +14,8 @@ from dashboard import components
 
 def render():
     """Render the Home page."""
-    # User selection (in sidebar)
-    user_id = components.select_user()
+    # Get active AWS account
+    user_id = components.get_current_user_id()
 
     # Page header
     st.header("🏠 Dashboard Overview")
@@ -37,7 +37,7 @@ def render():
         st.stop()
 
     # Check if we have data
-    if cost_data["total"] == 0:
+    if cost_data["daily"].empty:
         components.show_empty_state(
             "No cost data available for this account",
             instruction=(

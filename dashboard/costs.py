@@ -114,8 +114,8 @@ def create_stacked_area_chart(
 
 def render():
     """Render the Cost Analysis page."""
-    # User selection
-    user_id = components.select_user()
+    # Get active AWS account
+    user_id = components.get_current_user_id()
 
     # Page header
     st.header("💰 Cost Analysis")

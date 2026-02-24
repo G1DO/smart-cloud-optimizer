@@ -2,8 +2,8 @@
 dashboard/settings.py — Settings page for Smart Cloud Optimizer dashboard.
 
 Displays and manages:
-- User profile information
-- AWS account connection (placeholder)
+- User profile information (editable)
+- AWS account connections (add / remove / test)
 - Forecast and optimization parameters
 - Demo mode indicator
 - Data refresh controls
@@ -12,16 +12,24 @@ import streamlit as st
 
 import config
 from dashboard import components
+from storage.db import (
+    add_aws_connection,
+    delete_aws_connection,
+    get_aws_connections,
+    get_user_by_id,
+    update_user_profile,
+)
 
 
 def render():
     """Render the Settings page."""
-    # User selection
-    user_id = components.select_user()
+    # Settings works even without a selected AWS account (that's how you add one)
+    user_id = st.session_state.get("selected_user", "")
 
     # Page header
     st.header("⚙️ Settings")
-    st.markdown(f"**Account:** `{user_id}`")
+    if user_id:
+        st.markdown(f"**Account:** `{user_id}`")
     st.markdown("---")
 
     # =========================================================================
@@ -30,96 +38,127 @@ def render():
 
     st.subheader("👤 User Profile")
 
-    try:
-        # Load user information
-        users = components.load_users()
-        current_user = next((u for u in users if u["user_id"] == user_id), None)
+    is_demo = st.session_state.get("demo_mode", False)
+    auth_uid = st.session_state.get("auth_user_id", "")
+    conn = components.get_db_connection()
 
-        if current_user:
-            col1, col2 = st.columns(2)
-
-            with col1:
-                st.text_input(
-                    "User ID",
-                    value=current_user["user_id"],
-                    disabled=True,
+    if is_demo:
+        st.text_input("User", value="Demo Mode (Synthetic Data)", disabled=True)
+    else:
+        profile = get_user_by_id(conn, auth_uid)
+        if profile:
+            st.text_input("Email", value=profile["email"], disabled=True)
+            with st.form("profile_form"):
+                new_name = st.text_input(
+                    "Display Name", value=profile["profile_name"],
                 )
-
-            with col2:
-                st.text_input(
-                    "Email",
-                    value=current_user["email"],
-                    disabled=True,
-                )
-
-            st.caption(
-                "💡 **Note:** Profile editing will be available after login system is implemented."
-            )
-
+                if st.form_submit_button("Save Profile"):
+                    if new_name and new_name != profile["profile_name"]:
+                        update_user_profile(conn, auth_uid, new_name)
+                        st.session_state.user_profile_name = new_name
+                        st.success("Profile updated.")
+                    else:
+                        st.info("No changes to save.")
         else:
             components.show_error("User not found in database")
 
-    except Exception as e:
-        components.show_error("Failed to load user profile", details=str(e))
-
     st.markdown("---")
 
     # =========================================================================
-    # Section 2: AWS Account Connection
+    # Section 2: AWS Account Connections
     # =========================================================================
 
-    st.subheader("☁️ AWS Account Connection")
-
-    # Check if this is a synthetic/demo account
-    is_demo = user_id.startswith("SYNTHETIC-") or user_id.startswith("aws-SYNTHETIC-")
+    st.subheader("☁️ AWS Account Connections")
 
     if is_demo:
-        st.info("📊 **Demo Mode Active** — Using synthetic data for this account")
-
-        with st.expander("What is Demo Mode?"):
-            st.markdown(
-                """
-                **Demo mode** uses synthetic (generated) AWS cost and usage data instead of
-                connecting to a real AWS account. This is perfect for:
-
-                - Testing the dashboard without AWS credentials
-                - Demos and presentations
-                - Learning how the optimizer works
-
-                **Real data** mode (coming soon) will connect to your actual AWS account
-                via IAM credentials to collect real usage metrics and costs.
-                """
-            )
-
-        st.markdown("**Demo Account Details:**")
-        st.code(f"User ID: {user_id}\nData Source: Synthetic Generator\nCoverage: 365 days")
-
+        st.info("📊 **Demo Mode** — Using synthetic data. "
+                "Register an account to connect real AWS accounts.")
+        st.code(f"Data User ID: {user_id}\nSource: Synthetic Generator\nCoverage: 365 days")
     else:
-        st.warning("⚠️ **No AWS Connection** — This account is not connected to AWS")
+        # -- Add new connection form --
+        with st.expander("Add AWS Account", expanded=False):
+            with st.form("add_aws_form"):
+                acol1, acol2 = st.columns(2)
+                with acol1:
+                    conn_name = st.text_input("Connection Name", placeholder="Production")
+                    acct_id = st.text_input("AWS Account ID", placeholder="123456789012")
+                with acol2:
+                    role_arn = st.text_input(
+                        "IAM Role ARN",
+                        placeholder="arn:aws:iam::123456789012:role/CloudOptimizer",
+                    )
+                    ext_id = st.text_input("External ID (optional)")
 
-        st.markdown("**To connect your AWS account:**")
-        st.markdown(
-            """
-            1. Ensure you have AWS IAM credentials with required permissions
-            2. Configure AWS CLI or provide access keys
-            3. Run the data collector to sync your account
+                region = st.selectbox(
+                    "Primary Region",
+                    ["us-east-1", "us-east-2", "us-west-1", "us-west-2",
+                     "eu-west-1", "eu-west-2", "eu-central-1",
+                     "ap-southeast-1", "ap-northeast-1"],
+                    index=0,
+                )
 
-            ```bash
-            # Configure AWS credentials
-            aws configure
+                col_test, col_add = st.columns(2)
+                with col_test:
+                    test_btn = st.form_submit_button("Test Connection")
+                with col_add:
+                    add_btn = st.form_submit_button("Add Account")
 
-            # Run collector
-            python -m aws_collector.main --user-id YOUR_USER_ID
-            ```
-            """
-        )
+            if test_btn:
+                if not acct_id or not role_arn:
+                    st.error("Account ID and Role ARN are required.")
+                else:
+                    try:
+                        import boto3
+                        sts = boto3.client("sts")
+                        params = {"RoleArn": role_arn, "RoleSessionName": "cloud-optimizer-test"}
+                        if ext_id:
+                            params["ExternalId"] = ext_id
+                        sts.assume_role(**params)
+                        st.success(f"Connection to {acct_id} succeeded.")
+                    except Exception as exc:
+                        st.error(f"Connection test failed: {exc}")
 
-        st.info(
-            "💡 **Coming Soon:** Connect AWS accounts directly from the dashboard with "
-            "a one-click setup wizard."
-        )
+            if add_btn:
+                if not acct_id or not role_arn:
+                    st.error("Account ID and Role ARN are required.")
+                else:
+                    try:
+                        add_aws_connection(
+                            conn, auth_uid, acct_id, role_arn,
+                            connection_name=conn_name,
+                            external_id=ext_id,
+                            aws_region=region,
+                        )
+                        st.success(f"Added AWS account {acct_id}.")
+                        st.rerun()
+                    except Exception as exc:
+                        st.error(f"Failed to add account: {exc}")
 
-    st.markdown("---")
+        # -- List existing connections --
+        connections = get_aws_connections(conn, auth_uid)
+
+        if connections:
+            st.markdown(f"**{len(connections)} connected account(s):**")
+            for c in connections:
+                with st.container():
+                    cc1, cc2, cc3 = st.columns([3, 2, 1])
+                    with cc1:
+                        st.markdown(
+                            f"**{c.get('connection_name', c['aws_account_id'])}**  \n"
+                            f"`{c['aws_account_id']}` — {c['aws_region']}"
+                        )
+                    with cc2:
+                        status_emoji = {"never": "⚪", "success": "🟢",
+                                        "failed": "🔴", "in_progress": "🟡"
+                                        }.get(c["sync_status"], "⚪")
+                        st.markdown(f"Sync: {status_emoji} {c['sync_status']}")
+                    with cc3:
+                        if st.button("Remove", key=f"del_{c['id']}"):
+                            delete_aws_connection(conn, c["id"], auth_uid)
+                            st.rerun()
+                    st.markdown("---")
+        else:
+            st.info("No AWS accounts connected yet. Use the form above to add one.")
 
     # =========================================================================
     # Section 3: System Status
