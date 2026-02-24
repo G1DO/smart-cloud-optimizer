@@ -43,6 +43,34 @@ costs = get_daily_costs(conn, user_id, start_date="2024-01-01", end_date="2024-0
 
 ---
 
+## Authentication Functions
+
+Password hashing uses HMAC-SHA256 with a random 32-byte salt.
+
+| Function | Description |
+|----------|-------------|
+| `hash_password(password)` | Hash a plaintext password, returns `salt:hash` string |
+| `verify_password(password, stored_hash)` | Verify a password against a stored hash |
+| `register_user(conn, email, password, profile_name)` | Create a new user account, returns `user_id` (`usr-` + 12 hex). Raises `ValueError` on duplicate email. Commits internally. |
+| `authenticate_user(conn, email, password)` | Verify credentials. Returns user dict on success, `None` on failure. Updates `last_login_at`. |
+| `get_user_by_id(conn, user_id)` | Fetch user record by ID. Returns dict or `None`. |
+| `update_user_profile(conn, user_id, profile_name)` | Update display name. Returns `True` on success. Commits internally. |
+
+---
+
+## AWS Connection CRUD
+
+Manages per-user AWS account connections. Each connection stores an IAM role ARN for cross-account access.
+
+| Function | Description |
+|----------|-------------|
+| `add_aws_connection(conn, user_id, aws_account_id, iam_role_arn, ...)` | Add a new AWS connection. Optional: `connection_name`, `external_id`, `aws_region`. Returns row ID. Commits internally. Unique constraint on `(user_id, aws_account_id)`. |
+| `get_aws_connections(conn, user_id)` | Get all connections for a user. Returns list of dicts. |
+| `delete_aws_connection(conn, connection_id, user_id)` | Delete a connection. Scoped to user (users cannot delete other users' connections). Returns `True` on success. |
+| `update_aws_connection_status(conn, connection_id, status, error_message)` | Update sync status (`never`, `success`, `failed`, `in_progress`). Sets `last_sync_at`. |
+
+---
+
 ## Insert Functions (24)
 
 All insert functions have the signature:

@@ -24,18 +24,22 @@ Insert/query functions follow the pattern `storage.insert_<table>(conn, user_id,
 
 ### `aws_connections`
 
+UNIQUE constraint on `(user_id, aws_account_id)`.
+
 | Column | Type | Description |
 | --- | --- | --- |
-| `user_id` | TEXT PK, FK→users | User reference |
-| `aws_account_id` | TEXT | AWS account ID |
-| `iam_role_arn` | TEXT | IAM role ARN for cross-account access |
+| `id` | INTEGER PK AUTOINCREMENT | Connection ID |
+| `user_id` | TEXT FK->users | User reference |
+| `connection_name` | TEXT | Display name (e.g., "Production") |
+| `aws_account_id` | TEXT NOT NULL | AWS account ID |
+| `iam_role_arn` | TEXT NOT NULL | IAM role ARN for cross-account access |
 | `external_id` | TEXT | STS external ID |
 | `aws_region` | TEXT | Default region (default `us-east-1`) |
-| `access_verified` | INTEGER | 0/1 flag |
+| `access_verified` | INTEGER | 0/1 flag (default 0) |
 | `last_sync_at` | TEXT | Last successful data sync |
 | `sync_status` | TEXT | `never`, `success`, `failed`, `in_progress` |
 | `error_message` | TEXT | Last error message |
-| `connected_at` | TEXT | Connection timestamp |
+| `connected_at` | TEXT | Connection timestamp (auto-set) |
 
 ---
 

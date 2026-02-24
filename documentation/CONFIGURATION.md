@@ -33,22 +33,22 @@ Set these in a `.env` file or export them before running.
 
 ## Modes
 
-### Demo Mode (`DEMO_MODE=true`)
+### Demo Mode (click "Try Demo Mode" on login screen)
 
 - No AWS credentials needed
-- Sample data must be generated first: `python -m data_generation.synthetic`
-- Data is read from SQLite DB (`data/cloud_optimizer.db`)
+- Database ships with pre-loaded synthetic data
+- Logs in as a pre-seeded demo user (`demo@cis.asu.edu.eg`)
 - All modules (ML, AI, optimizer, dashboard) work identically
 
-### Real Mode (`DEMO_MODE=false`)
+### Real Mode (register + connect AWS account in Settings)
 
-- Requires configured AWS credentials (`~/.aws/credentials` or env vars)
-- Collector runs against live AWS APIs
+- User registers an account, then adds AWS connections via IAM role ARN
+- Collector assumes the IAM role via STS and collects data
 - Needs IAM permissions: `ce:GetCostAndUsage`, `ce:GetAnomalies`, `cloudwatch:GetMetricStatistics`, `ec2:Describe*`, `pricing:GetProducts`, `rds:Describe*`, `lambda:ListFunctions`, `s3:ListBuckets`, `sts:GetCallerIdentity`, `elasticloadbalancing:Describe*`
 
 ### How mode switching works
 
-Both modes write to the same SQLite database through `storage.insert_*()`. Downstream modules read via `storage.get_*()` and don't care which source produced the data. The `DEMO_MODE` flag controls whether `aws_collector` attempts real AWS connections.
+Both modes read from the same SQLite database through `storage.get_*()`. Downstream modules don't care which source produced the data. The dashboard auth gate controls access -- demo mode uses pre-loaded data, real mode uses data collected from connected AWS accounts.
 
 ---
 
