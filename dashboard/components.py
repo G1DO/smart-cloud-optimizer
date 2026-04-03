@@ -135,6 +135,26 @@ def get_available_date_range(user_id: str) -> tuple[datetime.date, datetime.date
     return (min_date, max_date)
 
 
+@st.cache_data(ttl=300)
+def get_data_days_count(user_id: str) -> int:
+    """Count distinct days of cost data for a user.
+
+    Used to detect cold-start accounts (< COLD_START_DAYS of data).
+
+    Args:
+        user_id: User identifier
+
+    Returns:
+        Number of distinct days with cost data (0 if none).
+    """
+    conn = get_db_connection()
+    row = conn.execute(
+        "SELECT COUNT(DISTINCT date) as cnt FROM daily_costs WHERE user_id = ?",
+        (user_id,),
+    ).fetchone()
+    return row["cnt"] if row else 0
+
+
 def calculate_date_range(
     user_id: str,
     days: Optional[int] = None,
