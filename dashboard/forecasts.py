@@ -8,12 +8,13 @@ Displays ML cost predictions:
 - Forecast horizon selector
 - Accuracy metrics (if actual data available)
 """
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
+import config
 from dashboard import components
 from ml_engine import forecaster, data_prep
 
@@ -82,15 +83,19 @@ def render():
         st.stop()
 
     # Check if we have enough data
-    if df_historical.empty or len(df_historical) < 30:
+    if df_historical.empty or len(df_historical) < config.MIN_TRAINING_DAYS:
+        days_available = len(df_historical)
+        days_remaining = config.MIN_TRAINING_DAYS - days_available
+        estimated_ready = date.today() + timedelta(days=days_remaining)
+
         components.show_empty_state(
             "Insufficient historical data for forecasting",
             instruction=(
-                f"Need at least 30 days of cost data. Currently have {len(df_historical)} days.\n\n"
-                "Generate sample data by running:\n"
-                "```bash\n"
-                "python -m data_generation.synthetic --days 365\n"
-                "```"
+                f"Need at least **{config.MIN_TRAINING_DAYS}** days of cost data. "
+                f"Currently have **{days_available}** days.\n\n"
+                f"Forecasting will be available in approximately **{days_remaining} days** "
+                f"(around {estimated_ready.strftime('%b %d, %Y')}).\n\n"
+                "In the meantime, check the **Home page** for AI-powered architecture recommendations."
             ),
         )
         st.stop()

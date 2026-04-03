@@ -43,6 +43,7 @@ GOOGLE_MODEL: str = os.getenv("GOOGLE_MODEL", "gemini-2.5-flash")
 # === ML Defaults ===
 FORECAST_HORIZON_DAYS: int = 30
 MIN_TRAINING_DAYS: int = 30
+COLD_START_DAYS: int = 7
 SEASONALITY_PERIOD: int = 7
 
 # === Optimization ===

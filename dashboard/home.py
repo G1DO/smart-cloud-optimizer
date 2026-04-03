@@ -6,9 +6,19 @@ Displays:
 - Overview metrics (total cost, potential savings, anomalies)
 - Cost trend chart (last 30 days)
 - Top 3 recommendations
+
+When data is insufficient (< COLD_START_DAYS), shows AI-powered
+guided questionnaire instead of the normal dashboard.
 """
+import json
+
 import streamlit as st
 
+import config
+import storage.db as storage_db
+from ai_module.guided_questions import get_guided_questions
+from ai_module.prompt_builder import build_prompt
+from ai_module.recommender import get_ai_recommendations
 from dashboard import components
 
 
@@ -22,10 +32,16 @@ def render():
     st.markdown(f"**Selected Account:** `{user_id}`")
     st.markdown("---")
 
+    # Cold-start gate: show questionnaire if not enough data yet
+    data_days = components.get_data_days_count(user_id)
+    if data_days < config.COLD_START_DAYS:
+        _render_cold_start(user_id, data_days)
+        st.stop()
+
     # Load data
     try:
         cost_data = components.load_cost_summary(user_id, days=30)
-        recommendations = components.load_recommendations(user_id, limit=3)
+        recommendations = components.load_recommendations(user_id, limit=3 )
         anomalies = components.load_anomalies(user_id, days=30)
         service_costs = components.load_service_costs(user_id, days=30)
 
@@ -267,3 +283,110 @@ def render():
         "💡 **Tip:** Use the sidebar to navigate to detailed Cost Analysis "
         "and Forecasts pages (coming in Phase 2)"
     )
+
+
+# =============================================================================
+# Cold-start helpers (shown when data < COLD_START_DAYS)
+# =============================================================================
+
+
+def _render_cold_start(user_id: str, data_days: int) -> None:
+    """Render cold-start experience: progress bar + questionnaire or stored results."""
+    days_remaining = config.COLD_START_DAYS - data_days
+    st.info(
+        f"Collecting cost data... **{data_days}/{config.COLD_START_DAYS}** days. "
+        f"Full dashboard available in **{days_remaining}** day{'s' if days_remaining != 1 else ''}."
+    )
+    st.progress(data_days / config.COLD_START_DAYS)
+
+    # Check for existing AI recommendations
+    conn = components.get_db_connection()
+    existing = storage_db.get_ai_recommendations(conn, user_id)
+
+    if existing and not st.session_state.get("retake_questionnaire"):
+        _show_stored_recommendations(existing[0])
+        st.markdown("---")
+        if st.button("Retake Questionnaire"):
+            st.session_state["retake_questionnaire"] = True
+            st.rerun()
+    else:
+        _render_questionnaire_form(user_id)
+
+
+def _render_questionnaire_form(user_id: str) -> None:
+    """Render the guided questionnaire and handle submission."""
+    st.subheader("Get AI-Powered Architecture Recommendations")
+    st.write("Answer a few questions so we can recommend an optimized AWS setup.")
+
+    questions = get_guided_questions()
+    user_answers = {}
+
+    with st.form("cold_start_questionnaire"):
+        for q in questions:
+            if q["id"] == "extra_notes":
+                user_answers[q["id"]] = st.text_area(
+                    q["question"],
+                    placeholder="e.g., must use specific AWS region, compliance requirements, etc.",
+                    help="Optional: any additional constraints or requirements",
+                )
+            else:
+                user_answers[q["id"]] = st.selectbox(q["question"], q["options"])
+
+        submitted = st.form_submit_button("Get Recommendations")
+
+    if submitted:
+        prompt_text = build_prompt(user_answers)
+
+        with st.spinner("Generating AI recommendations..."):
+            structured, raw_output = get_ai_recommendations(prompt_text)
+
+        if "error" in structured:
+            st.error(f"Error: {structured['error']}")
+            st.info("Please check that GOOGLE_API_KEY environment variable is set correctly.")
+        else:
+            conn = components.get_db_connection()
+            storage_db.insert_ai_recommendations(
+                conn,
+                user_id=user_id,
+                rows=[{
+                    "app_type": user_answers["business_type"],
+                    "expected_users": user_answers.get("expected_users"),
+                    "uptime_hours": user_answers.get("uptime_requirement"),
+                    "importance": user_answers.get("availability"),
+                    "budget_monthly": user_answers.get("monthly_budget"),
+                    "extra_requirements": user_answers.get("extra_notes"),
+                    "prompt_text": prompt_text,
+                    "recommended_setup": json.dumps(structured["recommended_setup"]),
+                    "estimated_cost": structured["estimated_cost"],
+                    "explanation": structured["explanation"],
+                    "llm_model": config.GOOGLE_MODEL,
+                    "llm_response_raw": raw_output,
+                }],
+            )
+            conn.commit()
+
+            # Clear retake flag and rerun to show stored results
+            st.session_state.pop("retake_questionnaire", None)
+            st.rerun()
+
+
+def _show_stored_recommendations(rec: dict) -> None:
+    """Display previously stored AI recommendations."""
+    st.subheader("Your AI Architecture Recommendations")
+    st.caption(f"Generated on: {rec.get('created_at', 'Unknown')}")
+
+    setup = rec["recommended_setup"]
+    if isinstance(setup, str):
+        setup = json.loads(setup)
+
+    st.markdown("**Recommended Setup**")
+    st.json(setup)
+
+    estimated = rec.get("estimated_cost")
+    if estimated is not None:
+        st.markdown(f"**Estimated Monthly Cost:** {components.format_currency(float(estimated))}")
+
+    explanation = rec.get("explanation")
+    if explanation:
+        st.markdown("**Explanation**")
+        st.write(explanation)
