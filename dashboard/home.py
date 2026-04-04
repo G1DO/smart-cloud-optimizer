@@ -41,7 +41,8 @@ def render():
     # Load data
     try:
         cost_data = components.load_cost_summary(user_id, days=30)
-        recommendations = components.load_recommendations(user_id, limit=3 )
+        all_recommendations = components.load_recommendations(user_id)
+        recommendations = all_recommendations[:3]
         anomalies = components.load_anomalies(user_id, days=30)
         service_costs = components.load_service_costs(user_id, days=30)
 
@@ -87,8 +88,8 @@ def render():
 
     with col2:
         # Potential savings
-        total_savings = sum(r["monthly_savings"] for r in recommendations)
-        rec_count = len(recommendations)
+        total_savings = sum(r["monthly_savings"] for r in all_recommendations)
+        rec_count = len(all_recommendations)
         components.display_metric_card(
             label="💡 Potential Savings",
             value=components.format_currency(total_savings) + "/mo",
