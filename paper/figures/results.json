@@ -1,0 +1,222 @@
+{
+  "demand": {
+    "n_days": 365,
+    "date_start": "2024-07-01",
+    "date_end": "2025-06-30",
+    "total": 27243.31,
+    "mean": 74.63920547945206,
+    "median": 76.03,
+    "std": 22.839329217268283,
+    "min": 36.1,
+    "max": 232.52,
+    "base_level": 64.7,
+    "peak_over_median": 3.0582664737603578,
+    "surge_threshold": 121.70865843453657,
+    "n_surge_days": 5,
+    "surge_frac": 0.0136986301369863,
+    "surge_dates": [
+      "2024-08-23",
+      "2024-09-09",
+      "2025-01-17",
+      "2025-03-17",
+      "2025-06-03"
+    ],
+    "cv": 0.30599641395641436,
+    "weekday_mean": 84.42486590038314,
+    "weekend_mean": 50.08096153846154
+  },
+  "newsvendor": {
+    "cost_all_on_demand": 27243.31,
+    "horizon_days": 365,
+    "tiers": {
+      "RI-1yr": {
+        "delta": 0.37,
+        "Q_star_closed_form": 70.35600000000001,
+        "Q_star_grid": 70.38386096524131,
+        "reserved_quantile": 0.37,
+        "cost_optimal": 19975.0322,
+        "cost_reserve_peak": 53467.974,
+        "cost_reserve_mean": 20038.141820547942,
+        "save_vs_od_pct": 26.679128931102717,
+        "save_vs_peak_pct": 62.641127565446936,
+        "reserved_cover_frac": 0.3698630136986301
+      },
+      "RI-3yr": {
+        "delta": 0.6,
+        "Q_star_closed_form": 80.698,
+        "Q_star_grid": 80.6984896224056,
+        "reserved_quantile": 0.6,
+        "cost_optimal": 13623.529999999999,
+        "cost_reserve_peak": 33947.920000000006,
+        "cost_reserve_mean": 13772.180520547947,
+        "save_vs_od_pct": 49.993117576388485,
+        "save_vs_peak_pct": 59.86932336355218,
+        "reserved_cover_frac": 0.6
+      }
+    }
+  },
+  "break_even_utilization": {
+    "RI-1yr": 0.63,
+    "RI-3yr": 0.4,
+    "Spot": 0.30000000000000004
+  },
+  "forecasting": {
+    "n_folds": 42,
+    "initial": 60,
+    "horizon": 14,
+    "step": 7,
+    "table": {
+      "Naive": {
+        "mape_mean": 30.042402748076,
+        "mape_std": 9.231555377066924,
+        "rmse_mean": 24.733822662548217,
+        "mae_mean": 18.647244897959183
+      },
+      "SeasonalNaive": {
+        "mape_mean": 15.574883526840646,
+        "mape_std": 7.101423643663141,
+        "rmse_mean": 19.502393425148597,
+        "mae_mean": 12.456156462585035
+      },
+      "ETS": {
+        "mape_mean": 12.117252415296393,
+        "mape_std": 3.0306903527884272,
+        "rmse_mean": 14.663929060620557,
+        "mae_mean": 9.642819511672394
+      },
+      "SARIMAX": {
+        "mape_mean": 12.49961126024902,
+        "mape_std": 3.6870703691129356,
+        "rmse_mean": 14.953707980007458,
+        "mae_mean": 9.811850125047686
+      }
+    },
+    "best_model": "ETS"
+  },
+  "case_study": {
+    "n_recommendations": 19,
+    "n_ai_recommendations": 10,
+    "total_monthly_savings": 590.4,
+    "total_current_monthly_cost": 1074.83,
+    "savings_pct_of_optimized_scope": 54.92961677660654,
+    "by_type": {
+      "rightsize": {
+        "n": 2,
+        "savings": 362.81
+      },
+      "pricing_plan_switch": {
+        "n": 6,
+        "savings": 208.42000000000002
+      },
+      "memory_resize": {
+        "n": 1,
+        "savings": 0.11
+      },
+      "volume_type_upgrade": {
+        "n": 4,
+        "savings": 2.6
+      },
+      "delete_unused": {
+        "n": 3,
+        "savings": 10.0
+      },
+      "storage_class_switch": {
+        "n": 1,
+        "savings": 0.79
+      },
+      "replace_with_endpoint": {
+        "n": 2,
+        "savings": 5.67
+      }
+    },
+    "fleet": [
+      {
+        "type": "c5.2xlarge",
+        "count": 1,
+        "monthly_cost": 248.2
+      },
+      {
+        "type": "c5.large",
+        "count": 1,
+        "monthly_cost": 62.05
+      },
+      {
+        "type": "m5.large",
+        "count": 1,
+        "monthly_cost": 70.08
+      },
+      {
+        "type": "m5.xlarge",
+        "count": 2,
+        "monthly_cost": 176.6
+      },
+      {
+        "type": "r5.large",
+        "count": 1,
+        "monthly_cost": 91.98
+      },
+      {
+        "type": "t3.large",
+        "count": 1,
+        "monthly_cost": 60.74
+      },
+      {
+        "type": "t3.medium",
+        "count": 1,
+        "monthly_cost": 30.37
+      }
+    ],
+    "pricing_sample": [
+      {
+        "type": "t3.small",
+        "on_demand": 15.184,
+        "ri_1yr": null,
+        "ri_3yr": null,
+        "spot": 7.154
+      },
+      {
+        "type": "t3.micro",
+        "on_demand": 56.94,
+        "ri_1yr": null,
+        "ri_3yr": null,
+        "spot": 2.701
+      },
+      {
+        "type": "t3.large",
+        "on_demand": 60.736,
+        "ri_1yr": null,
+        "ri_3yr": null,
+        "spot": 31.025000000000002
+      },
+      {
+        "type": "c5.large",
+        "on_demand": 62.050000000000004,
+        "ri_1yr": null,
+        "ri_3yr": null,
+        "spot": 22.265
+      },
+      {
+        "type": "t3.medium",
+        "on_demand": 79.71600000000001,
+        "ri_1yr": null,
+        "ri_3yr": null,
+        "spot": 13.359
+      },
+      {
+        "type": "r5.large",
+        "on_demand": 91.98,
+        "ri_1yr": 57.96,
+        "ri_3yr": 36.79,
+        "spot": 27.59
+      }
+    ],
+    "implied_discounts": [
+      {
+        "type": "r5.large",
+        "ri1_disc": 0.36986301369863017,
+        "ri3_disc": 0.6000217438573603,
+        "spot_disc": 0.7000434877147206
+      }
+    ]
+  }
+}

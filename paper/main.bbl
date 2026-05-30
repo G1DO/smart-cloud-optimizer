@@ -1,0 +1,196 @@
+\begin{thebibliography}{24}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Armbrust et~al.(2010)Armbrust, Fox, Griffith, Joseph, Katz, Konwinski,
+  Lee, Patterson, Rabkin, Stoica, and Zaharia]{armbrust2010view}
+Michael Armbrust, Armando Fox, Rean Griffith, Anthony~D. Joseph, Randy Katz,
+  Andy Konwinski, Gunho Lee, David Patterson, Ariel Rabkin, Ion Stoica, and
+  Matei Zaharia.
+\newblock A view of cloud computing.
+\newblock \emph{Communications of the ACM}, 53\penalty0 (4):\penalty0 50--58,
+  2010.
+\newblock \doi{10.1145/1721654.1721672}.
+
+\bibitem[B\"{u}lb\"{u}l et~al.(2021)B\"{u}lb\"{u}l, Noyan, and
+  Erol]{bulbul2021multistage}
+Kerem B\"{u}lb\"{u}l, Nilay Noyan, and H\"{u}seyin Erol.
+\newblock Multi-stage stochastic programming models for provisioning cloud
+  computing resources.
+\newblock \emph{European Journal of Operational Research}, 288\penalty0
+  (3):\penalty0 886--901, 2021.
+\newblock \doi{10.1016/j.ejor.2020.06.028}.
+
+\bibitem[Calheiros et~al.(2015)Calheiros, Masoumi, Ranjan, and
+  Buyya]{calheiros2015workload}
+Rodrigo~N. Calheiros, Enayat Masoumi, Rajiv Ranjan, and Rajkumar Buyya.
+\newblock Workload prediction using {ARIMA} model and its impact on cloud
+  applications' {QoS}.
+\newblock \emph{IEEE Transactions on Cloud Computing}, 3\penalty0 (4):\penalty0
+  449--458, 2015.
+\newblock \doi{10.1109/TCC.2014.2350475}.
+
+\bibitem[Chaisiri et~al.(2012)Chaisiri, Lee, and
+  Niyato]{chaisiri2012optimization}
+Sivadon Chaisiri, Bu-Sung Lee, and Dusit Niyato.
+\newblock Optimization of resource provisioning cost in cloud computing.
+\newblock \emph{IEEE Transactions on Services Computing}, 5\penalty0
+  (2):\penalty0 164--177, 2012.
+\newblock \doi{10.1109/TSC.2011.7}.
+
+\bibitem[Chen et~al.(2023)Chen, Moinzadeh, Song, and Zhong]{chen2023cloud}
+Shi Chen, Kamran Moinzadeh, Jing-Sheng Song, and Yimin Zhong.
+\newblock Cloud computing value chains: Research from the operations management
+  perspective.
+\newblock \emph{Manufacturing \& Service Operations Management}, 25\penalty0
+  (4):\penalty0 1338--1356, 2023.
+\newblock \doi{10.1287/msom.2022.1178}.
+
+\bibitem[Chen et~al.(2024)Chen, Lei, and Moinzadeh]{chen2024cost}
+Shi Chen, Junfei Lei, and Kamran Moinzadeh.
+\newblock Cost optimization in cloud computing: Capacity reservation for
+  intermittent random demand surges.
+\newblock \emph{Production and Operations Management}, 33\penalty0
+  (6):\penalty0 1265--1284, 2024.
+\newblock \doi{10.1177/10591478241251614}.
+
+\bibitem[Deochake(2023)]{deochake2023cloud}
+Saurabh Deochake.
+\newblock Cloud and {AI} infrastructure cost optimization: A comprehensive
+  review of strategies and case studies.
+\newblock \emph{arXiv preprint arXiv:2307.12479}, 2023.
+
+\bibitem[Erkoc and Wu(2005)]{erkoc2005managing}
+Murat Erkoc and S.~David Wu.
+\newblock Managing high-tech capacity expansion via reservation contracts.
+\newblock \emph{Production and Operations Management}, 14\penalty0
+  (2):\penalty0 232--251, 2005.
+\newblock \doi{10.1111/j.1937-5956.2005.tb00021.x}.
+
+\bibitem[Furman and Diamant(2025)]{furman2025optimal}
+Eugene Furman and Adam Diamant.
+\newblock Optimal capacity planning for cloud service providers with periodic,
+  time-varying demand.
+\newblock \emph{European Journal of Operational Research}, 322\penalty0
+  (1):\penalty0 133--146, 2025.
+\newblock \doi{10.1016/j.ejor.2024.10.025}.
+
+\bibitem[Hadary et~al.(2020)Hadary, Marshall, Menache, Pan, Greeff, Dion,
+  Dorminey, Joshi, Chen, Russinovich, and Moscibroda]{hadary2020protean}
+Ori Hadary, Luke Marshall, Ishai Menache, Abhisek Pan, Esaias~E. Greeff, David
+  Dion, Star Dorminey, Shailesh Joshi, Yang Chen, Mark Russinovich, and Thomas
+  Moscibroda.
+\newblock Protean: {VM} allocation service at scale.
+\newblock In \emph{Proc. 14th USENIX Symposium on Operating Systems Design and
+  Implementation (OSDI)}, pages 845--861, 2020.
+
+\bibitem[Kumar et~al.(2018)Kumar, Baranwal, Raza, and
+  Vidyarthi]{kumar2018survey}
+Dinesh Kumar, Gaurav Baranwal, Zahid Raza, and Deo~Prakash Vidyarthi.
+\newblock A survey on spot pricing in cloud computing.
+\newblock \emph{Journal of Network and Systems Management}, 26\penalty0
+  (4):\penalty0 809--856, 2018.
+\newblock \doi{10.1007/s10922-017-9444-x}.
+
+\bibitem[Kumar and Singh(2018)]{kumar2018workload}
+Jitendra Kumar and Ashutosh~Kumar Singh.
+\newblock Workload prediction in cloud using artificial neural network and
+  adaptive differential evolution.
+\newblock \emph{Future Generation Computer Systems}, 81:\penalty0 41--52, 2018.
+\newblock \doi{10.1016/j.future.2017.10.047}.
+
+\bibitem[Lin et~al.(2013)Lin, Wierman, Andrew, and Thereska]{lin2013dynamic}
+Minghong Lin, Adam Wierman, Lachlan L.~H. Andrew, and Eno Thereska.
+\newblock Dynamic right-sizing for power-proportional data centers.
+\newblock \emph{IEEE/ACM Transactions on Networking}, 21\penalty0 (5):\penalty0
+  1378--1391, 2013.
+\newblock \doi{10.1109/TNET.2012.2226216}.
+
+\bibitem[Masdari and Khoshnevis(2020)]{masdari2020survey}
+Mohammad Masdari and Afsane Khoshnevis.
+\newblock A survey and classification of the workload forecasting methods in
+  cloud computing.
+\newblock \emph{Cluster Computing}, 23\penalty0 (4):\penalty0 2399--2424, 2020.
+\newblock \doi{10.1007/s10586-019-03010-3}.
+
+\bibitem[Mazrekaj et~al.(2016)Mazrekaj, Shabani, and
+  Sejdiu]{mazrekaj2016pricing}
+Artan Mazrekaj, Isak Shabani, and Besmir Sejdiu.
+\newblock Pricing schemes in cloud computing: An overview.
+\newblock \emph{International Journal of Advanced Computer Science and
+  Applications (IJACSA)}, 7\penalty0 (2):\penalty0 80--86, 2016.
+
+\bibitem[Mireslami et~al.(2021)Mireslami, Rakai, Wang, and
+  Far]{mireslami2021dynamic}
+Seyedehmehrnaz Mireslami, Logan Rakai, Mingjun Wang, and Behrouz~H. Far.
+\newblock Dynamic cloud resource allocation considering demand uncertainty.
+\newblock \emph{IEEE Transactions on Cloud Computing}, 9\penalty0 (3):\penalty0
+  981--994, 2021.
+\newblock \doi{10.1109/TCC.2019.2897304}.
+
+\bibitem[Qin et~al.(2011)Qin, Wang, Vakharia, Chen, and
+  Seref]{qin2011newsvendor}
+Yan Qin, Ruoxuan Wang, Asoo~J. Vakharia, Yuwen Chen, and Michelle M.~H. Seref.
+\newblock The newsvendor problem: Review and directions for future research.
+\newblock \emph{European Journal of Operational Research}, 213\penalty0
+  (2):\penalty0 361--374, 2011.
+\newblock \doi{10.1016/j.ejor.2010.11.024}.
+
+\bibitem[Qu et~al.(2024)Qu, Dawande, and Janakiraman]{qu2024cloud}
+Zhaowei Qu, Milind Dawande, and Ganesh Janakiraman.
+\newblock Technical note---cloud cost optimization: Model, bounds, and
+  asymptotics.
+\newblock \emph{Operations Research}, 72\penalty0 (1):\penalty0 132--150, 2024.
+\newblock \doi{10.1287/opre.2022.0362}.
+
+\bibitem[Salinas et~al.(2020)Salinas, Flunkert, Gasthaus, and
+  Januschowski]{salinas2020deepar}
+David Salinas, Valentin Flunkert, Jan Gasthaus, and Tim Januschowski.
+\newblock {DeepAR}: Probabilistic forecasting with autoregressive recurrent
+  networks.
+\newblock \emph{International Journal of Forecasting}, 36\penalty0
+  (3):\penalty0 1181--1191, 2020.
+\newblock \doi{10.1016/j.ijforecast.2019.07.001}.
+
+\bibitem[Sharma et~al.(2012)Sharma, Thulasiram, Thulasiraman, Garg, and
+  Buyya]{sharma2012pricing}
+Bhanu Sharma, Ruppa~K. Thulasiram, Parimala Thulasiraman, Saurabh~K. Garg, and
+  Rajkumar Buyya.
+\newblock Pricing cloud compute commodities: A novel financial economic model.
+\newblock In \emph{Proc. 12th IEEE/ACM International Symposium on Cluster,
+  Cloud and Grid Computing (CCGrid)}, pages 451--457, 2012.
+\newblock \doi{10.1109/CCGrid.2012.126}.
+
+\bibitem[Song et~al.(2018)Song, Yu, Zhou, Wang, and Du]{song2018host}
+Binbin Song, Yao Yu, Yu~Zhou, Ziqiang Wang, and Sidan Du.
+\newblock Host load prediction with long short-term memory in cloud computing.
+\newblock \emph{The Journal of Supercomputing}, 74\penalty0 (12):\penalty0
+  6554--6568, 2018.
+\newblock \doi{10.1007/s11227-017-2044-4}.
+
+\bibitem[Storment and Fuller(2023)]{storment2023finops}
+J.~R. Storment and Mike Fuller.
+\newblock \emph{Cloud FinOps: Collaborative, Real-Time Cloud Financial
+  Management}.
+\newblock O'Reilly Media, 2nd edition, 2023.
+
+\bibitem[Van~den Bossche et~al.(2010)Van~den Bossche, Vanmechelen, and
+  Broeckhove]{vandenbossche2010cost}
+Ruben Van~den Bossche, Kurt Vanmechelen, and Jan Broeckhove.
+\newblock Cost-optimal scheduling in hybrid {IaaS} clouds for deadline
+  constrained workloads.
+\newblock In \emph{Proc. IEEE 3rd International Conference on Cloud Computing
+  (CLOUD)}, pages 228--235, 2010.
+\newblock \doi{10.1109/CLOUD.2010.58}.
+
+\bibitem[Wang et~al.(2013)Wang, Li, and Liang]{wang2013reserve}
+Wei Wang, Baochun Li, and Ben Liang.
+\newblock To reserve or not to reserve: Optimal online multi-instance
+  acquisition in {IaaS} clouds.
+\newblock In \emph{Proc. 10th International Conference on Autonomic Computing
+  (USENIX ICAC)}, pages 13--22, 2013.
+
+\end{thebibliography}

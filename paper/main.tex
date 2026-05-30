@@ -1,0 +1,772 @@
+% =====================================================================
+%  DRAFT manuscript -- mirrors the style/structure of Chen, Lei &
+%  Moinzadeh (2024, Production and Operations Management).
+%  Author names/affiliations are PLACEHOLDERS -- fill in before sharing.
+%  Build:  latexmk -pdf main.tex     (or pdflatex; bibtex; pdflatex x2)
+% =====================================================================
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{graphicx}
+\graphicspath{{figures/}}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{caption}
+\usepackage{enumitem}
+\usepackage[round]{natbib}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue!55!black,citecolor=blue!55!black,
+            urlcolor=blue!55!black]{hyperref}
+\usepackage{cleveref}
+
+\newtheorem{proposition}{Proposition}
+\newtheorem{corollary}{Corollary}
+\newtheorem{lemma}{Lemma}
+\theoremstyle{definition}
+\newtheorem{assumption}{Assumption}
+\newtheorem{remark}{Remark}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\1}{\mathbf{1}}
+\newcommand{\posp}[1]{\left(#1\right)^{+}}
+\DeclareMathOperator*{\argmin}{arg\,min}
+
+\title{\bf Cost-Aware Capacity Reservation for Cloud Workloads with
+Intermittent Random Demand Surges: An Integrated
+Forecasting--Optimization System}
+
+\author{%
+  [Author One]\thanks{[Affiliation One]; \texttt{[email]}.}
+  \and [Author Two]\thanks{[Affiliation Two].}
+  \and [Advisor]\thanks{[Affiliation]; corresponding author.}%
+}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent
+Enterprise cloud users face rapidly growing compute bills driven by
+workloads that combine a stable, seasonal \emph{base} demand with
+\emph{intermittent, random demand surges}. We study how such a user should
+provision capacity across the on-demand, reserved, and spot purchasing
+options offered by infrastructure-as-a-service providers, and we instantiate
+the resulting policy in a working software system. On the modeling side, we
+formulate the baseline reservation decision as a newsvendor problem and show
+that the cost-minimizing reserved capacity equals the $\delta$-quantile of
+the demand distribution, where $\delta$ is the reserved-instance discount;
+the optimal reserve-versus-on-demand decision for a workload reduces to a
+simple utilization threshold $u^\star = 1-\delta$, and intermittent surges
+are best covered by \emph{supplementary} reservations only when the surge
+time-fraction exceeds $1-\delta_s$. On the systems side, we present
+\emph{Smart Cloud Optimizer}, which ingests provider telemetry, forecasts
+demand with classical and machine-learning time-series models, and solves a
+mixed-integer program for instance right-sizing, complemented by rule-based
+and large-language-model recommendations. On a year-long, realistic
+workload, exponential smoothing forecasts demand at $12.1\%$ MAPE; the
+newsvendor policy attains its theoretical optimum (verified against
+exhaustive search) and reduces cost by $26.7\%$--$50.0\%$ relative to pure
+on-demand provisioning depending on the discount tier; and the end-to-end
+system identifies \$590/month ($54.9\%$ of the addressable spend) in concrete
+savings. Our results connect the operations-management theory of capacity
+reservation to the engineering practice of cloud cost optimization, and show
+that a widely used industry heuristic---reserve long-running
+instances---is a special case of the optimal threshold policy.
+
+\medskip
+\noindent\textbf{Keywords:} cloud computing; capacity reservation;
+newsvendor model; reserved instances; demand forecasting; mixed-integer
+programming; cost optimization.
+\end{abstract}
+
+% =====================================================================
+\section{Introduction}\label{sec:intro}
+% =====================================================================
+Public cloud spending has become one of the largest and fastest-growing line
+items in enterprise IT budgets, and a substantial fraction of it is wasted on
+idle or over-provisioned capacity. The discipline that has emerged to manage
+this spend---\emph{FinOps}---emphasizes continuous visibility, right-sizing,
+and judicious use of provider pricing options \citep{storment2023finops,
+deochake2023cloud}. The central difficulty is that the economically optimal
+purchasing decision depends jointly on (i) the shape and uncertainty of the
+workload's demand and (ii) the rich menu of pricing mechanisms that providers
+expose: pay-as-you-go \emph{on-demand} instances, deeply discounted
+\emph{reserved} instances (RIs) that require a one- or three-year commitment,
+and very cheap but interruptible \emph{spot} instances
+\citep{armbrust2010view, kumar2018survey}.
+
+A recurring structural feature of real workloads sharpens the problem.
+Demand is rarely stationary: it typically consists of a predictable,
+seasonal \emph{base} level punctuated by \emph{intermittent, random surges}
+triggered by planned launches, marketing events, or exogenous traffic spikes
+\citep{chen2024cost}. Reserving enough capacity to cover the surges leaves
+expensive capacity idle most of the time; reserving only the base forces the
+user onto premium on-demand pricing exactly when demand is highest. The user
+must therefore decide \emph{how much} baseline capacity to reserve, and
+\emph{how} to cover the residual surges.
+
+In practice, this decision is usually made with crude heuristics. A common
+rule of thumb, embedded in many cost-optimization tools, is ``reserve any
+instance that has been running continuously for more than 60 days.'' Such
+rules are easy to implement but disconnected from the underlying economics:
+they ignore the discount rate, the demand distribution, and the
+intermittency of surges. At the same time, a rigorous operations-management
+literature on capacity reservation exists but is rarely connected to the
+engineering systems that actually issue cloud purchasing recommendations
+\citep{chen2024cost, qu2024cloud, chen2023cloud}. This paper bridges that
+gap.
+
+\paragraph{Contributions.} We make four contributions.
+\begin{enumerate}[leftmargin=1.4em,itemsep=2pt]
+\item \textbf{A capacity-reservation model for cloud workloads with
+  intermittent surges.} We model a user who provisions a seasonal base plus
+  random surges across reserved, on-demand, and spot options. We prove that
+  the cost-minimizing baseline reservation follows a newsvendor (critical-
+  fractile) solution: the optimal reserved level is the $\delta$-quantile of
+  demand, where $\delta$ is the RI discount (\Cref{prop:newsvendor}).
+\item \textbf{A threshold characterization that rationalizes industry
+  practice.} We show that the optimal reserve-versus-on-demand decision for a
+  workload is a utilization threshold, $u^\star = 1-\delta$
+  (\Cref{prop:breakeven}), and that supplementary reservation of surge
+  capacity is optimal only when the surge time-fraction exceeds $1-\delta_s$
+  (\Cref{prop:surge}). The ubiquitous ``reserve long-running instances''
+  heuristic is exactly the special case $u\to 1$.
+\item \textbf{An integrated, end-to-end system.} We present \emph{Smart
+  Cloud Optimizer}, which couples demand forecasting (five time-series
+  models), a mixed-integer right-sizing program, rule-based service checks,
+  and a large-language-model advisor, all over a unified telemetry store.
+\item \textbf{A reproducible numerical study.} On a year-long, realistic
+  workload exhibiting exactly the base-plus-surge structure our model
+  assumes, we validate the theory (the closed-form reservation level matches
+  exhaustive search to within \$0.03/day), quantify forecasting accuracy
+  (best MAPE $12.1\%$), and report concrete end-to-end savings (\$590/month,
+  $54.9\%$ of the addressable spend).
+\end{enumerate}
+
+The remainder of the paper is organized as follows.
+\Cref{sec:related} reviews related work. \Cref{sec:model} sets up the model.
+\Cref{sec:analysis} derives the optimal reservation and threshold policies.
+\Cref{sec:system} describes the Smart Cloud Optimizer system.
+\Cref{sec:numerical} reports the numerical study. \Cref{sec:insights}
+distills managerial insights, and \Cref{sec:conclusion} concludes. Proofs are
+collected in \Cref{app:proofs}.
+
+% =====================================================================
+\section{Related Work}\label{sec:related}
+% =====================================================================
+Our work draws on, and connects, several literatures.
+
+\paragraph{Cloud cost optimization and pricing.}
+The economics of elastic, pay-as-you-go computing were articulated early by
+\citet{armbrust2010view}; the FinOps movement has since operationalized cost
+governance in practice \citep{storment2023finops, deochake2023cloud}.
+Provider pricing mechanisms---on-demand, reserved, and spot---and their
+trade-offs have been surveyed extensively
+\citep{kumar2018survey, mazrekaj2016pricing, sharma2012pricing}.
+\citet{wang2013reserve} design online algorithms that dynamically mix
+reserved and on-demand instances under time-varying demand; we instead
+characterize the static-commitment optimum in closed form and embed it in a
+forecasting-driven system.
+
+\paragraph{Capacity provisioning under uncertainty.}
+A rich body of work formulates cloud provisioning as optimization under
+demand and price uncertainty. \citet{chaisiri2012optimization} propose the
+canonical stochastic-programming model trading reserved against on-demand
+capacity; \citet{bulbul2021multistage} extend this to multi-stage stochastic
+programs, and \citet{mireslami2021dynamic} and \citet{furman2025optimal}
+study dynamic and periodic time-varying demand. Relative to these, we obtain
+an interpretable newsvendor characterization tailored to the base-plus-surge
+structure and connect it directly to a deployed system.
+
+\paragraph{Workload forecasting.}
+Demand forecasting is the input to any provisioning policy.
+\citet{masdari2020survey} survey and classify cloud workload forecasting
+methods. Classical time-series approaches such as ARIMA remain strong
+baselines \citep{calheiros2015workload}, while machine-learning methods---
+neural networks \citep{kumar2018workload}, LSTMs \citep{song2018host}, and
+probabilistic deep models such as DeepAR \citep{salinas2020deepar}---target
+complex patterns. Our system implements a spectrum from naive baselines to
+Prophet and auto-tuned SARIMAX, and---critically---feeds the resulting
+predictive \emph{distribution} into the newsvendor reservation policy.
+
+\paragraph{Newsvendor and reservation contracts.}
+The newsvendor model is the workhorse for single-period capacity decisions
+under uncertainty \citep{qin2011newsvendor}. Reservation contracts with later
+exercise have long been studied in operations management---e.g.,
+\citet{erkoc2005managing} on high-tech capacity expansion in the same journal
+as our reference paper. Most directly, \citet{chen2024cost} study capacity
+reservation for cloud workloads with intermittent random surges, deriving a
+newsvendor-type capacity and a two-threshold purchase/renew/cancel policy,
+and \citet{qu2024cloud} analyze long-run-average cloud cost with reserved and
+on-demand capacity. \citet{chen2023cloud} survey cloud value chains from an
+operations-management perspective. We adopt this modeling lens but
+specialize it to a discount-parameterized closed form and pair it with a
+working implementation.
+
+\paragraph{Right-sizing and resource allocation.}
+\citet{lin2013dynamic} give a foundational online treatment of dynamically
+right-sizing data-center capacity; \citet{hadary2020protean} describe a
+hyperscale VM-allocation system. Cost-optimal placement via integer
+programming appears in \citet{vandenbossche2010cost}. Our right-sizing module
+solves a mixed-integer program in this tradition, but as one component of a
+larger forecast-then-reserve pipeline.
+
+% =====================================================================
+\section{Model}\label{sec:model}
+% =====================================================================
+We consider a single cloud user (a firm) that must serve a compute workload
+over a planning horizon of $T$ periods (days, in our implementation). All
+quantities are expressed in \emph{capacity units}; without loss of
+generality we take the on-demand price as the numéraire, $p=1$, so that
+demand and cost are measured on the same scale. \Cref{tab:notation}
+summarizes notation.
+
+\begin{table}[t]
+\centering
+\caption{Notation.}\label{tab:notation}
+\small
+\begin{tabular}{ll}
+\toprule
+Symbol & Meaning \\
+\midrule
+$D_t$ & demand (required capacity) in period $t$, $t=1,\dots,T$ \\
+$F,\,f$ & cumulative distribution / density of demand $D$ \\
+$p$ & on-demand unit price per period (numéraire, $p=1$) \\
+$\delta\in(0,1)$ & reserved-instance discount; reserved price $r=(1-\delta)p$ \\
+$\delta_s$ & spot discount; spot price $s=(1-\delta_s)p$, with $\delta_s>\delta$ \\
+$\beta\in[0,1)$ & spot interruption (reclaim) probability \\
+$Q\ge 0$ & reserved baseline capacity (decision variable) \\
+$d_b$ & deterministic base demand level \\
+$\rho\in[0,1]$ & long-run fraction of time the workload is in a surge state \\
+$u\in[0,1]$ & utilization: fraction of the term a unit of demand is active \\
+$C(\cdot)$ & total provisioning cost over the horizon \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Demand structure.}
+Motivated by real workloads (\Cref{sec:numerical}), we model demand as a
+stationary, seasonal \emph{base} component plus \emph{intermittent random
+surges}:
+\begin{equation}\label{eq:demand}
+D_t \;=\; d_b + S_t\,M_t,
+\end{equation}
+where $S_t\in\{0,1\}$ indicates a surge in period $t$ and $M_t\ge 0$ is the
+random surge magnitude. Surges are intermittent: $\Pr(S_t=1)$ is small and
+surges occur in episodes separated by inter-surge periods. We let
+$\rho=\lim_{T\to\infty}\frac1T\sum_t S_t$ denote the long-run surge
+time-fraction. The base $d_b$ is predictable and seasonal (e.g., weekly),
+whereas the magnitude $M_t$ is random.
+
+\paragraph{Procurement options.}
+In each period the user serves $D_t$ from three sources, mirroring the AWS
+menu:
+\begin{itemize}[leftmargin=1.4em,itemsep=1pt]
+\item \textbf{Reserved instances} (base contracts): a committed quantity $Q$,
+  paid at the discounted rate $r=(1-\delta)p$ \emph{every period regardless of
+  use}.
+\item \textbf{On-demand}: any quantity, paid at $p=1$ only for what is used,
+  always available.
+\item \textbf{Spot}: paid at $s=(1-\delta_s)p<r$ when available, but reclaimed
+  with probability $\beta$, in which case the load falls back to on-demand.
+\end{itemize}
+Reserved capacity is consumed first (it is sunk), then spot (when permitted by
+reliability requirements), then on-demand. The single-period cost of
+committing $Q$ reserved units and covering the residual with on-demand is
+\begin{equation}\label{eq:periodcost}
+c_t(Q) \;=\; \underbrace{(1-\delta)\,Q}_{\text{reserved (always paid)}}
+            \;+\; \underbrace{p\,\posp{D_t-Q}}_{\text{on-demand top-up}},
+\qquad \posp{x}\equiv\max\{x,0\}.
+\end{equation}
+
+\begin{assumption}\label{ass:prices}
+Prices are ordered $0<s<r<p$ with $r=(1-\delta)p$, $s=(1-\delta_s)p$, and
+$0<\delta<\delta_s<1$. The horizon is long enough that the empirical demand
+distribution $\hat F$ is a consistent estimate of $F$.
+\end{assumption}
+
+The user's problem is to choose the reservation level $Q$ (and, in the
+extensions, supplementary and spot quantities) to minimize total cost
+$C(Q)=\sum_{t=1}^{T} c_t(Q)$, or equivalently the expected per-period cost
+$\E[c(Q)]=(1-\delta)Q + p\,\E\posp{D-Q}$.
+
+% =====================================================================
+\section{Optimal Capacity Reservation}\label{sec:analysis}
+% =====================================================================
+\subsection{Baseline reservation: a newsvendor solution}
+We first solve for the cost-minimizing reserved level $Q$, taking the demand
+distribution $F$ as given (it is supplied by the forecasting module of
+\Cref{sec:system}).
+
+\begin{proposition}[Optimal reserved capacity]\label{prop:newsvendor}
+Under \Cref{ass:prices}, the expected per-period cost $\E[c(Q)] =
+(1-\delta)Q + p\,\E\posp{D-Q}$ is convex in $Q$, and the unique
+cost-minimizing reservation level is the $\delta$-quantile of demand,
+\begin{equation}\label{eq:Qstar}
+Q^\star \;=\; F^{-1}(\delta)
+        \;=\; \inf\{q: F(q)\ge \delta\}.
+\end{equation}
+Equivalently, $Q^\star$ is the newsvendor solution with critical ratio
+$\mathrm{CR}=\frac{C_u}{C_u+C_o}=\delta$, where the underage cost is
+$C_u=p-r=\delta\,p$ (the on-demand premium paid when reserved capacity is
+short) and the overage cost is $C_o=r=(1-\delta)\,p$ (the cost of an idle
+reserved unit).
+\end{proposition}
+
+The intuition is transparent: a larger discount $\delta$ lowers the cost of
+holding reserved capacity, so the user reserves a higher quantile of demand.
+The result also delivers a clean comparative static.
+
+\begin{corollary}[Discount monotonicity]\label{cor:monotone}
+$Q^\star$ is nondecreasing in the discount $\delta$. The fraction of demand
+periods fully covered by reserved capacity, $F(Q^\star)$, equals $\delta$.
+\end{corollary}
+
+Thus a firm should reserve \emph{more} capacity, covering a higher demand
+quantile, precisely when reserved instances are more deeply discounted---a
+conclusion that aligns with \citet{chen2024cost}, who find that firms buy
+more supplementary capacity as the unit discount rate increases.
+
+\subsection{When to reserve: a utilization threshold}
+\Cref{prop:newsvendor} prices the \emph{quantity} of reservation. We now ask
+the dual, per-workload question that cost-optimization tools actually face:
+\emph{should a given workload be on a reserved or an on-demand plan?} Consider
+a unit of demand that is active a fraction $u$ of the reservation term
+(its \emph{utilization}). Reserving it costs $r=(1-\delta)p$ for the entire
+term; serving it on-demand costs $p$ per active period, i.e., $pu$ in
+expectation over the term.
+
+\begin{proposition}[Reservation break-even]\label{prop:breakeven}
+A unit of demand with utilization $u$ should be reserved if and only if
+\begin{equation}\label{eq:breakeven}
+u \;\ge\; u^\star \;=\; 1-\delta .
+\end{equation}
+At the real AWS discount tiers ($\delta=0.37$ for one-year and $\delta=0.60$
+for three-year RIs), the break-even utilizations are $u^\star=0.63$ and
+$u^\star=0.40$, respectively.
+\end{proposition}
+
+\Cref{prop:breakeven} rationalizes---and corrects---the industry heuristic.
+The popular rule ``reserve an instance that has run continuously for $\ge 60$
+days'' uses elapsed running time as a \emph{proxy} for high utilization. The
+optimal rule replaces the proxy with the economically correct threshold
+$u^\star=1-\delta$: an always-on workload ($u\to 1$) should always be reserved
+(since $1>1-\delta$), but a workload active only, say, half the term should be
+reserved only under the deeper three-year discount ($0.5\ge 0.40$) and
+\emph{not} under the one-year discount ($0.5<0.63$). The 60-day rule is the
+$u\to 1$ corner of \eqref{eq:breakeven}.
+
+\subsection{Covering surges: supplementary reservation}
+Surges occur only a fraction $\rho$ of the time (\Cref{eq:demand}). A unit of
+\emph{surge} capacity therefore has utilization $u=\rho$. Applying
+\Cref{prop:breakeven} with the supplementary-contract discount $\delta_s$
+yields the surge-coverage policy.
+
+\begin{proposition}[Supplementary reservation for surges]\label{prop:surge}
+It is optimal to cover a unit of surge capacity with a supplementary
+reservation (rather than on-demand) if and only if the surge time-fraction
+satisfies
+\begin{equation}\label{eq:surge}
+\rho \;\ge\; 1-\delta_s .
+\end{equation}
+Consequently, longer and/or more frequent surges (larger $\rho$) make
+supplementary reservation more attractive, and deeper supplementary discounts
+(larger $\delta_s$) lower the surge-frequency threshold at which reservation
+pays off.
+\end{proposition}
+
+This recovers, in a transparent first-order form, the comparative statics of
+the richer dynamic model of \citet{chen2024cost}: supplementary reservation
+becomes more valuable as average surge and inter-surge durations grow and as
+the discount rate increases. The full dynamic problem additionally trades off
+cancellation fees and renewal timing, leading to their two-threshold policy;
+our static condition \eqref{eq:surge} is the break-even that such a policy
+oscillates around.
+
+\subsection{Spot capacity: an interruptible third tier}
+Spot instances are cheaper still ($s<r$) but interruptible. Serving a unit of
+load ``spot-first'' incurs cost $s$ with probability $1-\beta$ and falls back
+to on-demand at cost $p$ with probability $\beta$.
+
+\begin{proposition}[Spot dominance and the reliability cap]\label{prop:spot}
+The expected unit cost of spot-first service is
+$\bar c_{\mathrm{spot}}=(1-\beta)s+\beta p$, and
+$\bar c_{\mathrm{spot}}<p$ for every $s<p$ and $\beta<1$. Hence spot weakly
+dominates on-demand in expectation for any interruptible load. If a fraction
+$\alpha$ of demand requires uninterrupted service (an availability SLA), then
+spot may serve at most the interruptible fraction $1-\alpha$, and the
+cost-minimizing layering is: reserved base $Q^\star$ (\Cref{prop:newsvendor}),
+spot for interruptible residual demand, and on-demand for the
+reliability-constrained remainder.
+\end{proposition}
+
+\Cref{prop:spot} formalizes why production systems should aggressively shift
+\emph{interruptible} surge load to spot while protecting an SLA-critical core
+with reserved and on-demand capacity.
+
+% =====================================================================
+\section{The Smart Cloud Optimizer System}\label{sec:system}
+% =====================================================================
+The policies of \Cref{sec:analysis} require two inputs that a real deployment
+must produce: the demand distribution $F$ (and its forecast), and a mapping
+from abstract ``capacity units'' to concrete instance types. \emph{Smart
+Cloud Optimizer} supplies both. \Cref{fig:arch} sketches the architecture.
+
+\begin{figure}[t]
+\centering
+\fbox{\begin{minipage}{0.92\linewidth}\centering\small\vspace{2pt}
+Telemetry collection (provider cost \& utilization APIs)
+$\;\rightarrow\;$ unified store (31 relational tables)
+$\;\rightarrow\;$ \{\,demand forecasting $\;|\;$ MILP right-sizing
+$\;|\;$ rule-based checks $\;|\;$ LLM advisor\,\}
+$\;\rightarrow\;$ ranked savings recommendations.
+\vspace{2pt}\end{minipage}}
+\caption{Smart Cloud Optimizer pipeline. Collected telemetry feeds four
+analysis modules whose outputs are de-duplicated and ranked by expected
+monthly savings.}\label{fig:arch}
+\end{figure}
+
+\subsection{Demand forecasting}\label{sec:forecast}
+The forecasting module fits five models to each daily cost/demand series and
+selects the best by cross-validated error:
+(i) \emph{Naive} (last value);
+(ii) \emph{Seasonal naive} with weekly period $m=7$;
+(iii) \emph{ETS} (Holt--Winters) with additive trend and additive weekly
+seasonality ($m=7$);
+(iv) \emph{Prophet} with weekly and yearly seasonality; and
+(v) \emph{SARIMAX} with auto-selected orders over a weekly season.
+Model selection uses \emph{walk-forward} (expanding-window) cross-validation
+with an initial training window of $60$ days, a forecast horizon of $14$
+days, and a step of $7$ days, scored by MAPE, RMSE, and MAE. The selected
+model produces both point forecasts and predictive intervals; the latter
+yield the demand distribution $F$ consumed by \Cref{prop:newsvendor}. An
+anomaly-detection routine (rolling $z$-score with window $30$ and threshold
+$3\sigma$, combined with a $1.5\times$ IQR rule) flags surge days for
+separate treatment under \Cref{prop:surge}.
+
+\subsection{Right-sizing as a mixed-integer program}\label{sec:milp}
+Given per-instance utilization telemetry, the right-sizing module selects, for
+each running instance $i$ in the fleet $\mathcal{I}$, a target instance type
+$j$ from a catalog $\mathcal{J}$ so as to minimize cost subject to meeting a
+utilization-derived capacity requirement. Let $x_{ij}\in\{0,1\}$ indicate that
+instance $i$ is mapped to type $j$, let $c_j$ be the (on-demand) monthly price
+of type $j$, and let $v_j,m_j$ be its vCPU and memory capacities. The program
+is
+\begin{align}
+\min_{x}\;\; & \sum_{i\in\mathcal I}\sum_{j\in\mathcal J} c_j\, x_{ij}
+  \label{eq:milp-obj}\\
+\text{s.t.}\;\; & \sum_{j\in\mathcal J} x_{ij}=1, && \forall i\in\mathcal I,
+  \label{eq:milp-assign}\\
+& \sum_{j\in\mathcal J} v_j\, x_{ij} \ge V_i, && \forall i\in\mathcal I,
+  \label{eq:milp-cpu}\\
+& \sum_{j\in\mathcal J} m_j\, x_{ij} \ge M_i, && \forall i\in\mathcal I
+  \;(\text{when defined}),\label{eq:milp-mem}\\
+& \sum_{i\in\mathcal I}\sum_{j\in\mathcal J} c_j\, x_{ij} \le B,
+  && (\text{optional budget cap}),\label{eq:milp-budget}\\
+& x_{ij}\in\{0,1\}. \nonumber
+\end{align}
+The capacity requirement is derived from observed load with a safety margin:
+$V_i = \tfrac{\pi_i}{100}\, v_{c(i)}\, h$, where $\pi_i$ is the $95$th
+percentile of instance $i$'s CPU utilization, $v_{c(i)}$ is its current vCPU
+count, and $h=1.3$ is a $30\%$ headroom factor; $M_i$ is defined analogously
+when a memory signal is available. Constraint \eqref{eq:milp-assign} assigns
+exactly one type per instance, \eqref{eq:milp-cpu}--\eqref{eq:milp-mem} enforce
+sufficient capacity, and \eqref{eq:milp-budget} optionally caps total spend.
+The program is solved with the CBC branch-and-cut solver. Right-sizing
+(choosing $j$) and the pricing-plan decision (reserved vs.\ on-demand, governed
+by \Cref{prop:breakeven}) are complementary: the MILP fixes the resource, and
+the threshold policy fixes its purchasing mode.
+
+\subsection{Rule-based checks and an LLM advisor}\label{sec:rules}
+Beyond compute right-sizing, ten heuristic checks detect service-specific
+waste, e.g.\ switching long-running on-demand instances to reserved (the
+empirical analogue of \Cref{prop:breakeven}), down-sizing over-provisioned
+serverless memory, upgrading storage volume classes, deleting unattached or
+idle resources, switching database capacity modes, and replacing costly
+network gateways with endpoints. Each check emits a recommendation with an
+estimated monthly saving and a confidence label, and duplicates across modules
+are resolved by keeping the highest-saving recommendation per resource.
+Finally, for \emph{greenfield} provisioning (no telemetry yet), a
+large-language-model advisor maps a short natural-language requirements
+profile to a concrete, cost-optimized architecture with a cost estimate.
+
+% =====================================================================
+\section{Numerical Study}\label{sec:numerical}
+% =====================================================================
+We evaluate the theory and the system on a year-long workload drawn from the
+system's reference dataset (account \texttt{aws-SYNTHETIC-001}), comprising
+daily costs and hourly utilization across eight EC2 instances and nine
+auxiliary services. The dataset is synthetic but constructed to be realistic;
+all numbers below are regenerated by \texttt{paper/numerical\_study.py}.
+
+\subsection{Demand exhibits the base-plus-surge structure}
+\Cref{fig:series} plots the daily demand series. Over $T=365$ days
+(2024-07-01 to 2025-06-30) demand averages \$74.6/day (median \$76.0, std
+\$22.8, coefficient of variation $0.31$) on a base level of \$64.7/day. It
+displays pronounced \emph{weekly seasonality}---weekday mean \$84.4 versus
+weekend mean \$50.1---and \emph{intermittent surges}: five days
+($1.4\%$ of the horizon) exceed the surge threshold of \$121.7
+(median $+\,2\sigma$), peaking at \$232.5, i.e.\ $3.06\times$ the median. This
+is precisely the structure of \Cref{eq:demand}, and it validates the
+modeling premise of \citet{chen2024cost} on concrete data.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.78\linewidth]{fig1_demand_series.pdf}
+\caption{Daily demand over one year: a seasonal base (dashed) punctuated by
+five intermittent surges (red).}\label{fig:series}
+\end{figure}
+
+\subsection{Forecasting accuracy}
+\Cref{tab:forecast} reports walk-forward cross-validation over $42$ folds.
+Seasonal models dominate the naive baseline by more than a factor of two in
+MAPE, confirming that the weekly structure is both real and learnable.
+Exponential smoothing (ETS) is the most accurate (MAPE $12.1\%$), narrowly
+ahead of SARIMAX, and is selected as the production model.
+\Cref{fig:forecast} shows a representative forecast.
+
+\begin{table}[t]
+\centering
+\caption{Forecasting accuracy (walk-forward CV: initial $60$d, horizon $14$d,
+step $7$d; $42$ folds). Lower is better; best in \textbf{bold}.}
+\label{tab:forecast}
+\small
+\begin{tabular}{lccc}
+\toprule
+Model & MAPE (\%) & RMSE (\$) & MAE (\$) \\
+\midrule
+Naive          & 30.04 & 24.73 & 18.65 \\
+Seasonal naive & 15.57 & 19.50 & 12.46 \\
+SARIMAX$(1,1,1)(1,0,1)_7$ & 12.50 & 14.95 & \phantom{0}9.81 \\
+ETS (Holt--Winters, $m{=}7$) & \textbf{12.12} & \textbf{14.66} & \textbf{9.64} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.78\linewidth]{fig5_forecast.pdf}
+\caption{ETS forecast versus actual on the final $14$-day horizon (history in
+blue, actual in black, forecast in red).}\label{fig:forecast}
+\end{figure}
+
+\subsection{The newsvendor policy: optimum and savings}
+We now apply \Cref{prop:newsvendor} to the empirical demand distribution.
+\Cref{fig:cdf} shows the empirical CDF with the optimal reservation levels
+marked, and \Cref{fig:cost} shows the (convex) annual-cost curve $C(Q)$ with
+its minimizer. \Cref{tab:strategies} compares procurement strategies.
+
+\begin{table}[t]
+\centering
+\caption{Annual cost (\$) and savings under different reservation strategies,
+relative to provisioning all demand on-demand (\$27{,}243). $Q^\star$ closed
+form vs.\ exhaustive grid search.}
+\label{tab:strategies}
+\small
+\begin{tabular}{lcccccc}
+\toprule
+Tier & $\delta$ & $Q^\star$ (\$/day) & grid $Q^\star$ &
+  Optimal cost & Save vs.\ on-demand & Save vs.\ reserve-peak \\
+\midrule
+On-demand only & --   & --     & --     & 27{,}243 & -- & -- \\
+RI 1-year      & 0.37 & 70.36 & 70.38 & 19{,}975 & $26.7\%$ & $62.6\%$ \\
+RI 3-year      & 0.60 & 80.70 & 80.70 & 13{,}624 & $50.0\%$ & $59.9\%$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Three findings stand out. First, the closed-form reservation level
+\eqref{eq:Qstar} coincides with exhaustive grid search to within \$0.03/day,
+empirically confirming \Cref{prop:newsvendor}; at $\delta=0.37$ the optimum
+reserves the $37$th demand percentile, and the realized coverage fraction is
+$F(Q^\star)=0.370$, exactly as \Cref{cor:monotone} predicts. Second, the
+optimal policy reduces annual cost by $26.7\%$ (one-year) to $50.0\%$
+(three-year) relative to pure on-demand, while a naive ``reserve to cover the
+peak'' policy is $60$--$63\%$ \emph{more} expensive than the optimum because
+it pays for capacity that is idle on all non-surge days. Third, as the
+discount deepens the optimum reserves a higher quantile (\$70.4 $\to$ \$80.7),
+illustrating \Cref{cor:monotone}.
+
+\begin{figure}[t]
+\centering
+\begin{minipage}{0.49\linewidth}\centering
+\includegraphics[width=\linewidth]{fig2_demand_cdf.pdf}
+\caption{Empirical demand CDF; optimal reservation levels at the $\delta$-
+quantiles.}\label{fig:cdf}
+\end{minipage}\hfill
+\begin{minipage}{0.49\linewidth}\centering
+\includegraphics[width=\linewidth]{fig3_cost_curve.pdf}
+\caption{Convex annual-cost curve $C(Q)$; markers at the optimum $Q^\star$.}
+\label{fig:cost}
+\end{minipage}
+\end{figure}
+
+\subsection{Sensitivity to the discount rate}
+\Cref{fig:sweep} sweeps the discount $\delta$ from $0.05$ to $0.80$. Both the
+optimal reserved level $Q^\star=F^{-1}(\delta)$ and the resulting savings rise
+monotonically with $\delta$, consistent with \Cref{cor:monotone}: the value of
+commitment, and the amount one should commit, grow with the discount. The
+break-even utilizations of \Cref{prop:breakeven} ($u^\star=0.63$ and $0.40$ at
+the two real tiers) are marked for reference.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.78\linewidth]{fig4_discount_sweep.pdf}
+\caption{Optimal reserved level (left axis) and cost saving versus on-demand
+(right axis) as functions of the reserved discount $\delta$. Dotted lines mark
+the real $1$-year and $3$-year tiers.}\label{fig:sweep}
+\end{figure}
+
+\subsection{End-to-end case study}
+Finally we run the full system on the same account. The optimizer produces
+$19$ recommendations spanning seven action types plus $10$ greenfield LLM
+recommendations, identifying \$590.4/month in savings against an addressable
+spend of \$1{,}074.8/month---a $54.9\%$ reduction on the optimized scope
+(\Cref{tab:recs}). Compute actions dominate: right-sizing (\$362.8/month) and
+pricing-plan switches (\$208.4/month, the empirical analogue of
+\Cref{prop:breakeven}) together account for $97\%$ of the savings. The fleet's
+implied discount tiers recovered from the pricing table---$37.0\%$ (1-yr),
+$60.0\%$ (3-yr), $70.0\%$ (spot)---are exactly the $\delta$ values used in our
+analysis, so the model is parameterized by the deployment's own prices.
+
+\begin{table}[t]
+\centering
+\caption{System recommendations on \texttt{aws-SYNTHETIC-001}: count and
+monthly savings by action type.}\label{tab:recs}
+\small
+\begin{tabular}{lcc}
+\toprule
+Action type & \# & Monthly savings (\$) \\
+\midrule
+Right-sizing (MILP)           & 2  & 362.81 \\
+Pricing-plan switch (reserve) & 6  & 208.42 \\
+Delete unused resource        & 3  & \phantom{00}10.00 \\
+Replace with VPC endpoint     & 2  & \phantom{000}5.67 \\
+Storage volume-type upgrade   & 4  & \phantom{000}2.60 \\
+Storage-class switch          & 1  & \phantom{000}0.79 \\
+Serverless memory resize      & 1  & \phantom{000}0.11 \\
+\midrule
+\textbf{Total}                & \textbf{19} & \textbf{590.40} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% =====================================================================
+\section{Managerial Insights}\label{sec:insights}
+% =====================================================================
+Our analysis and experiments yield several actionable insights.
+\begin{enumerate}[leftmargin=1.4em,itemsep=2pt]
+\item \textbf{Reserve to a demand quantile, not to the peak or the mean.} The
+  cost-minimizing reserved capacity is the $\delta$-quantile of demand
+  (\Cref{prop:newsvendor}). Reserving for the peak wastes $60$--$63\%$ of the
+  achievable optimum in our data; reserving the mean is close but
+  systematically sub-optimal.
+\item \textbf{Reserve more when discounts are deeper.} Both the optimal
+  reservation level and the realized savings increase with the discount
+  $\delta$ (\Cref{cor:monotone}, \Cref{fig:sweep}). Three-year commitments are
+  warranted for the stable base; shorter commitments suit volatile components.
+\item \textbf{Replace the ``60-day'' heuristic with a utilization threshold.}
+  A workload should be reserved exactly when its utilization exceeds
+  $u^\star=1-\delta$ (\Cref{prop:breakeven})---$63\%$ for one-year and $40\%$
+  for three-year RIs---rather than when it has merely been running for a fixed
+  number of days.
+\item \textbf{Match surge coverage to surge frequency.} Supplementary
+  reservation of surge capacity pays off only when the surge time-fraction
+  exceeds $1-\delta_s$ (\Cref{prop:surge}); rare, spiky surges should ride
+  on-demand or interruptible spot capacity, not standing reservations.
+\item \textbf{Forecast the distribution, then optimize.} Accurate seasonal
+  forecasting (ETS at $12.1\%$ MAPE) is what makes the quantile in
+  \eqref{eq:Qstar} trustworthy; the forecasting and reservation steps are
+  complementary, not substitutes.
+\end{enumerate}
+
+% =====================================================================
+\section{Conclusion}\label{sec:conclusion}
+% =====================================================================
+We connected the operations-management theory of capacity reservation to the
+engineering practice of cloud cost optimization. Modeling a workload as a
+seasonal base plus intermittent random surges, we derived a newsvendor
+reservation level, a utilization-threshold purchasing rule that subsumes a
+widespread industry heuristic, and surge- and spot-coverage conditions. We
+embedded these policies in \emph{Smart Cloud Optimizer}, an end-to-end system
+that forecasts demand, right-sizes via mixed-integer programming, and ranks
+savings. On a realistic year-long workload the theory matched exhaustive
+search, forecasting achieved $12.1\%$ MAPE, and the system surfaced
+\$590/month ($54.9\%$) in savings.
+
+Several limitations point to future work. Our evaluation uses a single
+synthetic-but-realistic account; validating on production multi-account
+telemetry is the natural next step. The reservation analysis is static given a
+forecast distribution; integrating the dynamic purchase/renew/cancel
+dynamics---including cancellation fees and a secondary reservation marketplace,
+as in \citet{chen2024cost}---into the running system would close the loop
+between theory and deployment. Finally, jointly optimizing right-sizing and
+the pricing-plan mix in a single program, rather than sequentially, is a
+promising extension.
+
+\paragraph{Reproducibility.} All figures and numbers in
+\Cref{sec:numerical} are regenerated by \texttt{paper/numerical\_study.py}
+against the project database.
+
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+% =====================================================================
+\appendix
+\section{Proofs}\label{app:proofs}
+% =====================================================================
+
+\begin{proof}[Proof of \Cref{prop:newsvendor}]
+Write $g(Q)=\E[c(Q)]=(1-\delta)Q + p\,\E\posp{D-Q}$ with $p=1$. The map
+$Q\mapsto\posp{D-Q}=\max\{D-Q,0\}$ is convex for each realization of $D$, and
+expectation preserves convexity; adding the linear term $(1-\delta)Q$ keeps
+$g$ convex. For the derivative, since
+$\frac{\partial}{\partial Q}\posp{D-Q} = -\1\{D>Q\}$ almost everywhere,
+\[
+g'(Q) = (1-\delta) - \Pr(D>Q) = (1-\delta) - \big(1-F(Q)\big) = F(Q)-\delta .
+\]
+$g'$ is nondecreasing (as $F$ is), confirming convexity, and the first-order
+condition $g'(Q^\star)=0$ gives $F(Q^\star)=\delta$, i.e.\ $Q^\star=F^{-1}
+(\delta)$. The newsvendor reading follows by identifying the underage cost
+$C_u=p-r=\delta$ (extra cost per unit served on-demand instead of reserved)
+and the overage cost $C_o=r=1-\delta$ (cost per idle reserved unit), whence
+the critical ratio $C_u/(C_u+C_o)=\delta$.
+\end{proof}
+
+\begin{proof}[Proof of \Cref{cor:monotone}]
+$F^{-1}$ is nondecreasing, so $Q^\star(\delta)=F^{-1}(\delta)$ is
+nondecreasing in $\delta$. The coverage identity $F(Q^\star)=\delta$ is the
+first-order condition from \Cref{prop:newsvendor}.
+\end{proof}
+
+\begin{proof}[Proof of \Cref{prop:breakeven}]
+Over one reservation term, reserving a unit costs $r=(1-\delta)p$ with
+certainty. Serving the same unit on-demand costs $p$ for each period it is
+active; with utilization $u$ the expected term cost is $pu$. Reservation is
+preferred iff $(1-\delta)p \le pu$, i.e.\ $u\ge 1-\delta$. Substituting
+$\delta\in\{0.37,0.60\}$ gives $u^\star\in\{0.63,0.40\}$.
+\end{proof}
+
+\begin{proof}[Proof of \Cref{prop:surge}]
+A unit of surge capacity is active exactly during surge periods, hence its
+utilization is $u=\rho$. Applying \Cref{prop:breakeven} with the
+supplementary discount $\delta_s$ gives the reservation condition
+$\rho\ge 1-\delta_s$. Monotonicity in $\rho$ and $\delta_s$ is immediate.
+\end{proof}
+
+\begin{proof}[Proof of \Cref{prop:spot}]
+With probability $1-\beta$ the spot request is served at cost $s$; with
+probability $\beta$ it is reclaimed and re-served on-demand at cost $p$, so the
+expected unit cost is $\bar c_{\mathrm{spot}}=(1-\beta)s+\beta p$. Then
+$p-\bar c_{\mathrm{spot}}=(1-\beta)(p-s)>0$ whenever $s<p$ and $\beta<1$,
+establishing dominance. Under an availability SLA requiring a fraction
+$\alpha$ of demand to be uninterrupted, only the interruptible fraction
+$1-\alpha$ is eligible for spot; minimizing cost subject to this eligibility
+constraint and to reserved capacity being sunk yields the stated layering
+(reserved $\to$ spot $\to$ on-demand).
+\end{proof}
+
+\end{document}
