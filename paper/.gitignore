@@ -8,3 +8,6 @@
 *.toc
 *.lof
 *.lot
+
+# Cached third-party traces (downloaded on demand by regret_study.py)
+.trace_cache/
