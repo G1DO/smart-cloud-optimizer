@@ -19,6 +19,7 @@ reads the optimizer's `recommendations`, and emits:
 
 - `figures/*.pdf` — the six vector figures used in the paper
 - `numbers.tex` — every quantity as a `\newcommand` macro that `main.tex` uses
+- `mape_tabular.tex` — the full MAPE table (Table II), generated so no cell is typed
 - `results.json` — the same numbers, machine-readable
 - `cv_results.csv` — the per-(model, horizon) walk-forward MAPE table
 
@@ -33,7 +34,9 @@ prose numbers consistently.
 | `references.bib` | bibliography — reference's own citations + verified additions (DOIs) |
 | `make_figures.py` | regenerates figures, `numbers.tex`, `results.json`, `cv_results.csv` |
 | `numbers.tex` | **generated** — `\input` by `main.tex` |
+| `mape_tabular.tex` | **generated** — full Table II, `\input` by `main.tex` |
 | `figures/` | **generated** vector PDFs |
+| `REVIEW.md` | adversarial peer-review report + changelog |
 | `build.sh` | one-shot rebuild (figures → LaTeX) |
 | `main.pdf` | compiled output |
 
@@ -70,7 +73,8 @@ cd paper
 `make_figures.py --with-sarimax` additionally benchmarks SARIMAX (slow: minutes
 per cross-validation fold; excluded from the paper for that reason).
 
-The build is clean: 0 LaTeX errors, 0 undefined references, 0 BibTeX warnings.
+The build is clean: 0 LaTeX errors, 0 undefined references, 0 BibTeX warnings,
+0 overfull boxes, 7 pages.
 
 ## Honesty note
 

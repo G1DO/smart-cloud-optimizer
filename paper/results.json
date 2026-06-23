@@ -145,7 +145,13 @@
         "cost": 540.11,
         "pct": 2.06
       }
-    ]
+    ],
+    "overlap_savings": 2.0,
+    "n_overlap_resources": 3,
+    "joint_savings": 588.4,
+    "bill_after": 1599.08,
+    "rsv_gamma": 0.63,
+    "rsv_discount_pct": 37
   },
   "cv_mape": {
     "SeasonalNaive": {

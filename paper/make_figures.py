@@ -8,7 +8,7 @@ optimizer recommendations. Nothing here is hand-entered.
 Outputs (written under paper/):
   figures/fig_architecture.pdf      system architecture (data -> forecast -> MILP -> dashboard)
   figures/fig_daily_surges.pdf      365-day daily-cost series with detected demand surges
-  figures/fig_forecast_holdout.pdf  30-day holdout forecast (Prophet) with 95% interval
+  figures/fig_forecast_holdout.pdf  30-day holdout forecast (ETS) with 95% interval
   figures/fig_mape_horizon.pdf      walk-forward CV MAPE vs forecast horizon, per model
   figures/fig_savings_breakdown.pdf recommended monthly savings by optimization action
   figures/fig_service_share.pdf     per-service share of the monthly bill
@@ -67,7 +67,8 @@ CV_INITIAL = 120          # min training window (days) -- matches documented met
 CV_STEP = 30              # days between walk-forward folds
 HORIZONS = [7, 14, 21, 30, 45, 60, 90]
 HOLDOUT = 30              # days held out for the holdout-forecast figure
-PROPHET_INTERVAL = 0.95   # widen Prophet's band to a true 95% interval for the figure
+HOLDOUT_INTERVAL = 0.95   # nominal width of the ETS holdout prediction band (point +/- 1.96 sigma)
+DISPLAY_H = [7, 14, 30, 60, 90]   # horizons shown in the paper's MAPE table (subset of HORIZONS)
 
 # Colour-blind-friendly palette (Okabe-Ito).
 C = {
@@ -211,6 +212,32 @@ def collect_db_numbers(conn):
         {"service": r["svc"], "cost": float(r["c"]), "pct": round(100.0 * r["c"] / tot, 2)}
         for r in rows
     ]
+
+    # ---- jointly-realizable savings (at most one action per resource) ----
+    # The additive total double-counts any resource carrying more than one
+    # recommendation (e.g. an EBS volume flagged both delete and gp3-upgrade).
+    # Subtracting all-but-the-largest saving per resource gives a conservative
+    # lower bound on what is jointly realizable.
+    rec_rows = fetchall(conn,
+        "SELECT resource_id AS rid, monthly_savings AS s FROM recommendations WHERE user_id=?", (USER,))
+    per_res: dict[str, list[float]] = {}
+    for r in rec_rows:
+        per_res.setdefault(r["rid"], []).append(float(r["s"]))
+    overlap = sum(sum(v) - max(v) for v in per_res.values() if len(v) > 1)
+    n["overlap_savings"] = round(overlap, 2)
+    n["n_overlap_resources"] = sum(1 for v in per_res.values() if len(v) > 1)
+    n["joint_savings"] = round(n["total_savings"] - overlap, 2)
+    n["bill_after"] = round(n["total_bill"] - n["total_savings"], 2)
+
+    # ---- reserved discount implied by the pricing catalog (1-yr reserved vs on-demand) ----
+    prc = fetchall(conn,
+        "SELECT on_demand_monthly AS od, reserved_1yr_monthly AS rm FROM instance_pricing "
+        "WHERE reserved_1yr_monthly IS NOT NULL AND on_demand_monthly > 0")
+    ratios = [r["rm"] / r["od"] for r in prc if r["od"]]
+    if ratios:
+        g = sum(ratios) / len(ratios)
+        n["rsv_gamma"] = round(g, 2)
+        n["rsv_discount_pct"] = round(100.0 * (1.0 - g))
     return n, df, surges
 
 
@@ -411,6 +438,19 @@ def write_numbers_tex(n, table, holdout_mape, holdout_cov, holdout_model, with_s
     L.append(latexcmd("numSurges", f"{n['n_surges']}"))
     L.append(latexcmd("maxZ", f"{n['max_z']:.1f}"))
 
+    # ---- derived aggregates (so the prose carries no hand-typed literals) ----
+    sav_by = {item["type"]: item["savings"] for item in n["savings_by_type"]}
+    compute_two = round(sav_by.get("rightsize", 0.0) + sav_by.get("pricing_plan_switch", 0.0), 2)
+    L.append(latexcmd("billAfter", f"{n['bill_after']:.2f}"))            # bill - additive savings
+    L.append(latexcmd("jointSavings", f"{n['joint_savings']:.2f}"))      # dedup lower bound
+    L.append(latexcmd("overlapSavings", f"{n['overlap_savings']:.2f}"))  # double-counted amount
+    L.append(latexcmd("numOverlap", f"{n['n_overlap_resources']}"))
+    L.append(latexcmd("savComputeTwo", f"{compute_two:.2f}"))            # rightsize + pricing
+    L.append(latexcmd("pctComputeTwo", f"{100.0 * compute_two / n['total_savings']:.1f}"))
+    if "rsv_gamma" in n:
+        L.append(latexcmd("rsvGamma", f"{n['rsv_gamma']:.2f}"))
+        L.append(latexcmd("rsvDiscountPct", f"{n['rsv_discount_pct']:.0f}"))
+
     # savings by type (alpha-only macro suffixes)
     suffix = {"rightsize": "Rightsize", "pricing_plan_switch": "Pricing",
               "delete_unused": "Delete", "replace_with_endpoint": "Nat",
@@ -448,6 +488,30 @@ def write_numbers_tex(n, table, holdout_mape, holdout_cov, holdout_model, with_s
     (PAPER / "numbers.tex").write_text("".join(L))
 
 
+def write_mape_table(table):
+    """Emit the complete MAPE tabular so main.tex carries no typed cells.
+
+    main.tex does \\input{mape_tabular.tex} at the float level (between \\centering
+    and \\end{table}); generating the whole tabular keeps the \\input boundary out
+    of the alignment. The best (minimum) value in each horizon column is bold-faced.
+    """
+    rows = [("ETS", "ETS (selected)"), ("SeasonalNaive", "SeasonalNaive"),
+            ("Prophet", "Prophet"), ("Naive", "Naive")]
+    best = {h: min(table[m][h] for m, _ in rows if h in table.get(m, {})) for h in DISPLAY_H}
+    out = [r"\begin{tabular}{@{}l " + "r " * len(DISPLAY_H) + r"@{}}", r"\toprule"]
+    out.append("Model & " + " & ".join(fr"$h{{=}}{h}$" for h in DISPLAY_H) + r" \\")
+    out.append(r"\midrule")
+    for key, label in rows:
+        cells = []
+        for h in DISPLAY_H:
+            v = table[key][h]
+            s = f"{v:.2f}"
+            cells.append(f"\\textbf{{{s}}}" if abs(v - best[h]) < 1e-9 else s)
+        out.append(f"{label:16s} & " + " & ".join(cells) + r" \\")
+    out += [r"\bottomrule", r"\end{tabular}"]
+    (PAPER / "mape_tabular.tex").write_text("\n".join(out) + "\n")
+
+
 # =============================================================================
 # Main
 # =============================================================================
@@ -479,6 +543,7 @@ def main():
     fig_savings_breakdown(n)
     fig_service_share(n)
     write_numbers_tex(n, table, holdout_mape, holdout_cov, holdout_model, args.with_sarimax)
+    write_mape_table(table)
 
     # cv csv
     cv_rows = ["model," + ",".join(f"h{h}" for h in HORIZONS)]
@@ -489,7 +554,7 @@ def main():
     out = {"numbers": n, "cv_mape": table, "cv_folds": folds,
            "holdout": {"model": holdout_model, "mape": round(holdout_mape, 2),
                        "coverage": round(holdout_cov, 2),
-                       "interval_width": PROPHET_INTERVAL, "horizon": HOLDOUT},
+                       "interval_width": HOLDOUT_INTERVAL, "horizon": HOLDOUT},
            "cv_config": {"initial": CV_INITIAL, "step": CV_STEP, "horizons": HORIZONS,
                          "with_sarimax": args.with_sarimax}}
     (PAPER / "results.json").write_text(json.dumps(out, indent=2))
