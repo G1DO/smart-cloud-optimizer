@@ -17,8 +17,8 @@
 
 \begin{document}
 
-\title{Forecast-Driven Capacity Reservation and\\ Right-Sizing for Cloud Cost
-Optimization under\\ Intermittent Random Demand Surges}
+\title{Cost Optimization in Cloud Computing:\\ A Forecast-Driven System for Capacity
+Reservation\\ under Intermittent Random Demand Surges}
 
 \author{
 \IEEEauthorblockN{First Author, Second Author, Third Author, Fourth Author}
@@ -37,214 +37,202 @@ supervisor@cis.asu.edu.eg}
 \maketitle
 
 \begin{abstract}
-Enterprise cloud spending continues to grow, yet a large fraction is wasted on
-over-provisioned and mispriced resources. The difficulty is sharpest when a
-steady base demand is punctuated by \emph{intermittent random demand surges},
-which force operators either to over-reserve capacity year-round or to absorb
-spikes at expensive on-demand rates. We present \textbf{Smart Cloud Optimizer},
-an end-to-end system that couples time-series demand forecasting with
-optimization-based capacity reservation to minimize cloud cost while preserving
-headroom for surges. The system (i)~collects cost and utilization telemetry from
-Amazon Web Services, (ii)~forecasts daily demand using an ensemble of five
-models with anomaly-aware preprocessing, (iii)~separates demand into a
-\emph{base} component, served by committed reserved instances, and a
-\emph{surge} component, served by elastic on-demand headroom sized at the
-$95^{\text{th}}$ percentile of load, and (iv)~solves a mixed-integer linear
-program for right-sizing complemented by eight cost-reduction rules. On a
-twelve-month workload derived from open production traces, the forecasting
+Enterprise cloud expenditure continues to grow, and a large share of it is
+wasted because provisioned capacity is poorly matched to a demand that combines
+a roughly stationary \emph{base} with \emph{intermittent random surges} driven
+by planned or unplanned events. A firm meets this demand through three pricing
+instruments: cheap but rigid \emph{base contracts} (long-term reserved
+instances), flexible \emph{supplementary contracts} (short or cancellable
+reserved instances), and a punitive \emph{on-demand spillover} for any
+uncovered load. Classical operations-research theory shows that the optimal
+reservation level follows a newsvendor critical-fractile rule and that the
+supplementary-capacity decision obeys a two-threshold $(s,S)$ policy. This paper
+operationalizes that theory as a deployable, data-driven system,
+\textbf{Smart Cloud Optimizer}, which (i)~collects cost and utilization
+telemetry from Amazon Web Services, (ii)~estimates the demand distribution with
+an anomaly-aware ensemble of five forecasting models, (iii)~sets reserved
+capacity from the estimated critical fractile and sizes surge headroom at the
+$95^{\text{th}}$ percentile of load, and (iv)~realizes the threshold policy
+through a mixed-integer program and eight commitment rules. In a numerical study
+on a twelve-month workload built from open production traces, the forecasting
 ensemble attains a mean absolute percentage error of $7.9\%$ at a one-week
-horizon, and the optimizer identifies \$590.40 of recoverable monthly cost
-($\approx 26\%$ of the bill) across 19 recommendations. The results show that
-combining short-horizon forecasting with commitment-based reservation yields
-substantial, automated, and explainable savings.
+horizon, and the optimizer recovers \$590.40 of monthly cost ($\approx 26\%$ of
+the bill) across 19 recommendations. The study confirms that pairing
+distribution estimation with newsvendor reservation and threshold-based
+supplementary capacity yields substantial, automated, and explainable savings.
 \end{abstract}
 
 \begin{IEEEkeywords}
-cloud computing, cost optimization, capacity reservation, demand forecasting,
-right-sizing, reserved instances, mixed-integer programming, FinOps
+cloud computing, cost optimization, capacity reservation, reserved instances,
+demand surges, newsvendor model, threshold policy, demand forecasting, FinOps
 \end{IEEEkeywords}
 
 \section{Introduction}
 Worldwide public-cloud spending is projected to approach \$600 billion
 annually~\cite{gartner2023cloud}, and industry surveys consistently report that
-organizations waste roughly a quarter to a third of that spend on idle or
-oversized resources~\cite{flexera2024}. The root cause is a mismatch between
-\emph{provisioned} capacity and \emph{actual} demand. Cloud providers offer
-several pricing modes to manage this mismatch: \emph{on-demand} instances, which
-are flexible but expensive; \emph{reserved} instances (one- or three-year
-commitments), which are substantially cheaper but rigid; and \emph{spot}
-instances, which are cheap but interruptible~\cite{awspricing}.
+roughly a quarter to a third of it is wasted on idle or mispriced
+resources~\cite{flexera2024}. The root cause is a mismatch between
+\emph{provisioned} capacity and \emph{realized} demand. This mismatch is most
+costly when demand is not stationary: a steady \emph{base} load is overlaid with
+\emph{intermittent random surges}---marketing campaigns, product launches, viral
+content, or batch jobs---whose timing and magnitude are uncertain.
 
-Choosing among these modes is straightforward when demand is stationary, but
-real workloads rarely are. A common and costly pattern is a steady
-\emph{base} demand overlaid with \emph{intermittent random surges}---marketing
-campaigns, product launches, seasonal traffic, or batch jobs---whose timing or
-magnitude is uncertain. Provisioning enough reserved capacity to cover the
-surges wastes money during the long quiet periods; provisioning only for the
-base and absorbing surges on-demand pays a premium precisely when usage is
-highest. Recent operations-research work formalizes this tension as a capacity
-reservation problem in which a firm meets base demand with standard
-\emph{base contracts} and copes with surges through flexible
-\emph{supplementary contracts}, deriving newsvendor-type optimal reservation
-levels and a threshold purchase/cancel policy~\cite{chen2024cost}.
-
-This paper takes a complementary, \emph{systems-and-data} view of the same
-problem. Rather than assume the demand distribution is known, we \emph{learn} it
-from telemetry and drive reservation and right-sizing decisions from the
-resulting forecast. We describe Smart Cloud Optimizer, a deployed platform that
-turns raw Amazon Web Services (AWS) billing and CloudWatch data into ranked,
-explainable cost-saving actions. Its central idea mirrors the
-base/supplementary decomposition of~\cite{chen2024cost}: committed reserved
-instances serve the forecasted base demand, while elastic capacity sized with a
-percentile-plus-headroom rule absorbs surges, and a mixed-integer program
-selects the cheapest feasible instance configuration.
-
-\noindent\textbf{Contributions.} This paper makes the following contributions:
+An enterprise cloud user (the \emph{firm}) manages this demand through three
+purchasing instruments~\cite{chen2024cost,awspricing}:
 \begin{itemize}
-\item A three-stage architecture (\emph{collect--analyze--optimize}) that
-integrates multi-service AWS telemetry collection, demand forecasting, and
-optimization in a single multi-tenant system (Section~\ref{sec:system}).
-\item A cost model that decomposes demand into a base component served by
-reserved commitments and a surge component served by on-demand headroom, and a
-mixed-integer linear program (MILP) for right-sizing under this model
-(Section~\ref{sec:formulation}).
-\item An anomaly-aware forecasting ensemble of five models, selected by
-walk-forward cross-validation, together with a rolling-statistics surge
-detector (Section~\ref{sec:method}).
-\item An empirical evaluation on a twelve-month workload derived from open
-production traces, reporting forecasting accuracy and a measured \$590.40
-monthly saving ($\approx 26\%$) with full breakdown (Section~\ref{sec:eval}).
+\item \textbf{Base contracts}: reserved instances on the standard long contract
+(typically one or three years), priced at a deep discount to on-demand, used to
+cover the stationary base demand.
+\item \textbf{Supplementary contracts}: additional reserved instances, of
+standard or shorter length, deployed to cover surges; they may be cancelled for
+a fee or allowed to expire.
+\item \textbf{On-demand spillover}: any demand left uncovered spills onto
+pay-as-you-go pricing---the flexible but punitive option.
+\end{itemize}
+The firm's problem is to choose the base capacity and a policy for purchasing,
+renewing, and cancelling supplementary capacity so as to minimize expected total
+cost. Chen, Lei, and Moinzadeh~\cite{chen2024cost} formalize this problem and
+prove two structural results that organize the entire solution space: the
+optimal capacity follows a \emph{newsvendor-type} critical fractile, and the
+optimal supplementary-capacity policy is a \emph{two-threshold} $(s,S)$ policy
+borrowed from inventory theory.
+
+That analysis assumes the demand distribution is given in closed form. In
+practice, a firm does not know its surge distribution \emph{a priori}; it must
+estimate it from telemetry, and the estimate must drive the reservation decision
+automatically across a heterogeneous fleet. This paper takes that
+\emph{systems-and-data} step. We present Smart Cloud Optimizer, a deployed
+platform that turns raw Amazon Web Services (AWS) billing and CloudWatch data
+into ranked, explainable reservation and right-sizing actions, using the
+newsvendor and threshold structure of~\cite{chen2024cost} as its decision
+backbone.
+
+\noindent\textbf{Contributions.}
+\begin{itemize}
+\item We cast a working cloud-cost system in the base/supplementary
+reservation framework of~\cite{chen2024cost}, mapping reserved instances to base
+contracts, surge headroom to supplementary capacity, and pay-as-you-go to
+on-demand spillover (Sections~\ref{sec:model}--\ref{sec:policy}).
+\item We replace the assumed demand distribution with a learned one: an
+anomaly-aware ensemble of five forecasting models estimates the base demand and
+the surge tail that feed the newsvendor critical fractile
+(Section~\ref{sec:model}).
+\item We realize the $(s,S)$ supplementary-capacity policy with a mixed-integer
+program for right-sizing and eight commitment rules, sizing surge headroom at
+the $95^{\text{th}}$ percentile of load (Section~\ref{sec:policy}).
+\item We report a numerical study on a twelve-month workload built from open
+production traces, measuring forecasting accuracy and \$590.40/month
+($\approx 26\%$) of recoverable cost (Section~\ref{sec:numerical}).
 \end{itemize}
 
-\section{Related Work}
+The remainder of the paper follows the structure of the anchor work:
+Section~\ref{sec:related} reviews the literature, Section~\ref{sec:model} states
+the model and the newsvendor reservation result, Section~\ref{sec:policy}
+develops the threshold policy and its data-driven realization,
+Section~\ref{sec:numerical} presents the numerical study, and
+Section~\ref{sec:conclusion} concludes.
+
+\section{Literature Review}
 \label{sec:related}
+The reserved-versus-on-demand decision under demand uncertainty has been
+attacked from three largely complementary directions.
 
-\textbf{Capacity reservation as an optimization problem.}
-The economics of reserved versus on-demand capacity have been studied
-extensively in operations research. Chen \emph{et~al.}~\cite{chen2024cost} model
-intermittent random demand surges and characterize an optimal newsvendor
-reservation level plus a two-threshold contract-management policy; Wang
-\emph{et~al.}~\cite{wang2014rightsizing} study cloud brokerage that reserves in
-bulk and resells, and Mitrani~\cite{mitrani2014reserved} optimizes server-farm
-provisioning under power and performance constraints. These works assume the
-demand distribution is given analytically. Our system instead estimates demand
-empirically from telemetry and feeds the estimate into the reservation
-decision, trading closed-form optimality for deployability on real accounts.
+\subsection{Stochastic and Robust Programming}
+The canonical formulation is the broker's two-stage stochastic integer program
+of Chaisiri \emph{et~al.}~\cite{chaisiri2012}: stage one commits to reservations
+under demand and price uncertainty, stage two buys on-demand to cover the
+realized shortfall, solved by sample-average approximation. Multi-stage
+extensions model the rolling-horizon nature of reservations~\cite{hadji2021},
+and robust optimization with a budget of uncertainty~\cite{bertsimas2004} is the
+natural alternative when the distribution itself is unknown. These models scale
+to many instance types but require the demand distribution as input and yield no
+closed-form policy.
 
-\textbf{Cloud demand and workload forecasting.}
-Predicting cloud workloads is a mature area. Calheiros
-\emph{et~al.}~\cite{calheiros2015workload} apply ARIMA to workload prediction and
-quantify the QoS impact; Khan \emph{et~al.}~\cite{khan2012workload} use multiple
-time-series models for co-clustered workloads; and Roy
-\emph{et~al.}~\cite{roy2011autoscaling} drive predictive autoscaling from
-forecasts. Large-provider studies such as Resource
-Central~\cite{cortez2017azure} predict VM behavior at datacenter scale. We adopt
-established forecasting models (Holt-Winters/ETS~\cite{hyndman2021fpp},
-SARIMA~\cite{box2015timeseries}, and Prophet~\cite{taylor2018prophet}) but target
-the \emph{cost} signal directly and use the forecast for reservation sizing
-rather than autoscaling.
+\subsection{Inventory- and Queueing-Theoretic Models}
+The anchor paper~\cite{chen2024cost} sits in this tradition: its newsvendor and
+$(s,S)$ results are direct adaptations of inventory
+theory~\cite{porteus2002}. Furman and Diamant~\cite{furman2025} solve the
+provider-side dual, optimal capacity planning under periodic time-varying
+demand. The queueing strand models bursty arrivals with Markov-modulated Poisson
+processes that fit real cloud traces well~\cite{casale2012}, producing
+queue-threshold activation policies directly analogous to supplementary-capacity
+activation. Our work is data-driven but keeps this theory as its skeleton.
 
-\textbf{Right-sizing, anomaly detection, and FinOps.}
-Auto-scaling and right-sizing techniques are surveyed
-in~\cite{lorido2014autoscaling}. The emerging FinOps
-discipline~\cite{forsgren2020finops} emphasizes continuous, accountable cost
-management. Anomaly detection on cloud metrics is benchmarked by the Numenta
-Anomaly Benchmark~\cite{lavin2015nab}. Our contribution is not a new forecasting
-or detection algorithm but a system that \emph{composes} forecasting, anomaly
-filtering, and mixed-integer optimization into an explainable cost-reduction
-pipeline aligned with the base/supplementary reservation framing
-of~\cite{chen2024cost}.
+\subsection{Learning-Based Methods}
+A simpler pipeline forecasts demand and feeds the forecast to a reservation
+optimizer. Strong workload predictors include ARIMA~\cite{calheiros2015workload},
+Prophet~\cite{taylor2018prophet}, Holt-Winters/ETS~\cite{hyndman2021fpp}, and
+transformer models~\cite{arbat2022}; large-provider studies predict VM behavior
+at datacenter scale~\cite{cortez2017azure}. Reinforcement learning has been
+applied widely to autoscaling~\cite{gari2021,lorido2014autoscaling,roy2011autoscaling},
+though the long lease horizon of reservations complicates credit assignment. We
+adopt the forecast-then-optimize pattern but, unlike pure autoscaling, target
+the cost signal and feed it into the newsvendor reservation rule. The emerging
+FinOps discipline~\cite{forsgren2020finops} frames the practical need our system
+addresses.
 
-\section{System Model and Architecture}
-\label{sec:system}
+\section{System Model and Newsvendor Reservation}
+\label{sec:model}
 
+\subsection{Architecture}
 Smart Cloud Optimizer follows a three-stage pipeline---\emph{collect},
-\emph{analyze}, and \emph{optimize}---over a single persistent store
-(Fig.~\ref{fig:arch}). The design favors a single SQLite database (ACID,
-\texttt{user\_id}-isolated multi-tenancy, upsert-based deduplication) so that
-every stage reads and writes through one typed gateway.
+\emph{analyze}, \emph{optimize}---over a single multi-tenant store
+(Fig.~\ref{fig:arch}). A collector assumes a cross-account IAM role via STS and
+pulls twelve months of cost, utilization, inventory, and pricing data from AWS
+Cost Explorer, CloudWatch, and the Pricing API for ten services; only the role
+ARN is persisted, never long-lived secrets. Telemetry is normalized into 30
+relational tables keyed by \texttt{(timestamp, user\_id, resource\_id)}; the
+analyze and optimize stages read from this store, and a dashboard presents
+ranked recommendations.
 
 \begin{figure*}[t]
 \centering
 \includegraphics[width=0.92\textwidth]{architecture.pdf}
-\caption{Three-stage architecture. A collector assumes a cross-account IAM role
-and pulls twelve months of cost and utilization data into a single store; the
-forecasting and optimization engines read from it, and a dashboard presents
-ranked recommendations.}
+\caption{Three-stage architecture. The collector populates a single store from
+which the forecasting (analyze) and optimization engines derive base capacity,
+surge headroom, and commitment recommendations.}
 \label{fig:arch}
 \end{figure*}
 
-\subsection{Data Collection}
-A collector pulls data from AWS Cost Explorer, CloudWatch, and the Pricing API,
-plus per-service inventory for EC2, RDS, S3, Lambda, DynamoDB, EBS,
-ElastiCache, ECS, ELB, and NAT gateways. Collection proceeds month-by-month over
-the trailing twelve months to respect API time-window limits. In production
-(``real mode'') the collector assumes a customer-provided cross-account IAM role
-via STS; only the role ARN is stored, never long-lived secrets. A ``demo mode''
-serves pre-loaded data for evaluation without credentials. Telemetry is
-normalized into 30 relational tables keyed by \texttt{(timestamp, user\_id,
-resource\_id)}, with the daily total-cost series serving as the primary
-forecasting target.
-
 \subsection{Demand Model}
 \label{sec:demandmodel}
-Let $d_t$ denote the realized demand (here, daily cost) on day $t$. We model it
-as the sum of a slowly varying base component, a deterministic weekly seasonal
-component, and an intermittent surge component:
+Let $d_t$ denote realized demand (here, daily cost) on day $t$. Following the
+base/surge decomposition of~\cite{chen2024cost}, we write
 \begin{equation}
 d_t = \underbrace{b_t}_{\text{base}} + \underbrace{s_t}_{\text{seasonal}}
       + \underbrace{u_t}_{\text{surge}} + \varepsilon_t,
 \label{eq:demand}
 \end{equation}
-where $u_t$ is zero on most days and takes large positive values during surges,
-and $\varepsilon_t$ is noise. The base and seasonal parts are predictable and
-should be served by cheap committed capacity; the surge part is, by
-construction, hard to predict in timing and magnitude and must be served by
-flexible capacity held in reserve as \emph{headroom}. This decomposition is the
-data-driven analogue of the base/supplementary contract split
-of~\cite{chen2024cost}.
+where $b_t$ is a slowly varying base level, $s_t$ a deterministic weekly
+seasonal term, $u_t\ge 0$ an intermittent surge that is zero on most days, and
+$\varepsilon_t$ noise. The base and seasonal parts are predictable and are
+served by base contracts; the surge part is, by construction, hard to predict
+and is served by supplementary capacity held as headroom. Unlike the anchor
+model, the distribution of $d_t$ is \emph{not} given: it is estimated online by
+the forecasting ensemble of Section~\ref{sec:forecasting}.
 
-\section{Problem Formulation}
-\label{sec:formulation}
-
-\subsection{Cost Objective}
-Consider a fleet of resources $i \in \mathcal{I}$ (e.g., EC2 and RDS instances).
-Each resource can be assigned a configuration $c$ from a catalog
-$\mathcal{C}_i$ of candidate instance types, each with an hourly on-demand price
-$p^{\text{od}}_c$ and, where eligible, a reserved price $p^{\text{ri}}_c <
-p^{\text{od}}_c$. Let $H$ be the monthly hour count. We minimize the total
-monthly cost subject to meeting demand with surge headroom. Writing the binary
-assignment variable $x_{i,c}\in\{0,1\}$,
-\begin{align}
-\min_{x}\quad & \sum_{i\in\mathcal{I}}\sum_{c\in\mathcal{C}_i}
-   H \, \pi_{i,c}\, x_{i,c} \label{eq:obj}\\
-\text{s.t.}\quad
- & \sum_{c\in\mathcal{C}_i} x_{i,c}=1, && \forall i, \label{eq:assign}\\
- & \sum_{c\in\mathcal{C}_i} \text{vcpu}_c\, x_{i,c} \ge \rho^{\text{cpu}}_i,
-   && \forall i, \label{eq:cpu}\\
- & \sum_{c\in\mathcal{C}_i} \text{mem}_c\, x_{i,c} \ge \rho^{\text{mem}}_i,
-   && \forall i, \label{eq:mem}\\
- & \sum_{i}\sum_{c} H\,\pi_{i,c}\, x_{i,c} \le B, \label{eq:budget}
-\end{align}
-where $\pi_{i,c}=p^{\text{ri}}_c$ if resource $i$ qualifies for a reservation
-(steady, long-running) and $p^{\text{od}}_c$ otherwise, and $B$ is an optional
-budget cap. Constraint~\eqref{eq:assign} assigns exactly one type per resource;
-\eqref{eq:cpu}--\eqref{eq:mem} enforce sufficient capacity.
-
-\subsection{Surge-Aware Demand Sizing}
-The right-hand sides $\rho^{\text{cpu}}_i$ and $\rho^{\text{mem}}_i$ encode the
-surge headroom. Rather than sizing to the average (which hides spikes) or the
-maximum (a single outlier), we size to the $95^{\text{th}}$ percentile of
-observed utilization scaled by a headroom factor $\gamma$:
+\subsection{Newsvendor Reservation}
+Consider a unit of capacity over a commitment period. Let $c_r$ be the reserved
+unit price and $c_o>c_r$ the on-demand unit price. Reserving one unit too many
+wastes the reserved cost $c_o^{+}=c_r$ (overage); reserving one unit too few
+forces on-demand spillover at premium $c_u=c_o-c_r$ (underage). The classical
+newsvendor solution sets the reserved capacity $q^\star$ at the critical
+fractile of the demand distribution $F$:
 \begin{equation}
-\rho^{\text{cpu}}_i = \frac{P_{95}\!\left(\text{CPU}_i\right)}{100}\cdot
-   \text{vcpu}^{\text{cur}}_i \cdot \gamma, \qquad \gamma = 1.3 .
-\label{eq:p95}
+F(q^\star)=\frac{c_u}{c_u+c_o^{+}}=\frac{c_o-c_r}{c_o}
+        =1-\frac{c_r}{c_o},\qquad
+q^\star=F^{-1}\!\left(1-\frac{c_r}{c_o}\right).
+\label{eq:newsvendor}
 \end{equation}
-The factor $\gamma=1.3$ reserves $30\%$ of capacity as surge headroom, the
-data-driven counterpart of a supplementary reservation: enough elastic capacity
-to absorb the surge term $u_t$ in~\eqref{eq:demand} without paying for it
-year-round. Table~\ref{tab:notation} summarizes the notation.
+The deeper the reservation discount $1-c_r/c_o$, the higher the fractile and the
+more capacity the firm should commit---exactly the structural insight
+of~\cite{chen2024cost}. Equation~\eqref{eq:newsvendor} is the bridge between the
+theory and our system: the forecasting stage estimates $F$, and the optimization
+stage commits capacity at the implied quantile. With the $\approx 37\%$ EC2
+reservation discount observed in our data ($c_r/c_o\approx 0.63$), the base
+contract is set near the $37^{\text{th}}$ percentile of demand and the residual
+surge mass is covered by supplementary headroom, sized as in
+Section~\ref{sec:rightsizing}. Table~\ref{tab:notation} summarizes the notation.
 
 \begin{table}[t]
 \caption{Notation}
@@ -257,78 +245,101 @@ Symbol & Meaning \\
 \midrule
 $d_t$ & realized demand (daily cost) on day $t$ \\
 $b_t,\,s_t,\,u_t$ & base, seasonal, surge components \\
+$F,\,q^\star$ & demand CDF and newsvendor reservation level \\
+$c_r,\,c_o$ & reserved / on-demand unit price \\
+$c_u,\,c_o^{+}$ & underage / overage cost \\
 $x_{i,c}$ & assign config.\ $c$ to resource $i$ (binary) \\
-$p^{\text{od}}_c,\,p^{\text{ri}}_c$ & on-demand / reserved hourly price \\
 $\pi_{i,c}$ & effective price (reserved if eligible) \\
 $\rho^{\text{cpu}}_i,\,\rho^{\text{mem}}_i$ & required vCPU / memory (sized) \\
 $\gamma$ & surge headroom factor ($1.3$) \\
-$B$ & optional monthly budget cap \\
+$(s,S)$ & supplementary-capacity thresholds \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-The MILP~\eqref{eq:obj}--\eqref{eq:budget} is solved per service with the CBC
-solver via PuLP~\cite{forecastpkg}. A resource is recommended for change only if
-the optimal configuration is cheaper than the current one; infeasible instances
-(demand exceeding the largest catalog type) are reported and skipped.
+\section{Supplementary-Capacity Policy and Its Realization}
+\label{sec:policy}
+The anchor paper proves that the optimal management of supplementary contracts
+is a two-threshold $(s,S)$ policy: when active supplementary capacity falls
+below $s$, purchase up to $S$; expirations and cancellations are governed by
+symmetric thresholds~\cite{chen2024cost,porteus2002}. Because the firm does not
+know $F$ and operates over a heterogeneous fleet, we realize this policy with a
+forecast-driven heuristic composed of three mechanisms.
 
-\section{Methodology}
-\label{sec:method}
-
-\subsection{Demand Forecasting}
-The analyze stage forecasts the daily-cost series to estimate the base demand
-$b_t+s_t$ that justifies reserved commitments. We use an ensemble of five models
-behind a common \texttt{fit/predict} interface: \emph{Naive} (last value),
-\emph{Seasonal Naive} (value seven days prior), \emph{ETS} (Holt-Winters with
-additive weekly seasonality)~\cite{hyndman2021fpp},
+\subsection{Demand Forecasting and Surge Detection}
+\label{sec:forecasting}
+The analyze stage estimates $b_t+s_t$ (the reservable base) and the surge tail
+$u_t$ that determines headroom. We use an ensemble of five models behind a
+common \texttt{fit/predict} interface: \emph{Naive}, \emph{Seasonal Naive},
+\emph{ETS} (Holt-Winters, additive weekly seasonality)~\cite{hyndman2021fpp},
 \emph{Prophet}~\cite{taylor2018prophet}, and auto-tuned
-\emph{SARIMA}~\cite{box2015timeseries}. Each model emits a point forecast and a
-$95\%$ interval. Model choice is data-dependent: with little history a robust
-baseline is preferred, and the system selects ETS once at least two months of
-data are available (Section~\ref{sec:eval}).
+\emph{SARIMA}~\cite{box2015timeseries}, each emitting a point forecast and a
+$95\%$ interval that empirically approximates $F$. Before fitting, surges are
+removed so they do not bias the base estimate: day $t$ is flagged if it deviates
+from its trailing 30-day window by more than three standard deviations
+\emph{or} falls outside the interquartile fence
+$[Q_1-1.5\,\text{IQR},\,Q_3+1.5\,\text{IQR}]$, the union of two
+detectors~\cite{lavin2015nab}. Flagged points are excluded from training but
+retained to characterize the headroom the policy must provision. Models are
+selected by expanding-window (walk-forward) cross-validation reporting MAPE,
+RMSE, and MAE.
 
-\subsection{Surge Detection and Anomaly Filtering}
-Before fitting, the series is cleaned of surges so that anomalous spikes do not
-bias the base-demand estimate. We flag day $t$ as a surge if it deviates from
-its trailing window by more than three standard deviations
-(rolling $z$-score, window $30$) \emph{or} falls outside the interquartile
-fence $[Q_1-1.5\,\text{IQR},\,Q_3+1.5\,\text{IQR}]$; the two detectors are
-combined by union~\cite{lavin2015nab}. Flagged points are excluded from training
-but retained for surge characterization, since they define the headroom the
-optimizer must provision.
+\subsection{Right-Sizing as a Mixed-Integer Program}
+\label{sec:rightsizing}
+Given the estimated demand, right-sizing selects the cheapest surge-feasible
+configuration per resource. For a fleet $\mathcal{I}$ with candidate catalog
+$\mathcal{C}_i$, monthly hours $H$, and binary assignment
+$x_{i,c}\in\{0,1\}$,
+\begin{align}
+\min_{x}\ & \sum_{i\in\mathcal{I}}\sum_{c\in\mathcal{C}_i}
+   H\,\pi_{i,c}\,x_{i,c} \label{eq:obj}\\
+\text{s.t.}\ & \sum_{c} x_{i,c}=1,\ \ \forall i; \quad
+   \sum_{c}\text{vcpu}_c x_{i,c}\ge \rho^{\text{cpu}}_i,\ \ \forall i;
+   \label{eq:assign}\\
+ & \sum_{c}\text{mem}_c x_{i,c}\ge \rho^{\text{mem}}_i,\ \ \forall i; \quad
+   \sum_{i}\sum_{c} H\pi_{i,c}x_{i,c}\le B, \label{eq:cap}
+\end{align}
+where $\pi_{i,c}=c_r$ if resource $i$ qualifies for a reservation (steady,
+long-running) and $c_o$ otherwise, and $B$ is an optional budget. The headroom
+encodes the supplementary capacity implied by the newsvendor fractile: rather
+than the average (which hides spikes) or the maximum (an outlier), we size to
+the $95^{\text{th}}$ percentile of utilization scaled by $\gamma$,
+\begin{equation}
+\rho^{\text{cpu}}_i=\frac{P_{95}(\text{CPU}_i)}{100}\cdot
+   \text{vcpu}^{\text{cur}}_i\cdot\gamma,\qquad \gamma=1.3 .
+\label{eq:p95}
+\end{equation}
+The factor $\gamma=1.3$ reserves $30\%$ as surge headroom---the data-driven
+counterpart of a supplementary contract sized to absorb $u_t$ without paying for
+it year-round. Program~\eqref{eq:obj}--\eqref{eq:cap} is solved per service with
+the CBC solver via PuLP~\cite{forecastpkg}; a change is recommended only when the
+optimum is cheaper than the incumbent, and infeasible instances are reported and
+skipped.
 
-\subsection{Walk-Forward Model Selection}
-Models are compared by expanding-window (walk-forward) cross-validation: from an
-initial training window the model forecasts a fixed horizon, the window advances
-by a fixed step, and a fresh model is refit each fold. We report mean absolute
-percentage error (MAPE), root-mean-square error (RMSE), and mean absolute error
-(MAE); MAPE masks zero-demand days. This procedure respects temporal order and
-avoids look-ahead leakage.
-
-\subsection{Reservation, Rules, and Cold-Start}
-Three mechanisms turn forecasts into actions. (1)~\emph{Reservation}:
-long-running resources with at least 60 days of steady utilization are
-recommended for one-year reserved pricing---committed capacity for the base
-demand. (2)~\emph{Right-sizing}: the MILP of Section~\ref{sec:formulation}
-selects the cheapest surge-feasible configuration. (3)~\emph{Rules}: eight
-threshold heuristics (Table~\ref{tab:rules}) cover services for which an LP is
-unnecessary (storage class, capacity mode, idle deletion, etc.). For new users
-with no telemetry, an LLM-assisted cold-start module
-(Gemini 2.5 Flash~\cite{gemini2024}) maps a short questionnaire about expected
+\subsection{Commitment Rules as a Threshold Policy}
+The $(s,S)$ thresholds are instantiated by eight rules (Table~\ref{tab:rules}).
+The reservation rule is the policy's core: a resource that has run steadily for
+at least $60$ days---the lower threshold $s$ on sustained utilization---is
+promoted from on-demand to a one-year base contract, while right-sizing the
+configuration down plays the role of cancelling or letting supplementary
+capacity expire once load falls below the upper threshold $S$. The remaining
+rules cover services for which an integer program is unnecessary. A final
+deduplication keeps, per resource, the single highest-saving recommendation. For
+new tenants with no telemetry, an LLM-assisted cold-start module
+(Gemini~2.5 Flash~\cite{gemini2024}) maps a short questionnaire on expected
 traffic pattern and availability to an initial architecture, addressing the
-cold-start case of reservation planning. A final deduplication keeps, for each
-resource, the single highest-saving recommendation.
+cold-start case of reservation planning.
 
 \begin{table}[t]
-\caption{Rule-Based Cost-Reduction Checks}
+\caption{Commitment Rules Realizing the $(s,S)$ Policy}
 \label{tab:rules}
 \centering
 \renewcommand{\arraystretch}{1.15}
 \begin{tabular}{@{}lll@{}}
 \toprule
-Service & Trigger & Action \\
+Service & Trigger (threshold) & Action \\
 \midrule
-EC2/RDS  & on-demand, running $\ge 60$d & reserve (1-yr) \\
+EC2/RDS  & on-demand, steady $\ge 60$d & reserve (base contract) \\
 Lambda   & avg mem $<50\%$ alloc        & downsize tier \\
 EBS      & gp2 / unattached / idle      & gp3, delete \\
 S3       & STANDARD, $<100$ req/day     & intelligent-tiering \\
@@ -339,53 +350,51 @@ ELB      & no targets, no traffic       & delete idle \\
 \end{tabular}
 \end{table}
 
-\section{Experimental Evaluation}
-\label{sec:eval}
+\section{Numerical Study}
+\label{sec:numerical}
 
 \subsection{Dataset and Setup}
-We evaluate on a twelve-month workload (365 daily-cost observations, July~2024--
-June~2025) for a simulated mid-size SaaS tenant. The workload is constructed
-from open production traces---the Bitbrains GWA-T-12 VM
-utilization dataset~\cite{shen2015bitbrains} and the Numenta Anomaly
-Benchmark~\cite{lavin2015nab}---combined with live AWS Pricing API data, so that
-utilization shapes, anomalies, and prices are realistic. The tenant's mean cost
-is \$74.64/day (min \$36.10, max \$232.52), about \$2{,}239/month. Forecasting
-uses walk-forward CV; optimization uses the MILP and rules of
-Sections~\ref{sec:formulation}--\ref{sec:method} with $\gamma=1.3$. All figures
-and numbers are reproduced by \texttt{paper/make\_figures.py} against the
-shipped database.
+Mirroring the simulation-based evaluation of the anchor paper, we study a
+twelve-month workload (365 daily-cost observations, July~2024--June~2025) for a
+mid-size SaaS tenant. The workload is built from open production traces---the
+Bitbrains GWA-T-12 VM utilization dataset~\cite{shen2015bitbrains} and the
+Numenta Anomaly Benchmark~\cite{lavin2015nab}---combined with live AWS Pricing
+API data, so utilization shapes, anomalies, and prices are realistic. The
+tenant's mean cost is \$74.64/day (min \$36.10, max \$232.52), about
+\$2{,}239/month. Forecasting uses walk-forward cross-validation; optimization
+uses~\eqref{eq:obj}--\eqref{eq:p95} with $\gamma=1.3$. All figures and numbers
+are reproduced by \texttt{paper/make\_figures.py} against the shipped database.
 
 \subsection{Surge Characterization}
 Fig.~\ref{fig:surges} shows the daily-cost signal with surges flagged by the
-rolling-$z$-score detector. The series exhibits a stable base around the median
-of \$70/day punctuated by sharp, short-lived spikes reaching \$232/day---the
-intermittent random surges that motivate headroom-based provisioning. The
-detector isolates these spikes cleanly, leaving a base series suitable for
-reservation sizing.
+rolling detector. A stable base around the median of \$70/day is punctuated by
+sharp, short-lived spikes reaching \$232/day---the intermittent random surges
+that motivate the base/supplementary split. The detector isolates these spikes
+cleanly, leaving a base series suitable for newsvendor reservation sizing.
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{surges.pdf}
-\caption{Daily cost with detected demand surges. A stable base demand is
-punctuated by intermittent spikes; the optimizer reserves the base and holds
-$30\%$ headroom for the surges.}
+\caption{Daily cost with detected demand surges. The base demand is served by
+reserved capacity; the surges define the supplementary headroom.}
 \label{fig:surges}
 \end{figure}
 
-\subsection{Forecasting Accuracy}
+\subsection{Demand Estimation Accuracy}
 Table~\ref{tab:mape} and Fig.~\ref{fig:mape} report MAPE by horizon from
-walk-forward CV. Prophet is most accurate at short horizons (MAPE $7.9\%$ at
-7~days, $9.8\%$ at 14~days), while ETS dominates the medium range
-(10--90~days), and the seasonal baseline becomes competitive only at very long
-horizons where all models degrade. Because reservation decisions hinge on
-near-term base demand, the short-horizon regime is the operative one, and there
+walk-forward cross-validation---the accuracy with which the system estimates the
+distribution $F$ feeding~\eqref{eq:newsvendor}. Prophet is most accurate at
+short horizons (MAPE $7.9\%$ at 7~days, $9.8\%$ at 14~days), ETS dominates the
+medium range (10--90~days), and the seasonal baseline becomes competitive only
+at very long horizons where all models degrade. Because reservation decisions
+hinge on near-term base demand, the short-horizon regime is operative, and there
 the ensemble achieves single-digit error. Fig.~\ref{fig:forecast} shows a
-representative 30-day holdout in which the deployed seasonal forecaster tracks
-the base demand at $11.9\%$ MAPE while the $95\%$ interval contains the
-realized surges.
+representative 30-day holdout in which the deployed forecaster tracks the base at
+$11.9\%$ MAPE while the $95\%$ interval---the empirical $F$---brackets the
+surges.
 
 \begin{table}[t]
-\caption{Forecasting MAPE (\%) by Horizon (Walk-Forward CV)}
+\caption{Demand-Estimation MAPE (\%) by Horizon (Walk-Forward CV)}
 \label{tab:mape}
 \centering
 \renewcommand{\arraystretch}{1.15}
@@ -407,7 +416,7 @@ Horizon (d) & Naive & Seas.\ Naive & ETS & Prophet \\
 \begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{mape.pdf}
-\caption{Forecasting error versus horizon. Prophet leads at short horizons; ETS
+\caption{Estimation error versus horizon. Prophet leads at short horizons; ETS
 is most robust through the mid-range relevant to reservation planning.}
 \label{fig:mape}
 \end{figure}
@@ -420,26 +429,28 @@ demand at $11.9\%$ MAPE and the $95\%$ interval brackets the surges.}
 \label{fig:forecast}
 \end{figure}
 
-\subsection{Optimization Savings}
-Running the optimizer over the tenant yields 19 recommendations totaling
-\textbf{\$590.40/month}, about $26\%$ of the \$2{,}239 monthly bill.
-Fig.~\ref{fig:savings} and Table~\ref{tab:savings} break the savings down by
-service and action. The two largest items are RDS right-sizing
-(\$362.81/month combined; a production PostgreSQL instance running at a fraction
-of its provisioned size is reduced, saving $93.3\%$ on that resource) and EC2
-reservation (\$208.42/month from switching six steady, long-running instances
-from on-demand to one-year reserved pricing at $\approx 37\%$ unit discount).
-Smaller but safe wins---deleting unattached EBS volumes, upgrading gp2 to gp3,
-replacing costly NAT data paths with VPC endpoints, tiering cold S3 objects, and
-downsizing an over-allocated Lambda---account for the remainder. Every
+\subsection{Cost Reduction}
+Applying the reservation and right-sizing policy to the tenant yields 19
+recommendations totaling \textbf{\$590.40/month}, about $26\%$ of the \$2{,}239
+bill. Fig.~\ref{fig:savings} and Table~\ref{tab:savings} break the savings down
+by service and action. The two dominant levers are exactly those predicted by
+the base/surge model: \emph{right-sizing} surge headroom (RDS, \$362.81/month
+combined; a production PostgreSQL instance running far below its provisioned
+size is reduced, saving $93.3\%$ on that resource) and \emph{base-contract
+reservation} (EC2, \$208.42/month from promoting six steady, long-running
+instances from on-demand to one-year reserved pricing at $\approx 37\%$
+discount, consistent with the critical fractile of~\eqref{eq:newsvendor}).
+Smaller, safe wins---deleting unattached storage, upgrading gp2 to gp3,
+replacing costly NAT paths with VPC endpoints, tiering cold objects, and
+downsizing an over-allocated function---account for the remainder. Each
 recommendation carries a confidence label and a human-readable rationale, so an
 operator can audit it before applying.
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{savings.pdf}
-\caption{Monthly savings by service and action. Reservation (EC2) and
-right-sizing (RDS) dominate, consistent with the base/surge cost model.}
+\caption{Monthly savings by service and action. Base-contract reservation (EC2)
+and surge-headroom right-sizing (RDS) dominate, as the model predicts.}
 \label{fig:savings}
 \end{figure}
 
@@ -452,13 +463,13 @@ right-sizing (RDS) dominate, consistent with the base/surge cost model.}
 \toprule
 Service & Action & Count & Savings (\$) \\
 \midrule
-RDS    & right-size            & 2  & 362.81 \\
-EC2    & reserve (1-yr)        & 6  & 208.42 \\
-EBS    & delete unused         & 3  & 10.00 \\
-VPC    & replace with endpoint & 2  & 5.67 \\
-EBS    & gp2 $\to$ gp3         & 4  & 2.60 \\
-S3     & storage-class switch  & 1  & 0.79 \\
-Lambda & memory resize         & 1  & 0.11 \\
+RDS    & right-size (headroom)   & 2  & 362.81 \\
+EC2    & reserve (base contract) & 6  & 208.42 \\
+EBS    & delete unused           & 3  & 10.00 \\
+VPC    & replace with endpoint   & 2  & 5.67 \\
+EBS    & gp2 $\to$ gp3           & 4  & 2.60 \\
+S3     & storage-class switch    & 1  & 0.79 \\
+Lambda & memory resize           & 1  & 0.11 \\
 \midrule
 \textbf{Total} & & \textbf{19} & \textbf{590.40} \\
 \bottomrule
@@ -466,37 +477,38 @@ Lambda & memory resize         & 1  & 0.11 \\
 \end{table}
 
 \subsection{Discussion and Threats to Validity}
-The results confirm the central hypothesis: serving forecasted base demand with
+The study confirms the central hypothesis: serving forecasted base demand with
 reserved commitments while holding percentile-based headroom for surges recovers
-roughly a quarter of the bill without risking surge SLAs. The dominant savings
-come precisely from the two levers of the base/surge model---reservation and
-surge-aware right-sizing---validating the framing borrowed
-from~\cite{chen2024cost}. Two threats to validity should be noted. First, the
-evaluation uses a workload synthesized from open traces rather than a live
-production account; while utilization shapes and prices are realistic, absolute
-savings will vary by tenant. Second, the forecasting accuracy is measured on the
-cost signal of a single tenant; broader validation across heterogeneous accounts
-is future work. Neither threat affects the system's mechanism, which is account-
-and dataset-agnostic.
+roughly a quarter of the bill without risking surge service levels, and the
+dominant savings come precisely from the two levers of the newsvendor/threshold
+model. Two threats to validity follow those of the anchor work. First, like the
+anchor paper's numerical study, our evaluation uses a workload synthesized from
+open traces rather than a live production account; absolute savings will vary by
+tenant. Second, accuracy is measured on a single tenant's cost signal; broader
+validation is future work. Neither affects the mechanism, which is account- and
+dataset-agnostic.
 
 \section{Conclusion and Future Work}
 \label{sec:conclusion}
-We presented Smart Cloud Optimizer, a forecast-driven system for cloud cost
-optimization under intermittent random demand surges. By decomposing demand into
-a reservable base and a surge component, forecasting the base with an
-anomaly-aware ensemble, and right-sizing with a surge-aware MILP, the system
-recovers \$590.40/month ($\approx 26\%$) on a realistic twelve-month workload
-while forecasting near-term demand at single-digit MAPE. The work operationalizes
-the base/supplementary reservation theory of~\cite{chen2024cost} in a deployable
-data pipeline. Future work includes incorporating spot instances and a
-threshold-based renew/cancel policy for reservations, validating on live
-multi-tenant accounts, and closing the loop by automatically applying and
-monitoring the recommended actions.
+We presented Smart Cloud Optimizer, a forecast-driven realization of the
+capacity-reservation theory for intermittent random demand
+surges~\cite{chen2024cost}. By decomposing demand into a reservable base and a
+surge component, estimating the demand distribution with an anomaly-aware
+ensemble, setting reserved capacity from the newsvendor critical fractile, and
+realizing the $(s,S)$ supplementary-capacity policy through a mixed-integer
+program and commitment rules, the system recovers \$590.40/month
+($\approx 26\%$) on a realistic twelve-month workload while estimating near-term
+demand at single-digit MAPE. Consistent with the open problems identified for
+this line of work, future work includes adding a third \emph{spot}/preemptible
+tier to the reservation portfolio, modelling \$/hour Savings-Plan commitments in
+place of instance-count reservations, handling non-stationary (regime-switching)
+demand with online change-point detection, and validating on live multi-tenant
+accounts with automatic application and monitoring of the recommended actions.
 
 \section*{Acknowledgment}
 The authors thank the Faculty of Computer and Information Sciences, Ain Shams
-University, for support, and acknowledge the providers of the Bitbrains GWA-T-12
-and Numenta Anomaly Benchmark datasets.
+University, and acknowledge the providers of the Bitbrains GWA-T-12 and Numenta
+Anomaly Benchmark datasets.
 
 \bibliographystyle{IEEEtran}
 \bibliography{references}
