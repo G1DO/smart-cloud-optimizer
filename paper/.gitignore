@@ -1,0 +1,23 @@
+# LaTeX build artifacts
+*.aux
+*.log
+*.bbl
+*.blg
+*.out
+*.toc
+*.lof
+*.lot
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+p1.log
+p2.log
+p3.log
+bib.log
+
+# Python
+__pycache__/
+*.pyc
+
+# Copyrighted source material (the modeled reference paper)
+reference/

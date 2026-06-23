@@ -1,0 +1,247 @@
+{
+  "numbers": {
+    "n_days": 365,
+    "start_date": "2024-07-01",
+    "end_date": "2025-06-30",
+    "mean_daily": 74.64,
+    "std_daily": 22.87,
+    "min_daily": 36.1,
+    "max_daily": 232.52,
+    "annual_total": 27243.31,
+    "surge_thresh": 120.38,
+    "n_surges": 5,
+    "max_z": 6.9,
+    "surge_dates": [
+      {
+        "date": "2024-08-23",
+        "cost": 175.35
+      },
+      {
+        "date": "2024-09-09",
+        "cost": 195.69
+      },
+      {
+        "date": "2025-01-17",
+        "cost": 232.52
+      },
+      {
+        "date": "2025-03-17",
+        "cost": 208.06
+      },
+      {
+        "date": "2025-06-03",
+        "cost": 191.97
+      }
+    ],
+    "n_recs": 19,
+    "n_ai_recs": 10,
+    "total_savings": 590.4,
+    "flagged_cost": 1074.83,
+    "after_cost": 484.43,
+    "savings_pct_flagged": 54.93,
+    "total_bill": 2189.48,
+    "bill_by_resource": {
+      "ec2_instances": 740.02,
+      "ebs_volumes": 257.0,
+      "rds_instances": 397.85,
+      "s3_buckets": 21.27,
+      "lambda_functions": 2.81,
+      "dynamodb_tables": 36.94,
+      "elasticache_nodes": 483.26,
+      "ecs_services": 117.13,
+      "elb_instances": 48.6,
+      "nat_gateways": 84.6
+    },
+    "savings_pct_bill": 26.97,
+    "n_ec2": 8,
+    "n_resources": 42,
+    "n_services_billed": 6,
+    "savings_by_type": [
+      {
+        "type": "rightsize",
+        "label": "Right-size (MILP)",
+        "n": 2,
+        "savings": 362.81
+      },
+      {
+        "type": "pricing_plan_switch",
+        "label": "Reserved / pricing switch",
+        "n": 6,
+        "savings": 208.42
+      },
+      {
+        "type": "delete_unused",
+        "label": "Delete unused",
+        "n": 3,
+        "savings": 10.0
+      },
+      {
+        "type": "replace_with_endpoint",
+        "label": "NAT \u2192 VPC endpoint",
+        "n": 2,
+        "savings": 5.67
+      },
+      {
+        "type": "volume_type_upgrade",
+        "label": "EBS gp2 \u2192 gp3",
+        "n": 4,
+        "savings": 2.6
+      },
+      {
+        "type": "storage_class_switch",
+        "label": "S3 tiering",
+        "n": 1,
+        "savings": 0.79
+      },
+      {
+        "type": "memory_resize",
+        "label": "Lambda right-size",
+        "n": 1,
+        "savings": 0.11
+      }
+    ],
+    "savings_by_confidence": {
+      "high": {
+        "n": 8,
+        "savings": 370.52
+      },
+      "low": {
+        "n": 2,
+        "savings": 5.67
+      },
+      "medium": {
+        "n": 9,
+        "savings": 214.21
+      }
+    },
+    "service_share": [
+      {
+        "service": "EC2",
+        "cost": 16861.62,
+        "pct": 64.24
+      },
+      {
+        "service": "RDS",
+        "cost": 5778.55,
+        "pct": 22.02
+      },
+      {
+        "service": "S3",
+        "cost": 1166.14,
+        "pct": 4.44
+      },
+      {
+        "service": "Other",
+        "cost": 1082.04,
+        "pct": 4.12
+      },
+      {
+        "service": "EBS",
+        "cost": 818.96,
+        "pct": 3.12
+      },
+      {
+        "service": "Lambda",
+        "cost": 540.11,
+        "pct": 2.06
+      }
+    ]
+  },
+  "cv_mape": {
+    "SeasonalNaive": {
+      "7": 10.180167107902538,
+      "14": 10.836247117450213,
+      "21": 11.846805539908232,
+      "30": 12.282092116788798,
+      "45": 12.140589054600847,
+      "60": 12.660387471735094,
+      "90": 12.912914548872488
+    },
+    "ETS": {
+      "7": 11.277835051262002,
+      "14": 11.243186830721267,
+      "21": 11.542016333763645,
+      "30": 11.199086453922643,
+      "45": 11.377940884121788,
+      "60": 11.393996248950865,
+      "90": 12.149598440196849
+    },
+    "Prophet": {
+      "7": 14.406046843418043,
+      "14": 20.472607423251603,
+      "21": 22.110502475344877,
+      "30": 20.92734684118886,
+      "45": 19.312527837308835,
+      "60": 19.69906877067883,
+      "90": 18.08435997172343
+    },
+    "Naive": {
+      "7": 25.16076134583696,
+      "14": 27.903542107144887,
+      "21": 27.51007656473037,
+      "30": 27.261133674163766,
+      "45": 27.4709143757537,
+      "60": 27.86573940915914,
+      "90": 27.380300023852367
+    }
+  },
+  "cv_folds": {
+    "SeasonalNaive": {
+      "7": 8,
+      "14": 8,
+      "21": 8,
+      "30": 8,
+      "45": 7,
+      "60": 7,
+      "90": 6
+    },
+    "ETS": {
+      "7": 8,
+      "14": 8,
+      "21": 8,
+      "30": 8,
+      "45": 7,
+      "60": 7,
+      "90": 6
+    },
+    "Prophet": {
+      "7": 8,
+      "14": 8,
+      "21": 8,
+      "30": 8,
+      "45": 7,
+      "60": 7,
+      "90": 6
+    },
+    "Naive": {
+      "7": 8,
+      "14": 8,
+      "21": 8,
+      "30": 8,
+      "45": 7,
+      "60": 7,
+      "90": 6
+    }
+  },
+  "holdout": {
+    "model": "ETS",
+    "mape": 11.97,
+    "coverage": 96.67,
+    "interval_width": 0.95,
+    "horizon": 30
+  },
+  "cv_config": {
+    "initial": 120,
+    "step": 30,
+    "horizons": [
+      7,
+      14,
+      21,
+      30,
+      45,
+      60,
+      90
+    ],
+    "with_sarimax": false
+  }
+}
