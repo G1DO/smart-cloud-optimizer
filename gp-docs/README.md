@@ -9,8 +9,16 @@ college-mandated formatting**.
 | File | What it is |
 |------|------------|
 | `AWS_Cost_Intelligence_System.docx` | The original thesis (Times New Roman, ~80 pages, 6 chapters). **Do not edit by hand — it is the immutable source.** |
-| `PROMPT.md` | The master prompt. Paste everything below its horizontal rule into Claude Code to professionalize the thesis. |
+| `PROMPT.md` | **Round 1** — the master prompt. Paste it into Claude Code to professionalize the thesis (prose, emojis, consistency) while locking the design. |
+| `PROMPT_ROUND2_CORRECTIONS.md` | **Round 2** — run this *after* round 1. Applies the `OPEN_QUESTIONS.md` fixes: replaces the wrong forecasting/test numbers with the real values from `paper/`, fixes abbreviations/citations/cover typos. Design stays locked. |
 | `README.md` | This file. |
+
+## Two-round workflow
+
+1. **Round 1 (`PROMPT.md`)** — polishes the writing and gives you `…POLISHED.docx` + `OPEN_QUESTIONS.md` (the to-do list).
+2. **Round 2 (`PROMPT_ROUND2_CORRECTIONS.md`)** — applies the agreed answers to that to-do list and gives you `…CORRECTED.docx`. The team decision baked in: **use the real, reproducible numbers** from `paper/` (e.g. ETS is the best forecasting model at ≈11.2%, *not* Prophet at 7.9%; the live test count, not 277). It carries every exact number, so Claude Code does not have to guess.
+
+Run round 2 the same way: open `PROMPT_ROUND2_CORRECTIONS.md`, copy everything below its `---`, paste into Claude Code in your project.
 
 ## How to use the prompt
 
