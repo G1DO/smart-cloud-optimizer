@@ -556,7 +556,8 @@ def get_connection(db_path: Optional[Path] = None) -> sqlite3.Connection:
     """
     path = db_path or config.DB_PATH
     path.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(str(path))
+    conn = sqlite3.connect(str(path), timeout=10)
+    conn.execute("PRAGMA busy_timeout = 10000")
     conn.execute("PRAGMA journal_mode = WAL")
     conn.execute("PRAGMA foreign_keys = ON")
     conn.row_factory = sqlite3.Row
@@ -635,15 +636,23 @@ def ensure_user(conn: sqlite3.Connection, account_id: str) -> str:
 # Password hashing (stdlib only — no new dependencies)
 # ===================================================================
 
+PASSWORD_HASH_ALGORITHM = "sha256"
+PASSWORD_HASH_ITERATIONS = 260_000
+PASSWORD_SALT_BYTES = 16
+
+
 def hash_password(password: str) -> str:
     """Hash a password with PBKDF2-HMAC-SHA256 and a random 16-byte salt.
 
     Returns:
         String in the format ``"salt_hex:hash_hex"``.
     """
-    salt = os.urandom(16)
+    salt = os.urandom(PASSWORD_SALT_BYTES)
     pw_hash = hashlib.pbkdf2_hmac(
-        "sha256", password.encode("utf-8"), salt, iterations=260_000,
+        PASSWORD_HASH_ALGORITHM,
+        password.encode("utf-8"),
+        salt,
+        iterations=PASSWORD_HASH_ITERATIONS,
     )
     return f"{salt.hex()}:{pw_hash.hex()}"
 
@@ -655,12 +664,16 @@ def verify_password(password: str, stored_hash: str) -> bool:
     """
     try:
         salt_hex, hash_hex = stored_hash.split(":", 1)
+        salt = bytes.fromhex(salt_hex)
+        expected = bytes.fromhex(hash_hex)
     except ValueError:
         return False
-    salt = bytes.fromhex(salt_hex)
-    expected = bytes.fromhex(hash_hex)
+
     actual = hashlib.pbkdf2_hmac(
-        "sha256", password.encode("utf-8"), salt, iterations=260_000,
+        PASSWORD_HASH_ALGORITHM,
+        password.encode("utf-8"),
+        salt,
+        iterations=PASSWORD_HASH_ITERATIONS,
     )
     return hmac.compare_digest(actual, expected)
 

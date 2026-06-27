@@ -1,6 +1,6 @@
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-v --tb=short"
+addopts = "-v --tb=short --basetemp=.pytest_tmp"
 
 [tool.coverage.run]
 source = ["aws_collector", "storage", "data_generation", "ml_engine", "optimizer", "ai_module", "config"]

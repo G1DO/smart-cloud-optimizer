@@ -12,6 +12,11 @@ __pycache__/
 
 # Environment / secrets
 .env
+.env.*
+!.env.example
+!frontend/.env.local.example
+frontend/.env.local
+frontend/.env.*.local
 .aws/
 credentials
 
@@ -36,9 +41,13 @@ Thumbs.db
 dist/
 build/
 *.egg-info/
+frontend/.next/
+frontend/out/
+frontend/node_modules/
 
 # Testing / coverage
 .pytest_cache/
+.pytest_tmp/
 .coverage
 htmlcov/
 
@@ -55,3 +64,5 @@ backups/
 # Thesis/paper build scratch (intermediate artifacts: extract/assemble scripts,
 # unzipped docx XML, JSON dumps, segment/revision dumps, selftest docx)
 docs-gp/work/
+
+data/cloud_optimizer.db

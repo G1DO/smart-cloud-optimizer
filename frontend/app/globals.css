@@ -1,0 +1,10 @@
+/* ================= GLOBAL ================= */
+
+body {
+  margin: 0;
+  background: rgba(255, 255, 255, 0.675);
+  overflow-x: hidden;
+  position: relative;
+  font-family: 'Inter', sans-serif;
+}
+
