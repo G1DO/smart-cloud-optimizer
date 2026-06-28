@@ -68,7 +68,6 @@ type CostsApiResponse = {
     percent: number;
   }>;
   service_timeline: ServiceTimelinePoint[];
-  daily_records: DailyCostPoint[];
 };
 
 const API_BASE =

@@ -141,7 +141,7 @@ def get_recommendations(
     user_id: str = Query(..., description="User ID, e.g. aws-SYNTHETIC-001"),
     service: str | None = Query(None, description="Optional service filter"),
     generate_if_empty: bool = Query(
-        True,
+        False,
         description="Generate optimizer recommendations if none exist yet",
     ),
 ):
