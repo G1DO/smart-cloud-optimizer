@@ -46,6 +46,14 @@ def _resolve_range(
                 status_code=400,
                 detail="start_date and end_date are required for Custom preset",
             )
+        try:
+            _parse_date(start_date)
+            _parse_date(end_date)
+        except ValueError:
+            raise HTTPException(
+                status_code=400,
+                detail="start_date and end_date must be valid YYYY-MM-DD dates",
+            )
         return start_date, end_date, f"{start_date} to {end_date}"
 
     if preset == "All Time":
@@ -100,7 +108,14 @@ def get_costs(
         min_daily = round(min(daily_values), 2) if daily_values else 0.0
         max_daily = round(max(daily_values), 2) if daily_values else 0.0
 
-        previous_end_dt = _parse_date(resolved_start) - timedelta(days=1)
+        try:
+            resolved_start_dt = _parse_date(resolved_start)
+        except ValueError:
+            raise HTTPException(
+                status_code=400,
+                detail="Resolved start date is not a valid YYYY-MM-DD date",
+            )
+        previous_end_dt = resolved_start_dt - timedelta(days=1)
         previous_start_dt = previous_end_dt - timedelta(days=len(daily_rows) - 1)
         previous_rows = get_daily_costs(
             conn,
@@ -168,13 +183,6 @@ def get_costs(
                     "daily_cost": round(float(row["daily_cost"]), 2),
                 }
                 for row in service_rows
-            ],
-            "daily_records": [
-                {
-                    "date": row["date"],
-                    "total_cost": round(float(row["total_cost"]), 2),
-                }
-                for row in daily_rows
             ],
         }
     finally:

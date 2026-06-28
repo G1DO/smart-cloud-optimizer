@@ -64,5 +64,3 @@ backups/
 # Thesis/paper build scratch (intermediate artifacts: extract/assemble scripts,
 # unzipped docx XML, JSON dumps, segment/revision dumps, selftest docx)
 docs-gp/work/
-
-data/cloud_optimizer.db

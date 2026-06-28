@@ -123,6 +123,14 @@ def generate_ebs_volumes() -> pd.DataFrame:
 
 
 def generate_instance_pricing() -> tuple[pd.DataFrame, int, int]:
+    """Return on-demand instance pricing.
+
+    Returns a 3-tuple ``(pricing_df, real_count, synthetic_count)``: the
+    DataFrame of ``instance_type``/``hourly_price_usd`` rows, the number of rows
+    sourced from real AWS pricing (always ``0`` — every price here is a baked-in
+    synthetic constant), and the number of synthetic rows (i.e. ``len(df)``).
+    The tuple shape mirrors the real collector so callers can swap them.
+    """
     rows = [
         {"instance_type": "t3.micro", "hourly_price_usd": 0.0104},
         {"instance_type": "t3.small", "hourly_price_usd": 0.0208},
@@ -247,3 +255,182 @@ def generate_s3_metrics(days: int = 365, seed: int | None = None) -> pd.DataFram
         for bucket in S3_BUCKETS:
             rows.append({"date": day.isoformat(), "bucket_name": bucket, "bucket_size_bytes": int(rng.integers(1_000_000, 25_000_000_000))})
     return pd.DataFrame(rows)
+
+
+# ===================================================================
+# CLI entrypoint: generate + persist synthetic data into the store.
+# Powers the documented `python -m data_generation.synthetic` command.
+# ===================================================================
+
+def main(argv: list[str] | None = None) -> int:
+    """Generate synthetic AWS data and write it to the SQLite store.
+
+    Writes data for a single ``--user-id`` only and never deletes existing
+    rows, so it is safe against the committed demo DB. Every write goes through
+    the storage ``insert_*`` helpers, which use ``INSERT OR REPLACE`` keyed on
+    primary keys (date/timestamp + user + entity); re-running for the same user
+    therefore overwrites those rows in place rather than duplicating them.
+
+    The generator frames keep their own column names (asserted by tests); this
+    function maps them to the dict shape each ``insert_*`` expects at the call
+    boundary.
+    """
+    import argparse
+
+    import config
+    import storage
+
+    parser = argparse.ArgumentParser(
+        prog="python -m data_generation.synthetic",
+        description="Generate synthetic AWS cost/usage data into the SQLite store.",
+    )
+    parser.add_argument("--days", type=int, default=config.DEFAULT_SYNTHETIC_DAYS,
+                        help="Days of history to generate (default: %(default)s).")
+    parser.add_argument("--user-id", default="aws-SYNTHETIC-001",
+                        help="Target user_id to write under (default: %(default)s).")
+    parser.add_argument("--seed", type=int, default=42,
+                        help="RNG seed for reproducible output (default: %(default)s).")
+    args = parser.parse_args(argv)
+
+    days, seed = args.days, args.seed
+    account_id = args.user_id.removeprefix("aws-")
+
+    conn = storage.get_connection()
+    try:
+        storage.ensure_schema(conn)
+        user_id = storage.ensure_user(conn, account_id)
+
+        # Cost frames.
+        daily = generate_daily_costs(days=days, seed=seed)
+        service = generate_service_costs(days=days, seed=seed)
+        region = generate_service_region_costs(service, seed=seed)
+
+        # Inventory frames that other frames need for lookups.
+        ecs_services = generate_ecs_services()
+        ecs_cluster = dict(zip(ecs_services["service_name"], ecs_services["cluster_name"]))
+        elb = generate_elb_instances()
+        elb_arn = dict(zip(elb["load_balancer_name"], elb["load_balancer_arn"]))
+        pricing_df, _, _ = generate_instance_pricing()
+
+        written: dict[str, int] = {}
+        written["daily_costs"] = storage.insert_daily_costs(conn, user_id, [
+            {"date": r["date"], "total_cost": r["cost_amount"]}
+            for r in daily.to_dict("records")
+        ])
+        written["service_costs"] = storage.insert_service_costs(conn, user_id, [
+            {"date": r["date"], "service": r["service_name"], "daily_cost": r["cost_amount"]}
+            for r in service.to_dict("records")
+        ])
+        written["service_region_costs"] = storage.insert_service_region_costs(conn, user_id, [
+            {"date": r["date"], "service": r["service_name"], "region": r["region"],
+             "daily_cost": r["cost_amount"]}
+            for r in region.to_dict("records")
+        ])
+
+        written["ec2_instances"] = storage.insert_ec2_instances(
+            conn, user_id, generate_ec2_instances().to_dict("records"))
+        written["ec2_metrics"] = storage.insert_ec2_metrics(conn, user_id, [
+            {"timestamp": r["timestamp"], "instance_id": r["instance_id"],
+             "cpu_utilization": r["cpu_avg"]}
+            for r in generate_ec2_metrics(days=days, seed=seed).to_dict("records")
+        ])
+
+        written["rds_instances"] = storage.insert_rds_instances(
+            conn, user_id, generate_rds_instances().to_dict("records"))
+        written["rds_metrics"] = storage.insert_rds_metrics(conn, user_id, [
+            {"timestamp": r["timestamp"], "db_instance_id": r["db_instance_id"],
+             "cpu_utilization": r["cpu_utilization_avg"]}
+            for r in generate_rds_metrics(days=days, seed=seed).to_dict("records")
+        ])
+
+        written["elasticache_nodes"] = storage.insert_elasticache_nodes(
+            conn, user_id, generate_elasticache_nodes().to_dict("records"))
+        written["elasticache_metrics"] = storage.insert_elasticache_metrics(conn, user_id, [
+            {"timestamp": r["timestamp"], "cache_cluster_id": r["cache_cluster_id"],
+             "cpu_utilization": r["cpu_util_avg"], "memory_utilization": 0.0,
+             "cache_hits": r["cache_hits"], "cache_misses": r["cache_misses"]}
+            for r in generate_elasticache_metrics(days=days, seed=seed).to_dict("records")
+        ])
+
+        written["ecs_services"] = storage.insert_ecs_services(
+            conn, user_id, ecs_services.to_dict("records"))
+        written["ecs_metrics"] = storage.insert_ecs_metrics(conn, user_id, [
+            {"timestamp": r["timestamp"], "service_name": r["service_name"],
+             "cluster_name": ecs_cluster[r["service_name"]],
+             "cpu_utilization": r["cpu_utilization_avg"], "memory_utilization": 0.0}
+            for r in generate_ecs_metrics(days=days, seed=seed).to_dict("records")
+        ])
+
+        written["lambda_functions"] = storage.insert_lambda_functions(
+            conn, user_id, generate_lambda_functions().to_dict("records"))
+        written["lambda_metrics"] = storage.insert_lambda_metrics(
+            conn, user_id, generate_lambda_metrics(days=days, seed=seed).to_dict("records"))
+
+        written["ebs_volumes"] = storage.insert_ebs_volumes(
+            conn, user_id, generate_ebs_volumes().to_dict("records"))
+        written["ebs_metrics"] = storage.insert_ebs_metrics(conn, user_id, [
+            {"timestamp": r["timestamp"], "volume_id": r["volume_id"],
+             "read_ops": r["read_ops_avg"], "write_ops": r["write_ops_avg"]}
+            for r in generate_ebs_metrics(days=days, seed=seed).to_dict("records")
+        ])
+
+        written["s3_buckets"] = storage.insert_s3_buckets(
+            conn, user_id, generate_s3_buckets().to_dict("records"))
+        written["s3_metrics"] = storage.insert_s3_metrics(conn, user_id, [
+            {"timestamp": r["date"], "bucket_name": r["bucket_name"],
+             "bucket_size_bytes": r["bucket_size_bytes"]}
+            for r in generate_s3_metrics(days=days, seed=seed).to_dict("records")
+        ])
+
+        written["dynamodb_tables"] = storage.insert_dynamodb_tables(
+            conn, user_id, generate_dynamodb_tables().to_dict("records"))
+        written["dynamodb_metrics"] = storage.insert_dynamodb_metrics(conn, user_id, [
+            {"timestamp": r["date"], "table_name": r["table_name"],
+             "consumed_read_units": r["consumed_read_units_avg"],
+             "consumed_write_units": r["consumed_write_units_avg"]}
+            for r in generate_dynamodb_metrics(days=days, seed=seed).to_dict("records")
+        ])
+
+        written["nat_gateways"] = storage.insert_nat_gateways(
+            conn, user_id, generate_nat_gateways().to_dict("records"))
+        written["nat_gateway_metrics"] = storage.insert_nat_gateway_metrics(conn, user_id, [
+            {"timestamp": r["timestamp"], "nat_gateway_id": r["nat_gateway_id"],
+             "bytes_in": r["bytes_in_avg"], "bytes_out": r["bytes_out_avg"]}
+            for r in generate_nat_gateway_metrics(days=days, seed=seed).to_dict("records")
+        ])
+
+        elb_type_map = {"application": "ALB", "network": "NLB", "classic": "CLB"}
+        written["elb_instances"] = storage.insert_elb_instances(conn, user_id, [
+            {"elb_arn": r["load_balancer_arn"], "elb_name": r["load_balancer_name"],
+             "elb_type": elb_type_map.get(r["type"], "ALB")}
+            for r in elb.to_dict("records")
+        ])
+        written["elb_metrics"] = storage.insert_elb_metrics(conn, user_id, [
+            {"timestamp": r["timestamp"], "elb_arn": elb_arn[r["load_balancer_name"]],
+             "http_2xx": r["http_2xx"], "http_3xx": r["http_3xx"],
+             "http_4xx": r["http_4xx"], "http_5xx": r["http_5xx"]}
+            for r in generate_elb_metrics(days=days, seed=seed).to_dict("records")
+        ])
+
+        written["instance_pricing"] = storage.insert_instance_pricing(conn, [
+            {"service": "EC2", "instance_type": r["instance_type"],
+             "on_demand_hourly": r["hourly_price_usd"],
+             "on_demand_monthly": round(r["hourly_price_usd"] * 730, 4)}
+            for r in pricing_df.to_dict("records")
+        ])
+
+        conn.commit()
+    finally:
+        conn.close()
+
+    total = sum(written.values())
+    print(f"Synthetic data written for user_id={user_id} ({days} days, seed={seed}):")
+    for table in sorted(written):
+        print(f"  {table:<22} {written[table]:>8,} rows")
+    print(f"  {'TOTAL':<22} {total:>8,} rows")
+    print("Existing rows for this user were overwritten by primary key; no data was deleted.")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
