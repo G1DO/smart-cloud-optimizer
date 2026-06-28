@@ -10,6 +10,7 @@ from backend_api.routers.recommendations import router as recommendations_router
 from backend_api.routers.auth import router as auth_router
 from backend_api.routers.settings import router as settings_router
 from backend_api.routers.on_boarding import router as onboarding_router
+from backend_api.routers.connections import router as connections_router
 
 from storage.db import get_connection, ensure_schema, ensure_user
 
@@ -50,6 +51,7 @@ app.include_router(recommendations_router)
 app.include_router(auth_router)
 app.include_router(settings_router)
 app.include_router(onboarding_router)
+app.include_router(connections_router)
 
 
 @app.get("/")
