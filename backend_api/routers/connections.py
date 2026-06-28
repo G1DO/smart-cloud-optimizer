@@ -25,7 +25,8 @@ from storage.db import (
 router = APIRouter(prefix="/api/connections", tags=["connections"])
 
 # Validation patterns enforced before any AWS call (untrusted input boundary).
-_ROLE_ARN_RE = re.compile(r"^arn:aws:iam::\d{12}:role/.+$")
+# AKIA = long-lived IAM keys, ASIA = temporary STS keys (require a session token).
+_ACCESS_KEY_ID_RE = re.compile(r"^(AKIA|ASIA)[A-Z0-9]{16}$")
 _ACCOUNT_ID_RE = re.compile(r"^\d{12}$")
 
 # Tracks connection ids whose sync thread is live, guarded by _SYNC_LOCK so a
@@ -40,10 +41,10 @@ _SYNC_LOCK = threading.Lock()
 
 
 class TestConnectionRequest(BaseModel):
-    iam_role_arn: str
-    external_id: str = ""
+    aws_access_key_id: str
+    aws_secret_access_key: str
+    aws_session_token: str = ""
     aws_region: str = "us-east-1"
-    aws_account_id: str | None = None
 
 
 class TestConnectionResponse(BaseModel):
@@ -54,21 +55,25 @@ class TestConnectionResponse(BaseModel):
 
 class SaveConnectionRequest(BaseModel):
     connection_name: str = ""
-    aws_account_id: str
-    iam_role_arn: str
-    external_id: str = ""
+    aws_access_key_id: str
+    aws_secret_access_key: str
+    aws_session_token: str = ""
     aws_region: str = "us-east-1"
+    aws_account_id: str | None = None
 
 
 class ConnectionOut(BaseModel):
-    # external_id is intentionally OMITTED — it is a shared secret and must
-    # never leave the backend.
+    # SECURITY: aws_secret_access_key, aws_session_token, external_id and
+    # iam_role_arn are intentionally OMITTED — secrets must never leave the
+    # backend. Only the last 4 chars of the access key id are exposed so the
+    # UI can show which key is in use.
     id: int
     connection_name: str | None = None
     aws_account_id: str
-    iam_role_arn: str
     aws_region: str
+    auth_type: str
     access_verified: bool
+    access_key_last4: str
     sync_status: str
     last_sync_at: str | None = None
     error_message: str | None = None
@@ -83,13 +88,15 @@ class ConnectionOut(BaseModel):
 
 def _row_to_out(row: dict) -> ConnectionOut:
     account_id = str(row["aws_account_id"])
+    access_key_id = row.get("aws_access_key_id") or ""
     return ConnectionOut(
         id=int(row["id"]),
         connection_name=row.get("connection_name"),
         aws_account_id=account_id,
-        iam_role_arn=row["iam_role_arn"],
         aws_region=row.get("aws_region") or "us-east-1",
+        auth_type=row.get("auth_type") or "role",
         access_verified=bool(row.get("access_verified") or 0),
+        access_key_last4=access_key_id[-4:] if access_key_id else "",
         sync_status=row.get("sync_status") or "never",
         last_sync_at=row.get("last_sync_at"),
         error_message=row.get("error_message"),
@@ -98,9 +105,11 @@ def _row_to_out(row: dict) -> ConnectionOut:
     )
 
 
-def _validate_role_arn(role_arn: str) -> None:
-    if not _ROLE_ARN_RE.match(role_arn or ""):
-        raise HTTPException(status_code=400, detail="invalid iam_role_arn")
+def _validate_keys(access_key_id: str, secret_access_key: str) -> None:
+    if not _ACCESS_KEY_ID_RE.match(access_key_id or ""):
+        raise HTTPException(status_code=400, detail="invalid aws_access_key_id")
+    if not (secret_access_key or "").strip():
+        raise HTTPException(status_code=400, detail="missing aws_secret_access_key")
 
 
 def _validate_account_id(account_id: str) -> None:
@@ -116,28 +125,22 @@ def _validate_account_id(account_id: str) -> None:
 @router.post("/test", response_model=TestConnectionResponse)
 def test_connection(payload: TestConnectionRequest) -> TestConnectionResponse:
     # Validate untrusted input BEFORE reaching out to AWS. Malformed input is a
-    # client error (400); a well-formed request that AWS rejects is *not* — it
+    # client error (400); well-formed keys that AWS rejects are *not* — that
     # returns 200 with ok=False so the frontend can surface the reason inline.
-    _validate_role_arn(payload.iam_role_arn)
-    if payload.aws_account_id is not None:
-        _validate_account_id(payload.aws_account_id)
+    _validate_keys(payload.aws_access_key_id, payload.aws_secret_access_key)
 
     try:
-        cfg = AWSConfig.from_role(
-            payload.iam_role_arn, payload.external_id, payload.aws_region
+        cfg = AWSConfig.from_keys(
+            payload.aws_access_key_id,
+            payload.aws_secret_access_key,
+            payload.aws_session_token,
+            payload.aws_region,
         )
         account_id = cfg.account_id
     except (ClientError, BotoCoreError, Exception) as exc:  # noqa: B014
-        # Never 500 on an auth / user-input failure — the role may not exist,
-        # trust policy may reject us, or the external id may be wrong.
+        # Never 500 on an auth / user-input failure — the keys may be wrong,
+        # disabled, or lack sts:GetCallerIdentity. Do NOT echo the secret.
         return TestConnectionResponse(ok=False, error=str(exc))
-
-    if payload.aws_account_id is not None and payload.aws_account_id != account_id:
-        return TestConnectionResponse(
-            ok=False,
-            account_id=account_id,
-            error=f"account id mismatch (assumed {account_id})",
-        )
 
     # A successful test verifies access for any already-saved connection on this
     # account. No storage helper exists for this, so update inline + commit.
@@ -158,23 +161,42 @@ def test_connection(payload: TestConnectionRequest) -> TestConnectionResponse:
 
 @router.post("", response_model=ConnectionOut)
 def save_connection(payload: SaveConnectionRequest) -> ConnectionOut:
-    _validate_account_id(payload.aws_account_id)
-    _validate_role_arn(payload.iam_role_arn)
+    _validate_keys(payload.aws_access_key_id, payload.aws_secret_access_key)
 
-    owner = f"aws-{payload.aws_account_id}"
+    # Derive the account id. If supplied, trust it (after format check);
+    # otherwise resolve it from the keys — which also verifies them.
+    if payload.aws_account_id is not None:
+        _validate_account_id(payload.aws_account_id)
+        account_id = payload.aws_account_id
+    else:
+        try:
+            cfg = AWSConfig.from_keys(
+                payload.aws_access_key_id,
+                payload.aws_secret_access_key,
+                payload.aws_session_token,
+                payload.aws_region,
+            )
+            account_id = cfg.account_id
+        except (ClientError, BotoCoreError, Exception) as exc:  # noqa: B014
+            raise HTTPException(status_code=400, detail=str(exc))
+
+    owner = f"aws-{account_id}"
     conn = get_connection()
     try:
         ensure_schema(conn)
-        ensure_user(conn, payload.aws_account_id)
+        ensure_user(conn, account_id)
         try:
             new_id = add_aws_connection(
                 conn,
                 user_id=owner,
-                aws_account_id=payload.aws_account_id,
-                iam_role_arn=payload.iam_role_arn,
+                aws_account_id=account_id,
+                iam_role_arn="",
                 connection_name=payload.connection_name,
-                external_id=payload.external_id,
                 aws_region=payload.aws_region,
+                aws_access_key_id=payload.aws_access_key_id,
+                aws_secret_access_key=payload.aws_secret_access_key,
+                aws_session_token=payload.aws_session_token,
+                auth_type="keys",
             )
         except sqlite3.IntegrityError:
             raise HTTPException(
@@ -252,7 +274,8 @@ def sync_connection(connection_id: int, user_id: str = Query(...)) -> JSONRespon
 
 def _run_sync(connection_id: int) -> None:
     # Runs in a daemon thread. SQLite connections are not shareable across
-    # threads, so open a fresh one here and own its lifecycle.
+    # threads, so open a fresh one here and own its lifecycle. The stored row
+    # already carries the access keys, so no keys are re-sent from the frontend.
     thread_conn = get_connection()
     try:
         ensure_schema(thread_conn)

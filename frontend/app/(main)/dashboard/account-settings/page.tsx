@@ -41,9 +41,10 @@ type ConnectionOut = {
   id: number;
   connection_name: string;
   aws_account_id: string;
-  iam_role_arn: string;
   aws_region: string;
+  auth_type: string;
   access_verified: boolean;
+  access_key_last4: string;
   sync_status: "never" | "success" | "failed" | "in_progress";
   last_sync_at: string | null;
   error_message: string;
@@ -86,11 +87,12 @@ const DEFAULT_SETTINGS: RuntimeSettings = {
   log_level: "INFO",
 };
 
-const EMPTY_CONNECTION: Omit<AwsConnection, "id" | "status"> = {
+const EMPTY_CONNECTION = {
   connectionName: "",
   awsAccountId: "",
-  iamRoleArn: "",
-  externalId: "",
+  accessKeyId: "",
+  secretAccessKey: "",
+  sessionToken: "",
   primaryRegion: "us-east-1",
 };
 
@@ -406,13 +408,9 @@ export default function AccountSettingsPage() {
   const handleTestConnection = async () => {
     if (isDemo) return;
 
-    if (
-      !connectionForm.connectionName ||
-      !connectionForm.awsAccountId ||
-      !connectionForm.iamRoleArn
-    ) {
+    if (!connectionForm.accessKeyId || !connectionForm.secretAccessKey) {
       setConnectionMessage(
-        "Connection name, AWS account ID, and IAM role ARN are required.",
+        "AWS Access Key ID and Secret Access Key are required.",
       );
       return;
     }
@@ -425,10 +423,10 @@ export default function AccountSettingsPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          iam_role_arn: connectionForm.iamRoleArn,
-          external_id: connectionForm.externalId,
+          aws_access_key_id: connectionForm.accessKeyId,
+          aws_secret_access_key: connectionForm.secretAccessKey,
+          aws_session_token: connectionForm.sessionToken,
           aws_region: connectionForm.primaryRegion,
-          aws_account_id: connectionForm.awsAccountId,
         }),
       });
 
@@ -442,10 +440,15 @@ export default function AccountSettingsPage() {
       }
 
       if (body.ok) {
+        const detectedAccountId = body.account_id;
+        if (detectedAccountId) {
+          setConnectionForm((prev) => ({
+            ...prev,
+            awsAccountId: detectedAccountId,
+          }));
+        }
         setConnectionMessage(
-          `Connection test passed${
-            body.account_id ? ` for account ${body.account_id}` : ""
-          }.`,
+          `Connection verified — account ${detectedAccountId ?? "detected"}.`,
         );
       } else {
         setConnectionMessage(body.error || "Connection test failed.");
@@ -466,12 +469,10 @@ export default function AccountSettingsPage() {
   const handleAddOrUpdateConnection = async () => {
     if (isDemo) return;
 
-    if (
-      !connectionForm.connectionName ||
-      !connectionForm.awsAccountId ||
-      !connectionForm.iamRoleArn
-    ) {
-      setConnectionMessage("Complete the required AWS connection fields.");
+    if (!connectionForm.accessKeyId || !connectionForm.secretAccessKey) {
+      setConnectionMessage(
+        "AWS Access Key ID and Secret Access Key are required.",
+      );
       return;
     }
 
@@ -481,10 +482,11 @@ export default function AccountSettingsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           connection_name: connectionForm.connectionName.trim(),
-          aws_account_id: connectionForm.awsAccountId.trim(),
-          iam_role_arn: connectionForm.iamRoleArn.trim(),
-          external_id: connectionForm.externalId.trim(),
+          aws_access_key_id: connectionForm.accessKeyId,
+          aws_secret_access_key: connectionForm.secretAccessKey,
+          aws_session_token: connectionForm.sessionToken,
           aws_region: connectionForm.primaryRegion,
+          aws_account_id: connectionForm.awsAccountId.trim() || undefined,
         }),
       });
 
@@ -527,8 +529,9 @@ export default function AccountSettingsPage() {
     setConnectionForm({
       connectionName: connection.connectionName,
       awsAccountId: connection.awsAccountId,
-      iamRoleArn: connection.iamRoleArn,
-      externalId: connection.externalId,
+      accessKeyId: "",
+      secretAccessKey: "",
+      sessionToken: "",
       primaryRegion: connection.primaryRegion,
     });
     setConnectionMessage("");
@@ -628,7 +631,7 @@ export default function AccountSettingsPage() {
       >
         <div className="aws-connections-panel-title">
           <span className="aws-connections-chevron">▾</span>
-          IAM Role Connection
+          Access Keys Connection
         </div>
 
         <div className="aws-connections-form">
@@ -646,42 +649,58 @@ export default function AccountSettingsPage() {
             </label>
 
             <label className="account-settings-field">
-              <span>IAM Role ARN</span>
+              <span>AWS Access Key ID</span>
               <input
                 disabled={disabled}
                 value={
                   disabled
-                    ? "arn:aws:iam::123456789012:role/CloudOptimizer"
-                    : connectionForm.iamRoleArn
+                    ? "AKIAIOSFODNN7EXAMPLE"
+                    : connectionForm.accessKeyId
                 }
                 onChange={(e) =>
-                  handleConnectionField("iamRoleArn", e.target.value)
+                  handleConnectionField("accessKeyId", e.target.value)
                 }
-                placeholder="arn:aws:iam::123456789012:role/CloudOptimizer"
+                placeholder="AKIAIOSFODNN7EXAMPLE"
               />
             </label>
 
             <label className="account-settings-field">
-              <span>AWS Account ID</span>
+              <span>AWS Secret Access Key</span>
+              <input
+                type="password"
+                autoComplete="off"
+                disabled={disabled}
+                value={disabled ? "secret" : connectionForm.secretAccessKey}
+                onChange={(e) =>
+                  handleConnectionField("secretAccessKey", e.target.value)
+                }
+                placeholder="Secret access key"
+              />
+            </label>
+
+            <label className="account-settings-field">
+              <span>AWS Session Token (optional)</span>
+              <input
+                type="password"
+                autoComplete="off"
+                disabled={disabled}
+                value={disabled ? "" : connectionForm.sessionToken}
+                onChange={(e) =>
+                  handleConnectionField("sessionToken", e.target.value)
+                }
+                placeholder="Only for temporary STS credentials"
+              />
+            </label>
+
+            <label className="account-settings-field">
+              <span>AWS Account ID (optional — auto-detected)</span>
               <input
                 disabled={disabled}
                 value={disabled ? "123456789012" : connectionForm.awsAccountId}
                 onChange={(e) =>
                   handleConnectionField("awsAccountId", e.target.value)
                 }
-                placeholder="123456789012"
-              />
-            </label>
-
-            <label className="account-settings-field">
-              <span>External ID</span>
-              <input
-                disabled={disabled}
-                value={disabled ? "Optional" : connectionForm.externalId}
-                onChange={(e) =>
-                  handleConnectionField("externalId", e.target.value)
-                }
-                placeholder="Optional"
+                placeholder="Auto-detected from keys"
               />
             </label>
 
@@ -741,6 +760,7 @@ export default function AccountSettingsPage() {
       {connectionMessage && !disabled ? (
         <div
           className={`settings-inline-message ${
+            connectionMessage.toLowerCase().includes("verified") ||
             connectionMessage.toLowerCase().includes("passed") ||
             connectionMessage.toLowerCase().includes("added") ||
             connectionMessage.toLowerCase().includes("updated")
@@ -907,7 +927,7 @@ export default function AccountSettingsPage() {
                 <tr>
                   <th>Connection</th>
                   <th>AWS Account ID</th>
-                  <th>IAM Role ARN</th>
+                  <th>Access Key</th>
                   <th>Region</th>
                   <th>Status</th>
                   <th>Sync Status</th>
@@ -920,7 +940,7 @@ export default function AccountSettingsPage() {
                   <tr key={connection.id}>
                     <td>{connection.connectionName}</td>
                     <td>{connection.awsAccountId}</td>
-                    <td className="aws-role-cell">{connection.iamRoleArn}</td>
+                    <td className="aws-role-cell">{`••••${connection.accessKeyLast4 ?? ""}`}</td>
                     <td>{connection.primaryRegion}</td>
                     <td>
                       <span

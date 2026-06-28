@@ -69,6 +69,31 @@ class AWSConfig:
         )
         return cls(session=session)
 
+    @classmethod
+    def from_keys(cls, access_key_id: str, secret_access_key: str,
+                  session_token: str = "", region: str = "us-east-1") -> "AWSConfig":
+        """Create an AWSConfig from UI-supplied AWS access keys.
+
+        Constructing the returned instance calls ``sts.get_caller_identity``,
+        so this both validates the credentials and resolves the account ID.
+
+        Args:
+            access_key_id: AWS access key ID.
+            secret_access_key: AWS secret access key.
+            session_token: Optional session token for temporary credentials.
+            region: Default AWS region for the session.
+
+        Returns:
+            An :class:`AWSConfig` backed by the supplied keys.
+        """
+        session = boto3.Session(
+            aws_access_key_id=access_key_id,
+            aws_secret_access_key=secret_access_key,
+            aws_session_token=(session_token or None),
+            region_name=region,
+        )
+        return cls(session=session)
+
     def _get_regions(self) -> List[str]:
         """Fetch the list of enabled AWS regions.
 
