@@ -4,6 +4,8 @@ import sqlite3
 import pytest
 
 from storage.db import (
+    PASSWORD_HASH_ITERATIONS,
+    PASSWORD_SALT_BYTES,
     add_aws_connection,
     authenticate_user,
     create_schema,
@@ -36,6 +38,17 @@ class TestPasswordHashing:
         stored = hash_password("mysecret")
         assert verify_password("mysecret", stored)
 
+    def test_hash_format_is_pbkdf2_sha256_salt_hash(self):
+        password = "StrongPass1!"
+        stored = hash_password(password)
+        salt_hex, hash_hex = stored.split(":", 1)
+
+        assert stored != password
+        assert len(bytes.fromhex(salt_hex)) == PASSWORD_SALT_BYTES
+        assert len(bytes.fromhex(hash_hex)) == 32
+        assert PASSWORD_HASH_ITERATIONS == 260_000
+        assert verify_password(password, stored)
+
     def test_wrong_password_fails(self):
         stored = hash_password("correct")
         assert not verify_password("wrong", stored)
@@ -51,6 +64,7 @@ class TestPasswordHashing:
 
     def test_malformed_hash_returns_false(self):
         assert not verify_password("any", "not-a-valid-hash")
+        assert not verify_password("any", "not-hex:not-hex")
         assert not verify_password("any", "")
 
 

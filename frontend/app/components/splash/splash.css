@@ -1,0 +1,168 @@
+
+
+.splash-container {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  z-index: 9999;
+  background: rgba(255, 255, 255, 0.675);
+  
+}
+
+.splash-container.splash-dark {
+  background:
+    radial-gradient(circle at 50% 44%, rgba(23, 87, 148, 0.22), transparent 28%),
+    radial-gradient(circle at 18% 18%, rgba(47, 111, 255, 0.2), transparent 34%),
+    radial-gradient(circle at 84% 76%, rgba(45, 212, 191, 0.12), transparent 32%),
+    #020812;
+}
+
+.background-blobs {
+  position: fixed;
+  inset: 0;
+  z-index: -4;
+  overflow: hidden;
+}
+
+.blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(120px);
+}
+
+.blob1 {
+  width: 700px;
+  height: 600px;
+  background: var(--coolblue);
+  top: -200px;
+  left: -200px;
+}
+
+.blob2 {
+  width: 700px;
+  height: 400px;
+  background: var(--coolteal);
+  top: -150px;
+  right: -150px;
+}
+
+.blob3 {
+  width: 650px;
+  height: 400px;
+  background: var(--coolteal);
+  top: 400px;
+  left: -150px;
+}
+
+.blob4 {
+  width: 800px;
+  height: 600px;
+  background: var(--coolblue);
+  bottom: -300px;
+  right: -250px;
+}
+
+
+/* Soft overlay blur */
+.splash-container::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  backdrop-filter: blur(40px);
+}
+
+.splash-content {
+  position: relative;
+  text-align: center;
+  z-index: 2;
+}
+
+.splash-title {
+  font-size: 60px;
+  font-family: var(--font-tilt);
+  font-weight: 800;
+  margin-top: 15px;
+  letter-spacing: 2px;
+  color: var(--darkblue);
+}
+
+.splash-dark .splash-title {
+  color: #f8fbff;
+}
+
+.loader-line {
+  margin-top: 18px;
+  margin-left: 90px;
+  width: 120px;
+  height: 4px;
+  background: rgba(0,0,0,0.15);
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+}
+
+.splash-dark .loader-line {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.loader-line::after {
+  content: "";
+  position: absolute;
+  left: -40%;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--coolblue),
+    transparent
+  );
+  animation: loaderMove 1.4s ease-in-out infinite;
+}
+
+.splash-dark .loader-line::after {
+  background: linear-gradient(90deg, transparent, #58d5ff, transparent);
+}
+
+@keyframes loaderMove {
+  0% {
+    left: -40%;
+  }
+  100% {
+    left: 120%;
+  }
+}
+
+/* Animations */
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.logo-zoom {
+  animation: zoomIn 1.8s ease-out forwards;
+  width: 225px;
+  height: 150px;
+  filter: none !important;
+  mix-blend-mode: normal;
+}
+
+/* Zoom animation */
+@keyframes zoomIn {
+  0% {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
