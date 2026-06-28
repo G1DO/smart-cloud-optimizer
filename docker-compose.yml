@@ -1,0 +1,117 @@
+# Smart Cloud Optimizer — local stack.
+#   Core:     docker compose up --build           (backend + frontend)
+#   Full:     docker compose --profile full up --build   (adds Streamlit)
+#
+# The committed demo DB ships inside the image at /app/data (owned by the
+# non-root appuser). It is mounted on a NAMED volume — not a host bind mount —
+# so the volume is seeded from the image with appuser ownership and stays
+# writable by the container's uid (SQLite WAL must create -wal/-shm sidecars).
+# A host bind mount would shadow that dir with host ownership (uid 1000) and
+# leave the uid-10001 process read-only -> 'attempt to write a readonly
+# database'. To reset the demo data: `docker compose down -v`.
+
+name: smart-cloud-optimizer
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: optimizer-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - optimizer-data:/app/data
+    # env_file loads .env wholesale; the `environment:` keys below override it
+    # (Compose precedence) and pin the safe defaults shown here.
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DEMO_MODE: "${DEMO_MODE:-true}"
+      GOOGLE_API_KEY: "${GOOGLE_API_KEY:-}"
+      GOOGLE_MODEL: "${GOOGLE_MODEL:-gemini-2.5-flash}"
+      AWS_REGION: "${AWS_REGION:-us-east-1}"
+      AWS_ACCOUNT_ID: "${AWS_ACCOUNT_ID:-SYNTHETIC-001}"
+      ONBOARDING_API_TOKEN: "${ONBOARDING_API_TOKEN:-}"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health', timeout=3).status==200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    networks:
+      - optimizer-net
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # Inlined at build time; must be HOST-reachable (browser-side), not the
+        # "backend" service name.
+        NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
+    image: optimizer-frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+    networks:
+      - optimizer-net
+
+  streamlit:
+    # Reuses the backend image (same deps + same DB), so no `build:` of its own —
+    # `depends_on: backend` guarantees optimizer-backend is built first. Optional:
+    # only run under the "full" profile.
+    profiles: ["full"]
+    image: optimizer-backend
+    command:
+      - streamlit
+      - run
+      - app.py
+      - --server.port=8501
+      - --server.address=0.0.0.0
+    ports:
+      - "8501:8501"
+    volumes:
+      - optimizer-data:/app/data
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DEMO_MODE: "${DEMO_MODE:-true}"
+      GOOGLE_API_KEY: "${GOOGLE_API_KEY:-}"
+      GOOGLE_MODEL: "${GOOGLE_MODEL:-gemini-2.5-flash}"
+      AWS_REGION: "${AWS_REGION:-us-east-1}"
+      AWS_ACCOUNT_ID: "${AWS_ACCOUNT_ID:-SYNTHETIC-001}"
+      ONBOARDING_API_TOKEN: "${ONBOARDING_API_TOKEN:-}"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8501/_stcore/health', timeout=3).status==200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - optimizer-net
+
+volumes:
+  # Seeded from the image's /app/data (owned by appuser) on first up; persists
+  # the SQLite demo DB and keeps it writable by the non-root container user.
+  optimizer-data:
+
+networks:
+  optimizer-net:
+    driver: bridge
