@@ -128,6 +128,42 @@ Open `http://localhost:3000`.
 
 Demo Mode shows sample costs, forecasts, anomalies, and recommendations. New or existing real accounts show empty dashboard states until AWS account connection data is configured.
 
+## Run with Docker
+
+The whole stack runs with Docker Compose. The committed demo SQLite DB ships
+inside the backend image and is bind-mounted from `./data`, so any runtime
+changes persist on the host.
+
+Core stack (FastAPI backend + Next.js frontend):
+
+```bash
+docker compose up --build
+```
+
+Add the legacy Streamlit dashboard (optional `full` profile, reuses the backend
+image):
+
+```bash
+docker compose --profile full up --build
+```
+
+URLs:
+
+- Frontend: http://localhost:3000
+- Backend API docs: http://localhost:8000/docs (health: http://localhost:8000/health)
+- Streamlit (full profile only): http://localhost:8501
+
+Configuration is optional — defaults run in demo mode with no AI key. To set
+env vars (e.g. `GOOGLE_API_KEY`), copy the template and edit it:
+
+```bash
+cp .env.docker.example .env
+```
+
+Note: `NEXT_PUBLIC_API_BASE_URL` is a frontend **build** arg (set in
+`docker-compose.yml`) because Next.js inlines it into the browser bundle; it
+must stay host-reachable (`http://localhost:8000`).
+
 ## Useful Commands
 
 Run backend tests:
