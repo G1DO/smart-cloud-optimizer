@@ -55,6 +55,14 @@ CREATE TABLE IF NOT EXISTS aws_connections (
     iam_role_arn      TEXT    NOT NULL,
     external_id       TEXT,
     aws_region        TEXT    NOT NULL DEFAULT 'us-east-1',
+    -- SECURITY: for auth_type='keys' the IAM access key id/secret/session token
+    -- are stored here in PLAINTEXT. This is deliberate for the localhost
+    -- single-user demo (no machine-side config to hold an encryption key). Do
+    -- NOT deploy this multi-user or off-localhost without encrypting the secret.
+    aws_access_key_id     TEXT,
+    aws_secret_access_key TEXT,
+    aws_session_token     TEXT,
+    auth_type         TEXT    NOT NULL DEFAULT 'role',
     access_verified   INTEGER NOT NULL DEFAULT 0,
     last_sync_at      TEXT,
     sync_status       TEXT    NOT NULL DEFAULT 'never',
@@ -564,6 +572,28 @@ def get_connection(db_path: Optional[Path] = None) -> sqlite3.Connection:
     return conn
 
 
+def _migrate_aws_connections(conn: sqlite3.Connection) -> None:
+    """Add the key-based-auth columns to ``aws_connections`` if missing.
+
+    Idempotent: reads ``PRAGMA table_info`` and only issues an ``ALTER TABLE``
+    for columns that are not yet present, so it is safe to run on every startup
+    and on both fresh and pre-existing (committed) databases.
+    """
+    existing = {row[1] for row in conn.execute(
+        "PRAGMA table_info(aws_connections)").fetchall()}
+    additions = [
+        ("aws_access_key_id", "TEXT"),
+        ("aws_secret_access_key", "TEXT"),
+        ("aws_session_token", "TEXT"),
+        ("auth_type", "TEXT NOT NULL DEFAULT 'role'"),
+    ]
+    for name, decl in additions:
+        if name not in existing:
+            conn.execute(
+                f"ALTER TABLE aws_connections ADD COLUMN {name} {decl}")
+    conn.commit()
+
+
 def ensure_schema(conn: sqlite3.Connection) -> None:
     """Create all tables/indexes if they do not already exist.
 
@@ -573,6 +603,7 @@ def ensure_schema(conn: sqlite3.Connection) -> None:
         conn: Open database connection.
     """
     conn.executescript(_SCHEMA_DDL)
+    _migrate_aws_connections(conn)
     conn.commit()
     logger.info("Schema ensured (CREATE TABLE IF NOT EXISTS)")
 
@@ -600,6 +631,7 @@ def create_schema(conn: sqlite3.Connection) -> None:
         conn.execute(f"DROP TABLE IF EXISTS {table}")
     conn.execute("PRAGMA foreign_keys = ON")
     conn.executescript(_SCHEMA_DDL)
+    _migrate_aws_connections(conn)
     conn.commit()
     logger.info("Schema created (30 tables)")
 
@@ -780,11 +812,24 @@ def update_user_profile(conn: sqlite3.Connection, user_id: str,
 # ===================================================================
 
 def add_aws_connection(conn: sqlite3.Connection, user_id: str,
-                       aws_account_id: str, iam_role_arn: str,
+                       aws_account_id: str, iam_role_arn: str = "",
                        connection_name: str = "",
                        external_id: str = "",
-                       aws_region: str = "us-east-1") -> int:
+                       aws_region: str = "us-east-1",
+                       aws_access_key_id: str = "",
+                       aws_secret_access_key: str = "",
+                       aws_session_token: str = "",
+                       auth_type: str = "role") -> int:
     """Add an AWS account connection for a user.
+
+    Supports two auth models distinguished by ``auth_type``:
+    ``'role'`` (IAM role assumption, uses ``iam_role_arn``/``external_id``) and
+    ``'keys'`` (UI-entered access keys, uses ``aws_access_key_id``/
+    ``aws_secret_access_key``/optional ``aws_session_token``). For key-based
+    rows ``iam_role_arn`` defaults to ``''``.
+
+    SECURITY: the secret access key (and session token) are stored in
+    PLAINTEXT — acceptable only for this localhost single-user demo.
 
     Returns:
         The new connection ``id``.
@@ -795,9 +840,13 @@ def add_aws_connection(conn: sqlite3.Connection, user_id: str,
     cur = conn.execute(
         "INSERT INTO aws_connections "
         "(user_id, connection_name, aws_account_id, iam_role_arn, "
-        "external_id, aws_region) VALUES (?, ?, ?, ?, ?, ?)",
+        "external_id, aws_region, aws_access_key_id, aws_secret_access_key, "
+        "aws_session_token, auth_type) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         (user_id, connection_name or f"AWS {aws_account_id}",
-         aws_account_id, iam_role_arn, external_id, aws_region),
+         aws_account_id, iam_role_arn, external_id, aws_region,
+         aws_access_key_id, aws_secret_access_key, aws_session_token,
+         auth_type),
     )
     conn.commit()
     logger.info(f"Added AWS connection {aws_account_id} for user {user_id}")

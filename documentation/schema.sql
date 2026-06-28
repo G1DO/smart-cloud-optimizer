@@ -69,6 +69,11 @@ CREATE TABLE IF NOT EXISTS aws_connections (
     iam_role_arn      TEXT    NOT NULL,                 -- 'arn:aws:iam::123456789012:role/CloudOptimizerReadOnly'
     external_id       TEXT,                             -- Extra security token for AssumeRole
     aws_region        TEXT    NOT NULL DEFAULT 'us-east-1',
+    -- SECURITY: key-based auth stores these in PLAINTEXT (localhost demo only).
+    aws_access_key_id     TEXT,                         -- auth_type='keys': UI-entered access key id
+    aws_secret_access_key TEXT,                         -- auth_type='keys': UI-entered secret (PLAINTEXT)
+    aws_session_token     TEXT,                         -- auth_type='keys': optional STS session token
+    auth_type         TEXT    NOT NULL DEFAULT 'role',  -- 'role' (AssumeRole) | 'keys' (access keys)
     access_verified   INTEGER NOT NULL DEFAULT 0,       -- 0=not tested, 1=verified working
     last_sync_at      TEXT,                             -- Last successful data pull
     sync_status       TEXT    NOT NULL DEFAULT 'never', -- 'never','success','failed','in_progress'
