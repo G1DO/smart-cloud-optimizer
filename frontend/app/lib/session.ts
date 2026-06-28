@@ -2,8 +2,10 @@ export type AwsConnection = {
     id: string;
     connectionName: string;
     awsAccountId: string;
-    iamRoleArn: string;
-    externalId: string;
+    accessKeyLast4?: string;
+    authType?: "keys" | "role";
+    iamRoleArn?: string;
+    externalId?: string;
     primaryRegion: string;
     status: "Connected" | "Not tested" | "Failed";
     syncStatus?: "never" | "success" | "failed" | "in_progress";
@@ -211,7 +213,9 @@ export function toAwsConnection(row: any): AwsConnection {
         id: String(row.id),
         connectionName: row.connection_name ?? "",
         awsAccountId: row.aws_account_id,
-        iamRoleArn: row.iam_role_arn,
+        accessKeyLast4: row.access_key_last4 ?? "",
+        authType: row.auth_type ?? "keys",
+        iamRoleArn: "",
         externalId: "",
         primaryRegion: row.aws_region,
         syncStatus,
