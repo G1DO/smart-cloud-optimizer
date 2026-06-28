@@ -34,6 +34,12 @@ services:
       AWS_REGION: "${AWS_REGION:-us-east-1}"
       AWS_ACCOUNT_ID: "${AWS_ACCOUNT_ID:-SYNTHETIC-001}"
       ONBOARDING_API_TOKEN: "${ONBOARDING_API_TOKEN:-}"
+      # Base AWS creds for the backend principal that does sts:AssumeRole when a
+      # real AWS account is connected from the UI. Empty for demo/synthetic.
+      AWS_ACCESS_KEY_ID: "${AWS_ACCESS_KEY_ID:-}"
+      AWS_SECRET_ACCESS_KEY: "${AWS_SECRET_ACCESS_KEY:-}"
+      AWS_SESSION_TOKEN: "${AWS_SESSION_TOKEN:-}"
+      AWS_DEFAULT_REGION: "${AWS_DEFAULT_REGION:-us-east-1}"
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health', timeout=3).status==200 else 1)"]
       interval: 30s
@@ -94,6 +100,12 @@ services:
       AWS_REGION: "${AWS_REGION:-us-east-1}"
       AWS_ACCOUNT_ID: "${AWS_ACCOUNT_ID:-SYNTHETIC-001}"
       ONBOARDING_API_TOKEN: "${ONBOARDING_API_TOKEN:-}"
+      # Base AWS creds for the backend principal that does sts:AssumeRole when a
+      # real AWS account is connected from the UI. Empty for demo/synthetic.
+      AWS_ACCESS_KEY_ID: "${AWS_ACCESS_KEY_ID:-}"
+      AWS_SECRET_ACCESS_KEY: "${AWS_SECRET_ACCESS_KEY:-}"
+      AWS_SESSION_TOKEN: "${AWS_SESSION_TOKEN:-}"
+      AWS_DEFAULT_REGION: "${AWS_DEFAULT_REGION:-us-east-1}"
     depends_on:
       backend:
         condition: service_healthy

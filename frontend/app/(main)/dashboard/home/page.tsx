@@ -732,7 +732,9 @@ export default function DashboardPage() {
     setIsDemoMode(demoMode);
 
     async function loadDashboardData() {
-      if (!demoMode) {
+      // Fetch for both demo and real workspaces; only bail when there is no
+      // resolved user_id at all (e.g. real auth missing) — mirrors costs/forecasts.
+      if (!resolvedUserId) {
         setDashboardData(null);
         setAllRecommendations([]);
         setRecommendationsSummary(undefined);
@@ -750,6 +752,16 @@ export default function DashboardPage() {
             resolvedUserId
           )}`
         );
+
+        // No data yet for this workspace (e.g. a real account before its first
+        // sync) — fall through to the existing empty state instead of erroring.
+        if (dashboardResponse.status === 404) {
+          setDashboardData(null);
+          setAllRecommendations([]);
+          setRecommendationsSummary(undefined);
+          setError(null);
+          return;
+        }
 
         if (!dashboardResponse.ok) {
           throw new Error("Failed to load dashboard data");
@@ -824,8 +836,6 @@ export default function DashboardPage() {
   }, [dashboardData]);
 
   const recommendations: Recommendation[] = useMemo(() => {
-    if (!isDemoMode) return [];
-
     if (allRecommendations.length > 0) {
       return allRecommendations.slice(0, 3).map((item) => ({
         id: item.id,
@@ -841,7 +851,7 @@ export default function DashboardPage() {
     }
 
     return [];
-  }, [allRecommendations, isDemoMode]);
+  }, [allRecommendations]);
 
   const anomalies = useMemo(() => {
     if (!dashboardData?.recent_anomalies?.length) return [];
@@ -892,31 +902,31 @@ export default function DashboardPage() {
       },
     ];
 
-  const totalCost = isDemoMode ? dashboardData?.summary?.total_cost ?? 0 : 0;
-  const potentialSavings = isDemoMode
+  const totalCost = dashboardData ? dashboardData?.summary?.total_cost ?? 0 : 0;
+  const potentialSavings = dashboardData
     ? recommendationsSummary?.potential_monthly_savings ??
     dashboardData?.summary?.potential_savings ??
     0
     : 0;
-  const recommendationsCount = isDemoMode
+  const recommendationsCount = dashboardData
     ? recommendationsSummary?.total_recommendations ??
     dashboardData?.summary?.recommendations_count ??
     0
     : 0;
-  const anomaliesCount = isDemoMode ? dashboardData?.summary?.anomalies_count ?? 0 : 0;
+  const anomaliesCount = dashboardData ? dashboardData?.summary?.anomalies_count ?? 0 : 0;
 
   const kpis: KPI[] = [
     {
       label: "Total Cloud Cost",
       value: formatCurrency(totalCost),
-      delta: isDemoMode ? "Last 30 days" : "No data available",
+      delta: dashboardData ? "Last 30 days" : "No data available",
       trend: "neutral",
       icon: "/icons/dashboard/money.png",
     },
     {
       label: "Potential Savings",
       value: `${formatCurrency(potentialSavings)}/mo`,
-      delta: isDemoMode ? `${recommendationsCount} recommendations` : "No data available",
+      delta: dashboardData ? `${recommendationsCount} recommendations` : "No data available",
       trend: "down",
       icon: "/icons/dashboard/saving.png",
     },
@@ -930,7 +940,7 @@ export default function DashboardPage() {
     {
       label: "Anomalies Detected",
       value: String(anomaliesCount),
-      delta: isDemoMode ? "Last 30 days" : "No data available",
+      delta: dashboardData ? "Last 30 days" : "No data available",
       trend: "neutral",
       icon: "/icons/dashboard/error.png",
     },
@@ -1029,7 +1039,7 @@ export default function DashboardPage() {
                   <p>Connected Account</p>
                   <span className="status-pill">
                     <span className="status-dot" />
-                    {isDemoMode ? "Healthy" : "No data"}
+                    {dashboardData ? "Healthy" : "No data"}
                   </span>
                 </div>
 
@@ -1043,23 +1053,23 @@ export default function DashboardPage() {
 
                   <div>
                     <span>Region Scope</span>
-                    <strong>{isDemoMode ? "Multi-region" : "No data"}</strong>
+                    <strong>{dashboardData ? "Multi-region" : "No data"}</strong>
                   </div>
 
                   <div>
                     <span>Optimization State</span>
-                    <strong>{isDemoMode ? "Active" : "No data"}</strong>
+                    <strong>{dashboardData ? "Active" : "No data"}</strong>
                   </div>
 
                   <div>
                     <span>Forecast Model</span>
-                    <strong>{isDemoMode ? "Prophet" : "No data"}</strong>
+                    <strong>{dashboardData ? "Prophet" : "No data"}</strong>
                   </div>
                 </div>
               </div>
 
               <div className="hero-panel-footer">
-                <span>{isDemoMode ? "Preview under 7 days" : "No usage data yet"}</span>
+                <span>{dashboardData ? "Preview under 7 days" : "No usage data yet"}</span>
                 <button
                   type="button"
                   onClick={() => router.push("/dashboard/guided-questions")}
