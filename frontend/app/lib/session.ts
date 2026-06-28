@@ -6,6 +6,10 @@ export type AwsConnection = {
     externalId: string;
     primaryRegion: string;
     status: "Connected" | "Not tested" | "Failed";
+    syncStatus?: "never" | "success" | "failed" | "in_progress";
+    lastSyncAt?: string | null;
+    errorMessage?: string;
+    accessVerified?: boolean;
 };
 
 export type SessionUser = {
@@ -197,5 +201,48 @@ export function deleteAwsConnection(id: string) {
 
     updateSessionUser({
         awsConnections: nextConnections,
+    });
+}
+
+export function toAwsConnection(row: any): AwsConnection {
+    const syncStatus = row.sync_status as AwsConnection["syncStatus"];
+
+    return {
+        id: String(row.id),
+        connectionName: row.connection_name ?? "",
+        awsAccountId: row.aws_account_id,
+        iamRoleArn: row.iam_role_arn,
+        externalId: "",
+        primaryRegion: row.aws_region,
+        syncStatus,
+        lastSyncAt: row.last_sync_at ?? null,
+        errorMessage: row.error_message ?? "",
+        accessVerified: Boolean(row.access_verified),
+        status:
+            syncStatus === "success"
+                ? "Connected"
+                : syncStatus === "failed"
+                ? "Failed"
+                : "Not tested",
+    };
+}
+
+export function activateConnectedWorkspace(awsAccountId: string, connections: AwsConnection[]) {
+    if (typeof window === "undefined") return;
+
+    const realUserId = `aws-${awsAccountId}`;
+
+    window.localStorage.setItem("auth_user_id", realUserId);
+    window.localStorage.setItem("demo_mode", "false");
+
+    window.localStorage.removeItem("selected_user");
+    window.localStorage.removeItem("selectedUser");
+    window.sessionStorage.removeItem("selected_user");
+    window.sessionStorage.removeItem("selectedUser");
+
+    updateSessionUser({
+        userId: realUserId,
+        awsAccountId,
+        awsConnections: connections,
     });
 }
