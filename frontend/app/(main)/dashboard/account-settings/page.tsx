@@ -1,15 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import "./account-settings.css";
 import {
   AwsConnection,
   SessionUser,
-  deleteAwsConnection,
+  activateConnectedWorkspace,
   getSessionUser,
+  toAwsConnection,
   updateSessionUser,
-  upsertAwsConnection,
 } from "@/app/lib/session";
 
 type TabType = "workspace" | "connections" | "runtime" | "platform";
@@ -37,8 +37,36 @@ type RuntimeSettings = {
   log_level: "DEBUG" | "INFO" | "WARNING" | "ERROR";
 };
 
+type ConnectionOut = {
+  id: number;
+  connection_name: string;
+  aws_account_id: string;
+  iam_role_arn: string;
+  aws_region: string;
+  access_verified: boolean;
+  sync_status: "never" | "success" | "failed" | "in_progress";
+  last_sync_at: string | null;
+  error_message: string;
+  connected_at: string;
+  data_user_id: string;
+};
+
+type ConnectionTestResult = {
+  ok: boolean;
+  account_id: string | null;
+  error: string | null;
+};
+
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL?.trim() || "http://127.0.0.1:8000";
+
+function isDemoUser(candidate: SessionUser | null): boolean {
+  return (
+    candidate?.userId === "aws-SYNTHETIC-001" ||
+    candidate?.awsAccountId === "SYNTHETIC-001" ||
+    Boolean(candidate?.email?.toLowerCase().includes("synthetic"))
+  );
+}
 
 const DEFAULT_SETTINGS: RuntimeSettings = {
   forecast_horizon_days: 30,
@@ -109,6 +137,10 @@ export default function AccountSettingsPage() {
   const [connectionMessage, setConnectionMessage] = useState("");
   const [testingConnection, setTestingConnection] = useState(false);
 
+  const [connections, setConnections] = useState<AwsConnection[]>([]);
+  const [syncingId, setSyncingId] = useState<string | null>(null);
+  const [syncAccountId, setSyncAccountId] = useState<string | null>(null);
+
   const [runtimeSettings, setRuntimeSettings] =
     useState<RuntimeSettings>(DEFAULT_SETTINGS);
   const [settingsEditable, setSettingsEditable] = useState(false);
@@ -123,6 +155,7 @@ export default function AccountSettingsPage() {
 
   useEffect(() => {
     syncUser();
+    refreshConnections();
   }, []);
 
   const isDemo =
@@ -130,7 +163,6 @@ export default function AccountSettingsPage() {
     user?.awsAccountId === "SYNTHETIC-001" ||
     user?.email?.toLowerCase().includes("synthetic");
 
-  const connections = useMemo(() => user?.awsConnections || [], [user]);
   const hasConnectedAccount = !isDemo && connections.length > 0;
 
   const userIdValue = isDemo ? "aws-SYNTHETIC-001" : user?.userId || "";
@@ -156,6 +188,56 @@ export default function AccountSettingsPage() {
     loadRuntimeSettings(userIdValue);
   }, [userIdValue, isDemo, hasConnectedAccount]);
 
+  useEffect(() => {
+    if (!syncingId || !syncAccountId) return;
+
+    const pollUserId = `aws-${syncAccountId}`;
+    let cancelled = false;
+
+    const poll = async () => {
+      try {
+        const response = await fetch(
+          `${API_BASE}/api/connections?user_id=${encodeURIComponent(pollUserId)}`,
+        );
+
+        if (!response.ok || cancelled) return;
+
+        const rows = (await response.json()) as ConnectionOut[];
+        if (cancelled) return;
+
+        const mapped = rows.map(toAwsConnection);
+        setConnections(mapped);
+
+        const row = mapped.find((item) => item.id === syncingId);
+        if (!row) return;
+
+        if (row.syncStatus === "success") {
+          setSyncingId(null);
+          setSyncAccountId(null);
+          setConnectionMessage(
+            "Sync complete. Switching to the synced workspace...",
+          );
+          activateConnectedWorkspace(syncAccountId, mapped);
+          router.push("/dashboard/costs");
+        } else if (row.syncStatus === "failed") {
+          setSyncingId(null);
+          setSyncAccountId(null);
+          setConnectionMessage(row.errorMessage || "Sync failed.");
+        }
+      } catch {
+        // Transient error — keep polling on the next tick.
+      }
+    };
+
+    poll();
+    const interval = window.setInterval(poll, 3000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [syncingId, syncAccountId, router]);
+
   function syncUser() {
     const currentUser = getSessionUser();
     setUser(currentUser);
@@ -163,6 +245,29 @@ export default function AccountSettingsPage() {
     setEmail(currentUser?.email || "");
     setImage(currentUser?.image || "");
   }
+
+  const refreshConnections = async (overrideUserId?: string) => {
+    if (typeof window === "undefined") return;
+
+    const currentUser = getSessionUser();
+    if (isDemoUser(currentUser)) return;
+
+    const currentUserId = overrideUserId || currentUser.userId;
+    if (!currentUserId) return;
+
+    try {
+      const response = await fetch(
+        `${API_BASE}/api/connections?user_id=${encodeURIComponent(currentUserId)}`,
+      );
+
+      if (!response.ok) return;
+
+      const rows = (await response.json()) as ConnectionOut[];
+      setConnections(rows.map(toAwsConnection));
+    } catch {
+      // Backend unreachable — leave the current list in place.
+    }
+  };
 
   const goToTab = (tab: TabType) => {
     setActiveTab(tab);
@@ -298,26 +403,58 @@ export default function AccountSettingsPage() {
     setConnectionMessage("");
   };
 
-  const handleTestConnection = () => {
+  const handleTestConnection = async () => {
+    if (isDemo) return;
+
+    if (
+      !connectionForm.connectionName ||
+      !connectionForm.awsAccountId ||
+      !connectionForm.iamRoleArn
+    ) {
+      setConnectionMessage(
+        "Connection name, AWS account ID, and IAM role ARN are required.",
+      );
+      return;
+    }
+
     setTestingConnection(true);
     setConnectionMessage("");
 
-    window.setTimeout(() => {
-      setTestingConnection(false);
+    try {
+      const response = await fetch(`${API_BASE}/api/connections/test`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          iam_role_arn: connectionForm.iamRoleArn,
+          external_id: connectionForm.externalId,
+          aws_region: connectionForm.primaryRegion,
+          aws_account_id: connectionForm.awsAccountId,
+        }),
+      });
 
-      if (
-        !connectionForm.connectionName ||
-        !connectionForm.awsAccountId ||
-        !connectionForm.iamRoleArn
-      ) {
-        setConnectionMessage(
-          "Connection name, AWS account ID, and IAM role ARN are required.",
-        );
+      const body = (await response
+        .json()
+        .catch(() => null)) as ConnectionTestResult | null;
+
+      if (!response.ok || !body) {
+        setConnectionMessage(body?.error || "Connection test failed.");
         return;
       }
 
-      setConnectionMessage("Connection test passed.");
-    }, 700);
+      if (body.ok) {
+        setConnectionMessage(
+          `Connection test passed${
+            body.account_id ? ` for account ${body.account_id}` : ""
+          }.`,
+        );
+      } else {
+        setConnectionMessage(body.error || "Connection test failed.");
+      }
+    } catch {
+      setConnectionMessage("Connection test failed.");
+    } finally {
+      setTestingConnection(false);
+    }
   };
 
   const resetConnectionForm = () => {
@@ -326,7 +463,9 @@ export default function AccountSettingsPage() {
     setConnectionMessage("");
   };
 
-  const handleAddOrUpdateConnection = () => {
+  const handleAddOrUpdateConnection = async () => {
+    if (isDemo) return;
+
     if (
       !connectionForm.connectionName ||
       !connectionForm.awsAccountId ||
@@ -336,23 +475,51 @@ export default function AccountSettingsPage() {
       return;
     }
 
-    const connection: AwsConnection = {
-      id: editingConnectionId || `conn-${Date.now()}`,
-      connectionName: connectionForm.connectionName.trim(),
-      awsAccountId: connectionForm.awsAccountId.trim(),
-      iamRoleArn: connectionForm.iamRoleArn.trim(),
-      externalId: connectionForm.externalId.trim(),
-      primaryRegion: connectionForm.primaryRegion,
-      status: "Connected",
-    };
+    try {
+      const response = await fetch(`${API_BASE}/api/connections`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          connection_name: connectionForm.connectionName.trim(),
+          aws_account_id: connectionForm.awsAccountId.trim(),
+          iam_role_arn: connectionForm.iamRoleArn.trim(),
+          external_id: connectionForm.externalId.trim(),
+          aws_region: connectionForm.primaryRegion,
+        }),
+      });
 
-    upsertAwsConnection(connection);
-    syncUser();
-    resetConnectionForm();
+      if (response.status === 409) {
+        setConnectionMessage("This AWS account is already connected.");
+        return;
+      }
 
-    setConnectionMessage(
-      editingConnectionId ? "Connection updated." : "Connection added.",
-    );
+      if (!response.ok) {
+        const err = (await response.json().catch(() => null)) as {
+          detail?: string;
+        } | null;
+        setConnectionMessage(err?.detail || "Failed to add connection.");
+        return;
+      }
+
+      const row = (await response.json()) as ConnectionOut;
+      const created = toAwsConnection(row);
+
+      setConnections((prev) => {
+        const index = prev.findIndex((item) => item.id === created.id);
+        if (index >= 0) {
+          const next = [...prev];
+          next[index] = created;
+          return next;
+        }
+        return [...prev, created];
+      });
+
+      await refreshConnections();
+      resetConnectionForm();
+      setConnectionMessage("Connection added.");
+    } catch {
+      setConnectionMessage("Failed to add connection.");
+    }
   };
 
   const handleEditConnection = (connection: AwsConnection) => {
@@ -368,12 +535,72 @@ export default function AccountSettingsPage() {
     goToTab("connections");
   };
 
-  const handleDeleteConnection = (id: string) => {
-    deleteAwsConnection(id);
-    syncUser();
+  const handleDeleteConnection = async (connection: AwsConnection) => {
+    if (isDemo) return;
 
-    if (editingConnectionId === id) {
-      resetConnectionForm();
+    try {
+      const response = await fetch(
+        `${API_BASE}/api/connections/${connection.id}?user_id=${encodeURIComponent(
+          `aws-${connection.awsAccountId}`,
+        )}`,
+        { method: "DELETE" },
+      );
+
+      if (!response.ok && response.status !== 404) {
+        setConnectionMessage("Failed to remove connection.");
+        return;
+      }
+
+      if (editingConnectionId === connection.id) {
+        resetConnectionForm();
+      }
+
+      setConnections((prev) =>
+        prev.filter((item) => item.id !== connection.id),
+      );
+      await refreshConnections();
+    } catch {
+      setConnectionMessage("Failed to remove connection.");
+    }
+  };
+
+  const handleSyncConnection = async (connection: AwsConnection) => {
+    if (isDemo) return;
+
+    const confirmed = window.confirm(
+      "Syncing replaces any existing data for this account. Continue?",
+    );
+    if (!confirmed) return;
+
+    const pollUserId = `aws-${connection.awsAccountId}`;
+    setConnectionMessage("");
+
+    try {
+      const response = await fetch(
+        `${API_BASE}/api/connections/${connection.id}/sync?user_id=${encodeURIComponent(
+          pollUserId,
+        )}`,
+        { method: "POST" },
+      );
+
+      if (response.status === 409) {
+        setConnectionMessage("A sync is already running for this account.");
+        return;
+      }
+
+      if (!response.ok) {
+        const err = (await response.json().catch(() => null)) as {
+          detail?: string;
+        } | null;
+        setConnectionMessage(err?.detail || "Failed to start sync.");
+        return;
+      }
+
+      setSyncingId(connection.id);
+      setSyncAccountId(connection.awsAccountId);
+      setConnectionMessage("Sync started. Collecting AWS data...");
+    } catch {
+      setConnectionMessage("Failed to start sync.");
     }
   };
 
@@ -683,6 +910,7 @@ export default function AccountSettingsPage() {
                   <th>IAM Role ARN</th>
                   <th>Region</th>
                   <th>Status</th>
+                  <th>Sync Status</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -708,7 +936,47 @@ export default function AccountSettingsPage() {
                       </span>
                     </td>
                     <td>
+                      {connection.syncStatus === "in_progress" ||
+                      syncingId === connection.id ? (
+                        <span className="aws-status-badge not-tested">
+                          Syncing...
+                        </span>
+                      ) : connection.syncStatus === "success" ? (
+                        <span className="aws-status-badge connected">
+                          Synced
+                          {connection.lastSyncAt
+                            ? ` · ${new Date(
+                                connection.lastSyncAt,
+                              ).toLocaleString()}`
+                            : ""}
+                        </span>
+                      ) : connection.syncStatus === "failed" ? (
+                        <span
+                          className="aws-status-badge failed"
+                          title={connection.errorMessage || ""}
+                        >
+                          Failed
+                        </span>
+                      ) : (
+                        <span className="aws-status-badge not-tested">
+                          Never
+                        </span>
+                      )}
+                    </td>
+                    <td>
                       <div className="aws-table-actions">
+                        <button
+                          type="button"
+                          className="settings-mini-btn"
+                          onClick={() => handleSyncConnection(connection)}
+                          disabled={
+                            syncingId === connection.id ||
+                            connection.syncStatus === "in_progress"
+                          }
+                        >
+                          {syncingId === connection.id ? "Syncing..." : "Sync"}
+                        </button>
+
                         <button
                           type="button"
                           className="settings-mini-btn"
@@ -720,7 +988,7 @@ export default function AccountSettingsPage() {
                         <button
                           type="button"
                           className="settings-mini-btn danger"
-                          onClick={() => handleDeleteConnection(connection.id)}
+                          onClick={() => handleDeleteConnection(connection)}
                         >
                           Remove
                         </button>
