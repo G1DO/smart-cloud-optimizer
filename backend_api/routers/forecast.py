@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import closing
 from pathlib import Path
 import hashlib
 import sqlite3
@@ -59,7 +60,7 @@ def _load_historical_costs(user_id: str, days: int = 365) -> pd.DataFrame:
         ORDER BY date ASC
     """
 
-    with _get_connection() as conn:
+    with closing(_get_connection()) as conn:
         df = pd.read_sql_query(query, conn, params=[user_id])
 
     if df.empty:
@@ -206,7 +207,7 @@ def _run_single_model(
 def get_forecast(
     user_id: str = Query(..., description="AWS user/account id"),
     model: str = Query("Prophet", description="Forecast model"),
-    horizon: int = Query(30, ge=1, le=90, description="Days to forecast"),
+    horizon: int = Query(30, ge=1, le=180, description="Days to forecast"),
 ):
     model_name = model.strip()
 
@@ -260,7 +261,7 @@ def get_forecast(
 @router.get("/forecast/compare")
 def compare_forecast_models(
     user_id: str = Query(..., description="AWS user/account id"),
-    horizon: int = Query(30, ge=1, le=90, description="Days to forecast"),
+    horizon: int = Query(30, ge=1, le=180, description="Days to forecast"),
 ):
     try:
         historical_df = _normalize_historical(_load_historical_costs(user_id=user_id, days=365))

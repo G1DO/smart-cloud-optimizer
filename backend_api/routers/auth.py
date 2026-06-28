@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import re
+import time
 from pathlib import Path
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from storage.db import (
@@ -22,6 +23,42 @@ DB_PATH = BASE_DIR.parent / "data" / "cloud_optimizer.db"
 EMAIL_PATTERN = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
 PASSWORD_PATTERN = re.compile(r"^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$")
 _schema_ready = False
+
+# Lightweight in-process throttle for auth endpoints (m7). Keyed by client IP,
+# stores monotonic timestamps of recent failed attempts. Not distributed/durable —
+# good enough to blunt brute-force/enumeration on a single-process backend.
+_THROTTLE_MAX_ATTEMPTS = 10
+_THROTTLE_WINDOW_SECONDS = 300
+_failed_attempts: dict[str, list[float]] = {}
+
+
+def _client_ip(request: Request) -> str:
+    return request.client.host if request.client else "unknown"
+
+
+def _enforce_throttle(request: Optional[Request]) -> Optional[str]:
+    """Raise 429 if the caller's IP has too many recent failures.
+
+    Returns the client IP for follow-up bookkeeping, or None for the direct
+    (non-HTTP) call path used by the contract tests, which is never throttled.
+    """
+    if request is None:
+        return None
+    ip = _client_ip(request)
+    cutoff = time.monotonic() - _THROTTLE_WINDOW_SECONDS
+    attempts = [t for t in _failed_attempts.get(ip, []) if t >= cutoff]
+    _failed_attempts[ip] = attempts
+    if len(attempts) >= _THROTTLE_MAX_ATTEMPTS:
+        raise HTTPException(
+            status_code=429,
+            detail="Too many attempts. Please wait a few minutes and try again.",
+        )
+    return ip
+
+
+def _record_failure(ip: Optional[str]) -> None:
+    if ip is not None:
+        _failed_attempts.setdefault(ip, []).append(time.monotonic())
 
 
 def get_db_connection():
@@ -62,7 +99,11 @@ class AuthResponse(BaseModel):
 
 
 @router.post("/login", response_model=AuthResponse)
-def login(payload: LoginRequest) -> AuthResponse:
+def login(payload: LoginRequest, request: Request = None) -> AuthResponse:
+    # `request` is injected by FastAPI on real HTTP calls and is None on the
+    # direct calls made by the contract tests; only the HTTP path is throttled.
+    client_ip = _enforce_throttle(request)
+
     email = payload.email.strip().lower()
     password = payload.password
 
@@ -76,8 +117,10 @@ def login(payload: LoginRequest) -> AuthResponse:
         conn.close()
 
     if user is None:
+        _record_failure(client_ip)
         raise HTTPException(status_code=401, detail="Invalid email or password.")
 
+    _failed_attempts.pop(client_ip, None)
     return AuthResponse(
         success=True,
         message="Login successful.",
@@ -90,7 +133,10 @@ def login(payload: LoginRequest) -> AuthResponse:
 
 
 @router.post("/signup", response_model=AuthResponse)
-def signup(payload: SignupRequest) -> AuthResponse:
+def signup(payload: SignupRequest, request: Request = None) -> AuthResponse:
+    # See login(): None on the contract-test path, injected on HTTP calls.
+    client_ip = _enforce_throttle(request)
+
     display_name = payload.display_name.strip()
     email = payload.email.strip().lower()
     password = payload.password
@@ -122,7 +168,14 @@ def signup(payload: SignupRequest) -> AuthResponse:
         try:
             user_id = register_user(conn, email, password, display_name)
         except ValueError as exc:
-            raise HTTPException(status_code=400, detail=str(exc)) from exc
+            # Soften register_user's message (e.g. "email already registered") to
+            # avoid account enumeration — a generic 400 doesn't confirm whether the
+            # address exists. Count it toward the throttle to slow scanning.
+            _record_failure(client_ip)
+            raise HTTPException(
+                status_code=400,
+                detail="Could not create account. Please check your details and try again.",
+            ) from exc
     finally:
         conn.close()
 

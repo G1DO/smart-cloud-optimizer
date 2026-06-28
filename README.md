@@ -73,7 +73,13 @@ GOOGLE_API_KEY=your_google_gemini_api_key_here
 GOOGLE_MODEL=gemini-2.5-flash
 AWS_REGION=us-east-1
 AWS_ACCOUNT_ID=SYNTHETIC-001
+DEMO_MODE=true
+ONBOARDING_API_TOKEN=
 ```
+
+`DEMO_MODE` defaults to `true` (synthetic demo data); set it to `false` to enable
+real AWS collection. `ONBOARDING_API_TOKEN` is optional and empty by default; when
+set, the AI onboarding endpoints require a matching `X-API-Token` header.
 
 Start the FastAPI backend:
 
@@ -150,12 +156,25 @@ Run the legacy Streamlit dashboard, if needed:
 streamlit run app.py
 ```
 
-Run optimizer and forecasting modules manually:
+Run the optimizer module manually:
 
 ```bash
 python -m optimizer --user-id aws-SYNTHETIC-001
-python -m ml_engine --user-id aws-SYNTHETIC-001
 ```
+
+Forecasting has no working CLI yet: `python -m ml_engine` is a non-functional
+placeholder that prints a notice and exits with status 1. Run forecasts via the
+dashboard Forecasts page or the FastAPI `GET /api/forecast` endpoint instead.
+
+Generate synthetic demo data into the SQLite database (`config.DB_PATH`):
+
+```bash
+python -m data_generation.synthetic --days 365 --user-id aws-SYNTHETIC-001
+```
+
+This writes rows for the given `--user-id`; it is intended for a fresh/empty
+database. Re-running overwrites that user's existing rows by primary key (it does
+not delete other rows).
 
 ## Project Structure
 
@@ -174,6 +193,28 @@ smart-cloud-optimizer/
   requirements.txt        Python dependencies
   .env.example            Backend environment template
 ```
+
+## Known Limitations and Security Notes
+
+These are deliberate, documented limitations of the current demo build, not bugs to
+work around. The app is intended for **localhost use with synthetic data**.
+
+- **Auth is client-trust / single-user-demo oriented.** Login and sign-up verify a
+  PBKDF2-hashed password but issue **no token or session cookie**. Every backend
+  data and settings endpoint trusts a `user_id` query parameter with no server-side
+  authorization check, so any client could read another user's data by supplying
+  their `user_id`. This is **not safe for multi-tenant or public deployment** — a
+  real deployment must add token/session auth and derive `user_id` server-side.
+- **AWS account connections are not verified or persisted server-side.** Connection
+  details entered in the UI are held client-side only; they are **not** persisted by
+  the backend and are **not** verified via `sts:AssumeRole`. The "Connected" status
+  is cosmetic in this demo. Real STS verification and server-side persistence are not
+  yet implemented.
+- **AI onboarding endpoint guards.** The `/api/ai-onboarding/generate` endpoint
+  rejects prompts longer than 4000 characters (HTTP 400) and returns HTTP 502 when
+  the upstream AI call fails (for example, when `GOOGLE_API_KEY` is unset). Setting
+  `ONBOARDING_API_TOKEN` requires callers to send a matching `X-API-Token` header;
+  it is off by default so the demo works with no token.
 
 ## Git Notes
 
