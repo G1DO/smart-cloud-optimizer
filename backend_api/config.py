@@ -11,14 +11,13 @@ import os
 from pathlib import Path
 from typing import NamedTuple
 
-from dotenv import load_dotenv
-
 # === Paths ===
-PROJECT_ROOT: Path = Path(__file__).parent
-DATA_DIR: Path = PROJECT_ROOT / "data"
-DB_PATH: Path = DATA_DIR / "cloud_optimizer.db"
 
-load_dotenv(PROJECT_ROOT / ".env")
+
+BACKEND_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = BACKEND_DIR.parent
+DATA_DIR = PROJECT_ROOT / "data"
+DB_PATH = DATA_DIR / "cloud_optimizer.db"
 
 # === Mode ===
 DEMO_MODE: bool = os.getenv("DEMO_MODE", "true").lower() == "true"
@@ -47,7 +46,6 @@ GOOGLE_MODEL: str = os.getenv("GOOGLE_MODEL", "gemini-2.5-flash")
 # === ML Defaults ===
 FORECAST_HORIZON_DAYS: int = 30
 MIN_TRAINING_DAYS: int = 30
-COLD_START_DAYS: int = 7
 SEASONALITY_PERIOD: int = 7
 
 # === Optimization ===

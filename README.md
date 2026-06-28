@@ -1,220 +1,189 @@
 # Smart Cloud Optimizer
 
-AI-powered AWS cloud cost optimization platform. Collects real AWS data (or uses open-source datasets for demo mode), forecasts usage with ML models, and recommends right-sizing and pricing strategies.
+OptiCloud is an AWS cloud cost optimization platform built with a FastAPI backend and a Next.js frontend. It supports authentication, demo data, AWS account connection settings, cost dashboards, forecasts, anomalies, and AI-guided recommendation generation.
 
-Includes user authentication (login/register with hashed passwords), multi-account AWS support via IAM role assumption, and a demo mode for exploring without credentials.
+Demo Mode loads synthetic AWS cost data so the app can be explored without AWS credentials. Normal user accounts start with empty dashboards until an AWS account is connected from Account Settings.
 
-All data is stored in a single SQLite database (`data/cloud_optimizer.db`) accessed through the `storage.db` module.
+## Tech Stack
 
-## Quick Start
+- Backend: Python 3.12, FastAPI, SQLite, pandas, Prophet, statsmodels, PuLP, Google Gemini
+- Frontend: Next.js 16, React 19, TypeScript, Plotly, Three.js
+- Database: SQLite at `data/cloud_optimizer.db`
 
-### Prerequisites
+## Prerequisites
 
-- Python 3.12+
-- AWS credentials (for real data collection)
+- Git
+- Python 3.12 or higher
+- Node.js 20 or higher
+- npm
+- Optional: AWS credentials or IAM role details for real AWS collection
+- Optional: Google Gemini API key for AI recommendation generation
 
-### Setup
+## Clone The Project
+
+```bash
+git clone <repository-url>
+cd smart-cloud-optimizer
+```
+
+## Backend Setup
+
+Create and activate a virtual environment from the project root:
 
 ```bash
 python -m venv venv
+```
+
+Windows PowerShell:
+
+```powershell
+.\venv\Scripts\Activate.ps1
+```
+
+macOS/Linux:
+
+```bash
 source venv/bin/activate
+```
+
+Install Python dependencies:
+
+```bash
 pip install -r requirements.txt
 ```
 
-### Launch the Dashboard
+Create a local environment file:
 
-```bash
-streamlit run app.py
+Windows PowerShell:
+
+```powershell
+Copy-Item .env.example .env
 ```
 
-The app opens at `http://localhost:8501` with a login screen. Choose **"Try Demo Mode"** to explore with pre-loaded synthetic data, or register an account to connect real AWS accounts.
+macOS/Linux:
 
-### Run Tests
+```bash
+cp .env.example .env
+```
+
+Update `.env` only if AI recommendations or real AWS settings are needed:
+
+```env
+GOOGLE_API_KEY=your_google_gemini_api_key_here
+GOOGLE_MODEL=gemini-2.5-flash
+AWS_REGION=us-east-1
+AWS_ACCOUNT_ID=SYNTHETIC-001
+```
+
+Start the FastAPI backend:
+
+```bash
+uvicorn backend_api.main:app --reload --host 127.0.0.1 --port 8000
+```
+
+The backend health check is available at `http://127.0.0.1:8000/health`.
+
+## Frontend Setup
+
+Open a second terminal:
+
+```bash
+cd frontend
+npm install
+```
+
+Create the local frontend environment file:
+
+Windows PowerShell:
+
+```powershell
+Copy-Item .env.local.example .env.local
+```
+
+macOS/Linux:
+
+```bash
+cp .env.local.example .env.local
+```
+
+Start the Next.js app:
+
+```bash
+npm run dev
+```
+
+Open `http://localhost:3000`.
+
+## Authentication Modes
+
+- Login: sign in with an existing email and password.
+- Sign Up: create a new account. Passwords are stored with PBKDF2-HMAC-SHA256 hashing.
+- Try Demo Mode: open a preloaded synthetic AWS workspace without registration.
+
+Demo Mode shows sample costs, forecasts, anomalies, and recommendations. New or existing real accounts show empty dashboard states until AWS account connection data is configured.
+
+## Useful Commands
+
+Run backend tests:
 
 ```bash
 python -m pytest tests/ -v
 ```
 
-### CLI Tools
+Run frontend lint:
 
 ```bash
-# Run optimizer (generates cost-saving recommendations)
-python -m optimizer --user-id aws-SYNTHETIC-001
-
-# Run ML forecasting
-python -m ml_engine --user-id aws-SYNTHETIC-001
+cd frontend
+npm run lint
 ```
 
-### Real Data Collection
+Build the frontend:
 
 ```bash
-# Requires configured AWS credentials
-python -m aws_collector.main
+cd frontend
+npm run build
+```
+
+Run the legacy Streamlit dashboard, if needed:
+
+```bash
+streamlit run app.py
+```
+
+Run optimizer and forecasting modules manually:
+
+```bash
+python -m optimizer --user-id aws-SYNTHETIC-001
+python -m ml_engine --user-id aws-SYNTHETIC-001
 ```
 
 ## Project Structure
 
-```
-cloud-gp/
-├── config.py                  # Project-wide settings (paths, DB_PATH, env)
-├── app.py                     # Streamlit entry point (auth gate + multi-page routing)
-├── requirements.txt
-│
-├── aws_collector/             # AWS data collection pipeline
-│   ├── config.py              # boto3 client config + IAM role assumption
-│   ├── runner.py              # Thin orchestrator (supports role-based collection)
-│   ├── metrics.py             # CloudWatch helpers + metric maps
-│   ├── transforms.py          # Data transformation helpers
-│   ├── pricing_constants.py   # Pricing lookup constants
-│   ├── main.py                # CLI entry point
-│   └── collectors/            # Service collectors (11 files)
-│       ├── base.py            # BaseCollector abstract class
-│       ├── ec2.py, rds.py, lambda_.py, s3.py
-│       ├── dynamodb.py, elasticache.py, ecs.py
-│       ├── nat_gateway.py, elb.py
-│       ├── cost.py            # Cost Explorer
-│       └── pricing.py         # AWS Pricing API
-│
-├── storage/                   # Data persistence layer
-│   └── db.py                  # SQLite gateway (30 tables, auth + insert_*/get_* API)
-│
-├── ml_engine/                 # ML forecasting engine
-│   ├── data_prep.py           # Data loading & feature engineering from DB
-│   ├── anomaly.py             # Anomaly detection (Z-score + IQR)
-│   ├── forecaster.py          # 5 forecasting models (Naive, SNaive, ETS, Prophet, SARIMAX)
-│   └── evaluator.py           # Cross-validation & model comparison
-│
-├── ai_module/                 # AI recommendation engine (Google Gemini)
-│   ├── guided_questions.py    # 9-question requirements gathering
-│   ├── prompt_builder.py      # Structured LLM prompt generation
-│   ├── recommender.py         # Gemini 2.5 Flash API integration
-│   └── ui.py                  # Streamlit recommendation display
-│
-├── optimizer/                 # Cost optimization (LP solver + rules)
-│   ├── compute_lp.py          # PuLP MILP for EC2/RDS right-sizing
-│   ├── rules.py               # 8 heuristic checks across services
-│   ├── engine.py              # Orchestrator (dedup + DB write)
-│   └── __main__.py            # CLI entry point
-│
-├── dashboard/                 # Streamlit dashboard (auth + 5 nav pages)
-│   ├── auth.py                # Login, register, demo mode, session management
-│   ├── components.py          # Reusable charts, cards, formatters, account switcher
-│   ├── home.py                # Overview metrics, top recommendations
-│   ├── costs.py               # Cost analysis with charts + date range
-│   ├── forecasts.py           # ML predictions + model comparison
-│   ├── recommendations.py     # Savings cards, filters, sorting
-│   └── settings.py            # User profile, AWS connections, parameters
-│
-├── data/
-│   └── cloud_optimizer.db     # SQLite database (all data)
-│
-├── documentation/             # Detailed docs → start with INDEX.md
-│
-└── tests/
-    ├── test_config.py
-    ├── test_date_utils.py
-    ├── test_storage.py
-    ├── test_synthetic.py
-    ├── test_ml_utils.py
-    ├── test_optimizer.py
-    ├── test_ai_module.py
-    └── test_auth.py           # Auth, password hashing, AWS connection CRUD
+```text
+smart-cloud-optimizer/
+  backend_api/            FastAPI routes and API startup
+  frontend/               Next.js app
+  storage/                SQLite schema, auth, and data access helpers
+  aws_collector/          AWS data collection modules
+  ml_engine/              Forecasting and anomaly detection
+  optimizer/              Cost optimization rules and LP solver
+  ai_module/              Guided questions and Gemini recommendations
+  dashboard/              Legacy Streamlit dashboard
+  data/                   SQLite database and synthetic data
+  tests/                  Backend and data tests
+  requirements.txt        Python dependencies
+  .env.example            Backend environment template
 ```
 
-## Architecture
+## Git Notes
 
-```
-aws_collector/                              ┌──> ml_engine   (forecasting)
-  (real AWS via IAM role) ──┐               ├──> optimizer   (cost optimization)
-                            ├──> storage ──>├──> ai_module   (AI recommendations)
-  pre-loaded synthetic data ┘    (SQLite)   └──> dashboard   (Streamlit UI)
-                                   │
-                            users + aws_connections
-                            (auth, multi-account)
-```
+Do not commit real secrets. The repository ignores `.env`, `.env.local`, virtual environments, `node_modules`, Next.js build output, and SQLite runtime files.
 
-```
-User ──> auth gate (login/register/demo) ──> sidebar nav ──> 5 pages
-                                                  │
-                                           account switcher
-                                           (select AWS account)
-```
+The files that should be committed for reproducible setup are:
 
-All data tables are keyed by `user_id` -- each AWS account's data is isolated. The `users` and `aws_connections` tables manage authentication and multi-account support.
+- `requirements.txt`
+- `frontend/package.json`
+- `frontend/package-lock.json`
+- `.env.example`
+- `frontend/.env.local.example`
 
-## Collected Data
-
-### Cost Explorer
-
-- Daily total cost per user
-- Cost by service (EC2, RDS, S3, Lambda, EBS, DynamoDB, ElastiCache, ECS, NATGateway, ELB)
-- Cost by service and region
-
-### CloudWatch Metrics
-
-| Service       | Metrics                                                        |
-|---------------|----------------------------------------------------------------|
-| EC2           | CPUUtilization, NetworkIn/Out, DiskRead/WriteOps               |
-| EBS           | ReadOps/WriteOps, ReadBytes/WriteBytes, IdleTime               |
-| RDS           | CPUUtilization, ReadIOPS/WriteIOPS, Connections, FreeStorage   |
-| ElastiCache   | CPUUtilization, Memory, Connections, CacheHits/Misses          |
-| ECS           | CPUUtilization, MemoryUtilization, TaskCount                   |
-| Lambda        | Invocations, Duration, Errors, Throttles, MemoryUsed           |
-| DynamoDB      | ConsumedRCU/WCU, ThrottledRequests                             |
-| S3            | BucketSizeBytes, NumberOfObjects                               |
-| NAT Gateway   | BytesIn/Out, PacketsIn/Out, ActiveConnections                  |
-| ELB/ALB       | RequestCount, HTTP 2xx/3xx/4xx/5xx, ProcessedBytes             |
-
-### Pricing
-
-- EC2 On-Demand, Reserved (1yr/3yr), Spot
-- RDS instance pricing
-- ElastiCache instance pricing
-
-All data is stored in **SQLite** via the `storage.db` module (30 tables total, including `users` and `aws_connections` for authentication).
-
-## Configuration
-
-| Variable         | Default       | Description                        |
-| ---------------- | ------------- | ---------------------------------- |
-| `DEMO_MODE`      | `true`        | Use sample data instead of AWS     |
-| `AWS_REGION`     | `us-east-1`   | Default AWS region                 |
-| `OPENAI_API_KEY` | --            | OpenAI key (legacy, unused)        |
-| `OPENAI_MODEL`   | `gpt-4o-mini` | OpenAI model (legacy, unused)      |
-| `GOOGLE_API_KEY` | --            | Google API key for AI recommendations |
-| `GOOGLE_MODEL`   | `gemini-2.5-flash` | Gemini model for AI module    |
-
-See [config.py](config.py) for all settings.
-
-## Documentation
-
-For detailed documentation, see [documentation/INDEX.md](documentation/INDEX.md).
-
-| Document | Description |
-|----------|-------------|
-| [QUICKSTART](documentation/QUICKSTART.md) | Setup and first run |
-| [STARTUP](documentation/STARTUP.md) | Dashboard launch and CLI tools |
-| [ARCHITECTURE](documentation/ARCHITECTURE.md) | System design |
-| [MODULES](documentation/MODULES.md) | File-by-file breakdown |
-| [DATA_SCHEMAS](documentation/DATA_SCHEMAS.md) | Database tables (30 tables) |
-| [STORAGE_API](documentation/STORAGE_API.md) | Storage function reference |
-| [CONFIGURATION](documentation/CONFIGURATION.md) | Environment variables and modes |
-
-## Requirements
-
-- `boto3` -- AWS SDK
-- `pandas`, `numpy` -- Data processing
-- `prophet`, `statsmodels`, `pmdarima` -- ML forecasting
-- `pulp` -- Optimization (MILP)
-- `google-genai` -- AI recommendations (Gemini 2.5 Flash)
-- `openai` -- Legacy (unused, kept for compatibility)
-- `streamlit`, `plotly` -- Dashboard
-- `matplotlib` -- Visualization
-- `python-dotenv`, `tenacity` -- Utilities
-- `pytest`, `pytest-cov` -- Testing
-
-For real data collection, AWS credentials need these IAM permissions:
-`ce:GetCostAndUsage`, `ce:GetAnomalies`, `cloudwatch:GetMetricStatistics`,
-`ec2:Describe*`, `pricing:GetProducts`, `rds:Describe*`,
-`lambda:ListFunctions`, `s3:ListBuckets`, `sts:GetCallerIdentity`,
-`elasticloadbalancing:Describe*`.

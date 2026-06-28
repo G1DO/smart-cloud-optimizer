@@ -1,0 +1,1427 @@
+@import "../../../styles/colors.css";
+
+/* =========================================================
+   PAGE
+========================================================= */
+
+.costs-shell {
+  min-height: 100vh;
+  background:
+    linear-gradient(180deg, #001a3198 50%, #001a3186 100%);
+}
+
+.costs-page {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  width: 100%;
+  min-width: 0;
+}
+
+/* =========================================================
+   HERO
+========================================================= */
+
+.costs-hero {
+  border-radius: 30px;
+  padding: 22px 28px 24px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.76), rgba(255, 255, 255, 0.46));
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  box-shadow: 0 20px 42px rgba(12, 44, 84, 0.08);
+  backdrop-filter: blur(10px);
+  position: relative;
+  overflow: hidden;
+}
+
+.costs-hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: #e8f0ff;
+  color: #1f66ff;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 800;
+  font-family: var(--font-prompt);
+}
+
+.costs-hero-badge-star {
+  font-size: 14px;
+}
+
+.costs-hero h1 {
+ margin: 10px 0 14px;
+  font-family: var(--font-tilt);
+  font-weight: 575;
+  font-size: 42px;
+  color: #072b58;
+  max-width: 780px;
+}
+
+.costs-hero h2 {
+  margin: 5px 0 14px;
+  font-size: 44px;
+  font-family: var(--font-tilt);
+  font-weight: 575;
+  background: linear-gradient(90deg, var(--darkblue), var(--blue));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.costs-hero p {
+  margin: 0;
+  max-width: 1500px;
+  font-size: 16px;
+  line-height: 1.8;
+  color: var(--darkgrey);
+  font-family: var(--font-prompt);
+  font-weight: 600;
+}
+
+/* =========================================================
+   FILTER CARD
+========================================================= */
+
+.costs-filters-card {
+  padding: 24px;
+  position: relative;
+  z-index: 12;
+  overflow: visible;
+}
+
+.costs-filters-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  align-items: end;
+}
+
+.costs-filter-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.costs-filter-row.custom-visible {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
+.costs-field {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.costs-field > span {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--greysub);
+  letter-spacing: 0.03em;
+}
+
+.costs-field input {
+  width: 100%;
+  height: 52px;
+  border-radius: 18px;
+  border: 1px solid rgba(18, 52, 96, 0.1);
+  background: rgba(255, 255, 255, 0.92);
+  padding: 0 16px;
+  color: #203553;
+  font-size: 15px;
+  font-weight: 700;
+  outline: none;
+  transition: 0.22s ease;
+}
+
+.costs-field input:focus {
+  border-color: rgba(31, 102, 255, 0.22);
+  box-shadow: 0 0 0 4px rgba(31, 102, 255, 0.06);
+  background: #ffffff;
+}
+
+/* =========================================================
+   CUSTOM DROPDOWN
+========================================================= */
+
+.costs-dropdown {
+  position: relative;
+  width: 100%;
+  display: block;
+}
+
+.costs-dropdown-trigger {
+  width: 100%;
+  min-height: 62px;
+  border-radius: 22px;
+  border: 1px solid rgba(18, 52, 96, 0.12);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.97),
+    rgba(247, 250, 255, 0.94)
+  );
+  padding: 12px 18px;
+  color: #173761;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  cursor: pointer;
+  outline: none;
+  box-shadow: 0 12px 28px rgba(15, 34, 68, 0.06);
+  transition: 0.22s ease;
+}
+
+.costs-dropdown-trigger:hover {
+  transform: translateY(-1px);
+  border-color: rgba(31, 102, 255, 0.18);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 1),
+    rgba(245, 249, 255, 0.97)
+  );
+}
+
+.costs-dropdown-trigger:focus-visible,
+.costs-dropdown.open .costs-dropdown-trigger {
+  border-color: rgba(31, 102, 255, 0.26);
+  box-shadow:
+    0 14px 30px rgba(15, 34, 68, 0.08),
+    0 0 0 4px rgba(31, 102, 255, 0.08);
+}
+
+.costs-dropdown-value-wrap {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-start;
+}
+
+.costs-dropdown-value-label {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 800;
+  color: rgba(23, 55, 97, 0.56);
+}
+
+.costs-dropdown-value {
+  font-size: 16px;
+  font-weight: 800;
+  color: #173761;
+  line-height: 1.1;
+}
+
+.costs-dropdown-arrow {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  color: #173761;
+  transition: transform 0.22s ease;
+}
+
+.costs-dropdown.open .costs-dropdown-arrow {
+  transform: rotate(180deg);
+}
+
+.costs-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  right: 0;
+  z-index: 50;
+  padding: 10px;
+  border-radius: 22px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.98),
+    rgba(246, 249, 255, 0.96)
+  );
+  border: 1px solid rgba(18, 52, 96, 0.1);
+  box-shadow:
+    0 22px 40px rgba(12, 44, 84, 0.12),
+    0 10px 20px rgba(12, 44, 84, 0.06);
+  backdrop-filter: blur(14px);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.costs-dropdown-menu::-webkit-scrollbar {
+  width: 8px;
+}
+
+.costs-dropdown-menu::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.costs-dropdown-menu::-webkit-scrollbar-thumb {
+  background: #103b7898;
+  border-radius: 999px;
+}
+
+.costs-dropdown-option {
+  width: 100%;
+  border: none;
+  background: transparent;
+  border-radius: 16px;
+  min-height: 52px;
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+  transition: 0.2s ease;
+  text-align: left;
+}
+
+.costs-dropdown-option:hover {
+  background: rgba(31, 102, 255, 0.08);
+}
+
+.costs-dropdown-option.active {
+  background: linear-gradient(90deg, #103c78 40%, #1f66ff 100%);
+  box-shadow: 0 10px 18px rgba(31, 102, 255, 0.16);
+}
+
+.costs-dropdown-option-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.costs-dropdown-option-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: #173761;
+}
+
+.costs-dropdown-option-subtitle {
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(23, 55, 97, 0.6);
+}
+
+.costs-dropdown-option.active .costs-dropdown-option-title,
+.costs-dropdown-option.active .costs-dropdown-option-subtitle {
+  color: #ffffff;
+}
+
+.costs-dropdown-check {
+  width: 18px;
+  height: 18px;
+  color: #ffffff;
+  opacity: 0;
+  flex-shrink: 0;
+}
+
+.costs-dropdown-option.active .costs-dropdown-check {
+  opacity: 1;
+}
+
+/* =========================================================
+   KPI CARDS
+========================================================= */
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.kpi-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 28px;
+  padding: 22px 22px 18px;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  box-shadow: 0 20px 42px rgba(12, 44, 84, 0.08);
+  backdrop-filter: blur(9px);
+  min-height: 194px;
+}
+
+.kpi-card--total {
+  background: linear-gradient(180deg, rgba(244, 255, 250, 0.92), rgba(239, 242, 138, 0.76));
+}
+
+.kpi-card--avg {
+  background: linear-gradient(180deg, rgba(244, 255, 250, 0.92), rgba(184, 246, 217, 0.76));
+}
+
+.kpi-card--min {
+  background: linear-gradient(180deg, rgba(244, 255, 250, 0.92), rgba(175, 185, 239, 0.92));
+}
+
+.kpi-card--max {
+  background: linear-gradient(180deg, rgba(244, 255, 250, 0.92), rgba(235, 167, 167, 0.76));
+}
+
+.kpi-card-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.kpi-card-top span {
+  font-size: 14px;
+  color: rgba(28, 37, 55, 0.78);
+  font-weight: 700;
+}
+
+.kpi-icon-bubble {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.58);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    0 8px 18px rgba(15, 34, 68, 0.05);
+  flex-shrink: 0;
+  color: #0f3f78;
+}
+
+.kpi-card--total .kpi-icon-bubble {
+  background: rgba(245, 235, 92, 0.575);
+}
+
+.kpi-card--avg .kpi-icon-bubble {
+  background: rgba(9, 185, 126, 0.16);
+}
+
+.kpi-card--min .kpi-icon-bubble {
+  background: rgba(11, 89, 245, 0.16);
+}
+
+.kpi-card--max .kpi-icon-bubble {
+  background: rgba(239, 68, 68, 0.16);
+}
+
+.kpi-logo-img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  display: block;
+}
+
+.kpi-card h3 {
+  margin: 18px 0 10px;
+  font-size: 32px;
+  color: #082a58;
+  font-family: var(--font-space);
+  line-height: 1;
+}
+
+.kpi-card p {
+  margin: 0;
+  font-size: 14px;
+  color: #58657b;
+  font-weight: 700;
+}
+
+.kpi-delta {
+  margin-top: 8px !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+}
+
+.kpi-delta.up {
+  color: #512c03;
+}
+
+.kpi-delta.neutral {
+  color: #58657b;
+}
+
+.kpi-line {
+  width: 112px;
+  height: 4px;
+  border-radius: 999px;
+  margin-top: 14px;
+}
+
+.kpi-card--total .kpi-line {
+  background: linear-gradient(90deg, #996202, #fbbf24);
+}
+
+.kpi-card--avg .kpi-line {
+  background: linear-gradient(90deg, #0a7954, #14e49f);
+}
+
+.kpi-card--min .kpi-line {
+  background: linear-gradient(90deg, #032d51, #0a82eb);
+}
+
+.kpi-card--max .kpi-line {
+  background: linear-gradient(90deg, #501717, #f87171);
+}
+
+/* =========================================================
+   STACKED LAYOUT
+========================================================= */
+
+.costs-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.costs-row-two {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  align-items: stretch;
+}
+
+.dashboard-card.costs-chart-card,
+.dashboard-card.costs-breakdown-card,
+.dashboard-card.costs-distribution-card,
+.dashboard-card.costs-timeline-card,
+.dashboard-card.costs-table-card,
+.dashboard-card.costs-records-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.dashboard-card.costs-chart-card {
+  min-height: 760px;
+}
+
+.dashboard-card.costs-breakdown-card,
+.dashboard-card.costs-distribution-card {
+  min-height: 600px;
+  padding: 24px 24px 22px;
+  overflow: hidden;
+}
+
+.dashboard-card.costs-timeline-card {
+  min-height: 570px;
+}
+
+.dashboard-card.costs-table-card,
+.dashboard-card.costs-records-card {
+  min-height: 420px;
+}
+
+/* =========================================================
+   SECTION HEADER
+========================================================= */
+
+.cost-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: nowrap;
+  margin-bottom: 14px;
+}
+
+.cost-card-title {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
+}
+
+.cost-card-title h3 {
+  margin: 0;
+  font-size: 24px;
+  color: rgb(0, 45, 119);
+  font-family: var(--font-space);
+  line-height: 1.1;
+}
+
+.cost-card-title p {
+  margin: 0;
+  color: rgba(9, 64, 113, 0.481);
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 800;
+}
+
+.cost-card-subline {
+  margin: 0;
+  color: var(--greysub);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.cost-title-inline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.cost-title-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: rgba(31, 102, 255, 0.08);
+  color: #1d4f91;
+  font-size: 13px;
+  font-weight: 800;
+  border: 1px solid rgba(31, 102, 255, 0.08);
+}
+
+/* =========================================================
+   TOOLBAR
+========================================================= */
+
+.cost-chart-tools {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: nowrap;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.cost-chart-tool-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 12px;
+  border: 1px solid rgba(17, 45, 86, 0.08);
+  background: rgba(255, 255, 255, 0.818);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: 0.2s ease;
+  color: #9aa6b6;
+  box-shadow: 0 6px 18px rgba(15, 34, 68, 0.05);
+}
+
+.cost-chart-tool-btn:hover {
+  transform: translateY(-1px);
+  background: #ffffff;
+  color: #65758b;
+  border-color: rgba(17, 45, 86, 0.12);
+}
+
+.cost-chart-tool-btn svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+
+/* مهم: اللوجوهات تفضل بألوانها الأصلية */
+.bar-icon-img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  display: block;
+  filter: brightness(0) saturate(100%) invert(16%) sepia(44%) saturate(2273%) hue-rotate(198deg) brightness(91%) contrast(96%);
+}
+
+.cost-plotly-shell {
+  width: 100%;
+  flex: 1;
+  position: relative;
+}
+
+.cost-plotly-chart-wrap {
+  width: 100%;
+  min-height: 460px;
+}
+
+.cost-plotly-chart-wrap.short {
+  min-height: 560px;
+}
+
+.cost-plotly-chart-wrap.pie-large {
+  min-height: 520px;
+}
+
+.cost-plotly-chart,
+.cost-plotly-chart .js-plotly-plot,
+.cost-plotly-chart .plot-container,
+.cost-plotly-chart .svg-container {
+  width: 100% !important;
+}
+
+.daily-main-plot-shell {
+  display: flex;
+  flex: 1;
+  min-height: 560px;
+}
+
+.daily-main-plot-wrap {
+  flex: 1;
+  min-height: 560px;
+}
+
+.daily-main-plot,
+.daily-main-plot .js-plotly-plot,
+.daily-main-plot .plot-container,
+.daily-main-plot .svg-container {
+  height: 560px !important;
+}
+
+.cost-plotly-shell:fullscreen {
+  background: #f8fbff;
+  padding: 24px;
+  border-radius: 0;
+  overflow: auto;
+}
+
+/* =========================================================
+   SERVICE CHIPS
+========================================================= */
+
+.service-toolbar-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 10px;
+}
+
+.service-selector-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.service-chip {
+  border: 1px solid rgba(17, 45, 86, 0.08);
+  background: rgba(255, 255, 255, 0.74);
+  color: #203553;
+  border-radius: 999px;
+  min-height: 40px;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 800;
+  transition: 0.2s ease;
+}
+
+.service-chip:hover {
+  transform: translateY(-1px);
+  background: rgba(240, 246, 255, 0.95);
+}
+
+.service-chip.active {
+  box-shadow: 0 10px 18px rgba(17, 45, 86, 0.08);
+}
+
+.service-chip-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.service-show-all-btn {
+  border: 1px solid rgba(17, 45, 86, 0.08);
+  background: rgba(255, 255, 255, 0.92);
+  color: #1d3e6b;
+  border-radius: 999px;
+  min-height: 40px;
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 800;
+  box-shadow: 0 6px 18px rgba(15, 34, 68, 0.05);
+  transition: 0.2s ease;
+}
+
+.service-show-all-btn:hover {
+  transform: translateY(-1px);
+  background: #ffffff;
+}
+
+.service-selector-note {
+  margin: 0;
+  color: #6b7a90;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* =========================================================
+   TABLES
+========================================================= */
+
+.cost-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: 560px;
+  border-radius: 20px;
+  border: 1px solid rgba(17, 45, 86, 0.653);
+  background: rgba(255, 255, 255, 0.748);
+}
+
+.cost-table-wrap.slim {
+  max-height: 520px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #103b7898 transparent;
+}
+
+.cost-table-wrap.slim::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.cost-table-wrap.slim::-webkit-scrollbar-track {
+  background: transparent;
+  margin-block: 10px;
+}
+
+.cost-table-wrap.slim::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+    180deg,
+    rgba(16, 59, 120, 0.76),
+    rgba(31, 102, 255, 0.62)
+  );
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.cost-table-wrap.slim::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(
+    180deg,
+    rgba(16, 59, 120, 0.92),
+    rgba(31, 102, 255, 0.78)
+  );
+}
+
+.cost-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  min-width: 620px;
+}
+
+.cost-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  text-align: left;
+  padding: 16px 18px;
+  font-size: 14px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: white;
+  background: var(--darkblue);
+  border-bottom: 1px solid rgba(22, 50, 80, 0.347);
+}
+
+.cost-table tbody td {
+  padding: 16px 18px;
+  border-bottom: 1px solid rgba(22, 50, 80, 0.347);
+  color: #001938d7;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.cost-table tbody tr:hover {
+  background: rgba(22, 50, 80, 0.315);
+}
+
+.cost-table-service {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cost-table-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.cost-inline-bar {
+  width: 140px;
+  height: 8px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(9, 65, 113, 0.08);
+}
+
+.cost-inline-bar-fill {
+  height: 100%;
+  border-radius: inherit;
+}
+
+.cost-records-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.cost-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: #364963;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cost-toggle input {
+  accent-color: #1f66ff;
+}
+
+.cost-empty-state {
+  min-height: 220px;
+  border-radius: 22px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  background: linear-gradient(180deg, rgba(244, 248, 255, 0.82), rgba(235, 242, 252, 0.62));
+  border: 1px solid rgba(31, 102, 255, 0.08);
+  padding: 24px;
+}
+
+.cost-empty-state strong {
+  display: block;
+  font-size: 18px;
+  color: #0d2d56;
+  margin-bottom: 8px;
+}
+
+.costs-breakdown-card .cost-card-head,
+.costs-distribution-card .cost-card-head {
+  align-items: flex-start;
+}
+
+.costs-breakdown-card .cost-chart-tools,
+.costs-distribution-card .cost-chart-tools {
+  align-self: flex-start;
+}
+
+/* =========================================================
+   COST DISTRIBUTION CUSTOM LAYOUT
+========================================================= */
+
+.cost-distribution-total {
+  margin-top: -2px;
+  font-size: 36px;
+  line-height: 1;
+  font-weight: 900;
+  color: #2f6fff;
+  font-family: var(--font-space);
+}
+
+.cost-distribution-total-label {
+  margin-top: 6px;
+  margin-bottom: 14px;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 800;
+  color: rgba(9, 64, 113, 0.56);
+}
+
+.cost-distribution-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.72fr) minmax(170px, 0.42fr);
+  gap: 10px;
+  align-items: stretch;
+  flex: 1;
+  min-height: 0;
+}
+
+.cost-distribution-chart {
+  min-width: 0;
+  display: flex;
+  align-items: stretch;
+}
+
+.cost-distribution-chart .cost-plotly-shell,
+.cost-distribution-chart .cost-plotly-chart-wrap {
+  flex: 1;
+}
+
+.cost-distribution-side {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+}
+
+.cost-distribution-list {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cost-distribution-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(17, 45, 86, 0.06);
+  min-height: 48px;
+}
+
+.cost-distribution-service {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.cost-distribution-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.cost-distribution-name {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: #223b63;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cost-distribution-share {
+  font-size: 12.5px;
+  font-weight: 900;
+  color: #223b63;
+}
+
+.costs-breakdown-card .cost-plotly-chart-wrap,
+.costs-distribution-card .cost-plotly-chart-wrap {
+  min-height: 460px;
+}
+
+.costs-distribution-card .cost-plotly-chart-wrap,
+.costs-distribution-card .cost-plotly-chart,
+.costs-distribution-card .cost-plotly-chart .js-plotly-plot,
+.costs-distribution-card .cost-plotly-chart .plot-container,
+.costs-distribution-card .cost-plotly-chart .svg-container {
+  height: 520px !important;
+}
+
+.costs-breakdown-card .cost-plotly-chart,
+.costs-breakdown-card .cost-plotly-chart .js-plotly-plot,
+.costs-breakdown-card .cost-plotly-chart .plot-container,
+.costs-breakdown-card .cost-plotly-chart .svg-container {
+  height: 460px !important;
+}
+
+/* =========================================================
+   EXPORT BUTTONS
+========================================================= */
+
+.costs-table-card .card-link-btn,
+.costs-records-card .card-link-btn {
+  border: 1px solid rgba(17, 45, 86, 0.04);
+  background: linear-gradient(135deg, #103c78 40%, #1f66ff 100%);
+  color: #ffffff;
+}
+
+.costs-table-card .card-link-btn:hover,
+.costs-records-card .card-link-btn:hover {
+  background: linear-gradient(135deg, #0d3569 0%, #195ee7 100%);
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 10px 10px rgba(22, 50, 80, 0.367);
+}
+
+/* =========================================================
+   DARK MODE
+========================================================= */
+
+.dashboard-dark.costs-shell {
+  background:
+    linear-gradient(180deg, #07111d 0%, #0a1626 48%, #0d1c2f 100%);
+}
+
+.dashboard-dark .costs-hero,
+.dashboard-dark .costs-filters-card,
+.dashboard-dark .kpi-card,
+.dashboard-dark .dashboard-card.costs-chart-card,
+.dashboard-dark .dashboard-card.costs-breakdown-card,
+.dashboard-dark .dashboard-card.costs-distribution-card,
+.dashboard-dark .dashboard-card.costs-timeline-card,
+.dashboard-dark .dashboard-card.costs-table-card,
+.dashboard-dark .dashboard-card.costs-records-card {
+  background: linear-gradient(180deg, rgba(14, 24, 38, 0.94), rgba(14, 24, 38, 0.82));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 20px 42px rgba(0, 0, 0, 0.22);
+}
+
+.dashboard-dark .costs-hero-badge,
+.dashboard-dark .cost-title-pill {
+  background: rgba(96, 165, 250, 0.12);
+  color: #bcd8ff;
+  border-color: rgba(96, 165, 250, 0.18);
+}
+
+.dashboard-dark .costs-hero h1,
+.dashboard-dark .cost-card-title h3,
+.dashboard-dark .kpi-card h3,
+.dashboard-dark .cost-distribution-name,
+.dashboard-dark .cost-distribution-share,
+.dashboard-dark .cost-empty-state strong {
+  color: #f4f8ff;
+}
+
+.dashboard-dark .costs-hero h2 {
+  background: linear-gradient(90deg, #82b7ff, #49a7ff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.dashboard-dark .costs-hero p,
+.dashboard-dark .cost-card-subline,
+.dashboard-dark .kpi-card p,
+.dashboard-dark .kpi-card-top span,
+.dashboard-dark .cost-card-title p,
+.dashboard-dark .service-selector-note,
+.dashboard-dark .cost-toggle,
+.dashboard-dark .cost-empty-state,
+.dashboard-dark .cost-empty-state p {
+  color: rgba(236, 244, 255, 0.74);
+}
+
+.dashboard-dark .costs-field span,
+.dashboard-dark .cost-table thead th {
+  color: rgba(236, 244, 255, 0.64);
+}
+
+.dashboard-dark .costs-field input,
+.dashboard-dark .service-chip,
+.dashboard-dark .service-show-all-btn,
+.dashboard-dark .cost-chart-tool-btn,
+.dashboard-dark .cost-table-wrap,
+.dashboard-dark .cost-distribution-item,
+.dashboard-dark .cost-empty-state,
+.dashboard-dark .card-link-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #edf4ff;
+}
+
+.dashboard-dark .costs-field input:focus {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(96, 165, 250, 0.25);
+  box-shadow: 0 0 0 4px rgba(96, 165, 250, 0.1);
+}
+
+.dashboard-dark .service-chip:hover,
+.dashboard-dark .service-show-all-btn:hover,
+.dashboard-dark .cost-chart-tool-btn:hover,
+.dashboard-dark .card-link-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.dashboard-dark .cost-table-wrap {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.dashboard-dark .cost-table-wrap.slim {
+  scrollbar-color: rgba(96, 165, 250, 0.28) transparent;
+}
+
+.dashboard-dark .cost-table-wrap.slim::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+    180deg,
+    rgba(96, 165, 250, 0.28),
+    rgba(59, 130, 246, 0.36)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.dashboard-dark .cost-table-wrap.slim::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(
+    180deg,
+    rgba(96, 165, 250, 0.42),
+    rgba(59, 130, 246, 0.52)
+  );
+}
+
+.dashboard-dark .cost-table thead th {
+  background: var(--darkblue);
+  color: #ffffff;
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+.dashboard-dark .cost-table tbody td {
+  color: #edf4ff;
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+.dashboard-dark .cost-table tbody tr:hover {
+  background: rgba(96, 165, 250, 0.08);
+}
+
+.dashboard-dark .cost-inline-bar,
+.dashboard-dark .service-bar {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.dashboard-dark .cost-distribution-item {
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.dashboard-dark .cost-distribution-total {
+  color: #7fb2ff;
+}
+
+.dashboard-dark .cost-distribution-total-label {
+  color: rgba(236, 244, 255, 0.58);
+}
+
+.dashboard-dark .cost-plotly-shell:fullscreen {
+  background: #0c1522;
+}
+
+.dashboard-dark .kpi-delta.neutral,
+.dashboard-dark .forecast-kpi-delta.neutral {
+  color: rgba(236, 244, 255, 0.72);
+}
+
+.dashboard-dark .kpi-icon-bubble {
+  color: #eef4ff;
+}
+
+
+.dashboard-dark .bar-icon-img ,
+.dashboard-dark .kpi-logo-img
+{
+  filter: brightness(0) invert(1);
+
+}
+
+/* custom dropdown dark */
+.dashboard-dark .costs-dropdown-trigger {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.06),
+    rgba(255, 255, 255, 0.04)
+  );
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: none;
+}
+
+.dashboard-dark .costs-dropdown-trigger:hover {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.08),
+    rgba(255, 255, 255, 0.06)
+  );
+}
+
+.dashboard-dark .costs-dropdown-trigger:focus-visible,
+.dashboard-dark .costs-dropdown.open .costs-dropdown-trigger {
+  border-color: rgba(96, 165, 250, 0.26);
+  box-shadow: 0 0 0 4px rgba(96, 165, 250, 0.1);
+}
+
+.dashboard-dark .costs-dropdown-value-label {
+  color: rgba(236, 244, 255, 0.56);
+}
+
+.dashboard-dark .costs-dropdown-value,
+.dashboard-dark .costs-dropdown-arrow {
+  color: #edf4ff;
+}
+
+.dashboard-dark .costs-dropdown-menu {
+  background: linear-gradient(
+    180deg,
+    rgba(12, 21, 34, 0.98),
+    rgba(14, 24, 38, 0.96)
+  );
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 24px 40px rgba(0, 0, 0, 0.32);
+}
+
+.dashboard-dark .costs-dropdown-menu::-webkit-scrollbar-thumb {
+  background: rgba(96, 165, 250, 0.28);
+}
+
+.dashboard-dark .costs-dropdown-option:hover {
+  background: rgba(96, 165, 250, 0.1);
+}
+
+.dashboard-dark .costs-dropdown-option-title {
+  color: #edf4ff;
+}
+
+.dashboard-dark .costs-dropdown-option-subtitle {
+  color: rgba(236, 244, 255, 0.62);
+}
+
+/* export buttons dark keep blue */
+.dashboard-dark .costs-table-card .card-link-btn,
+.dashboard-dark .costs-records-card .card-link-btn {
+  background: linear-gradient(135deg, #103c78 0%, #1f66ff 100%);
+  color: #ffffff;
+  border-color: rgba(96, 165, 250, 0.14);
+}
+
+.dashboard-dark .costs-table-card .card-link-btn:hover,
+.dashboard-dark .costs-records-card .card-link-btn:hover {
+  background: linear-gradient(135deg, #0d3569 0%, #195ee7 100%);
+  color: #ffffff;
+}
+
+/* ================= PLOTLY AXES DARK MODE FIX ================= */
+
+.dashboard-dark .cost-plotly-chart .xtick text,
+.dashboard-dark .cost-plotly-chart .ytick text,
+.dashboard-dark .cost-plotly-chart .g-xtitle text,
+.dashboard-dark .cost-plotly-chart .g-ytitle text,
+.dashboard-dark .cost-plotly-chart .legend text {
+  fill: #eaf2ff !important;
+}
+
+.dashboard-dark .cost-plotly-chart .xaxislayer-above path,
+.dashboard-dark .cost-plotly-chart .yaxislayer-above path,
+.dashboard-dark .cost-plotly-chart .xaxislayer-below path,
+.dashboard-dark .cost-plotly-chart .yaxislayer-below path {
+  stroke: rgba(255, 255, 255, 0.18) !important;
+}
+
+.dashboard-dark .cost-plotly-chart .xgrid path,
+.dashboard-dark .cost-plotly-chart .ygrid path {
+  stroke: rgba(255, 255, 255, 0.12) !important;
+}
+
+.dashboard-dark .cost-plotly-chart .zerolinelayer path,
+.dashboard-dark .cost-plotly-chart .xlines-above path,
+.dashboard-dark .cost-plotly-chart .ylines-above path {
+  stroke: rgba(255, 255, 255, 0.14) !important;
+}
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 1280px) {
+  .kpi-grid,
+  .costs-row-two {
+    grid-template-columns: 1fr;
+  }
+
+  .costs-filter-row.custom-visible {
+    grid-template-columns: 1fr;
+  }
+
+  .cost-distribution-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .cost-card-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .cost-chart-tools {
+    justify-content: flex-start;
+  }
+
+  .cost-distribution-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .cost-distribution-side {
+    justify-content: stretch;
+  }
+}
+
+@media (max-width: 640px) {
+  .costs-hero {
+    padding: 20px;
+  }
+
+  .costs-hero h1 {
+    font-size: 34px;
+  }
+
+  .costs-hero h2 {
+    font-size: 28px;
+  }
+
+  .kpi-card {
+    padding: 20px;
+  }
+
+  .dashboard-card.costs-chart-card {
+    min-height: 620px;
+  }
+
+  .daily-main-plot-shell,
+  .daily-main-plot-wrap,
+  .cost-plotly-chart-wrap.short,
+  .daily-main-plot,
+  .daily-main-plot .js-plotly-plot,
+  .daily-main-plot .plot-container,
+  .daily-main-plot .svg-container {
+    min-height: 420px !important;
+    height: 420px !important;
+  }
+
+  .dashboard-card.costs-breakdown-card,
+  .dashboard-card.costs-distribution-card {
+    min-height: 540px;
+    padding: 20px;
+  }
+
+  .costs-breakdown-card .cost-plotly-chart-wrap {
+    min-height: 400px;
+  }
+
+  .costs-distribution-card .cost-plotly-chart-wrap {
+    min-height: 420px;
+  }
+
+  .costs-breakdown-card .cost-plotly-chart,
+  .costs-breakdown-card .cost-plotly-chart .js-plotly-plot,
+  .costs-breakdown-card .cost-plotly-chart .plot-container,
+  .costs-breakdown-card .cost-plotly-chart .svg-container {
+    height: 400px !important;
+  }
+
+  .costs-distribution-card .cost-plotly-chart,
+  .costs-distribution-card .cost-plotly-chart .js-plotly-plot,
+  .costs-distribution-card .cost-plotly-chart .plot-container,
+  .costs-distribution-card .cost-plotly-chart .svg-container {
+    height: 420px !important;
+  }
+
+  .cost-distribution-total {
+    font-size: 28px;
+  }
+}
