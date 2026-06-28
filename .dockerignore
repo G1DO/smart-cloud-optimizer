@@ -1,0 +1,48 @@
+# Keep the build context lean. NOTE: data/cloud_optimizer.db is intentionally
+# NOT ignored — the image must ship the committed demo DB.
+
+# VCS
+.git
+.gitignore
+
+# Python virtualenv / caches
+venv
+.venv
+**/__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.egg-info
+.pytest_cache
+.pytest_tmp
+.coverage
+htmlcov
+
+# Node / frontend (built by frontend/Dockerfile, not this image)
+node_modules
+frontend/node_modules
+frontend/.next
+frontend/out
+
+# Docs, paper, and thesis build scratch
+docs-gp
+paper
+documentation
+CODE_REVIEW_PR2.md
+
+# Scratch / temp
+scratchpad
+*.log
+*.tmp
+backups
+
+# SQLite runtime/backup sidecars (the primary .db is kept)
+data/*.backup
+data/*.db-shm
+data/*.db-wal
+data/real
+
+# Secrets / local env (env is passed via compose)
+.env
+.env.*
+!.env.example
