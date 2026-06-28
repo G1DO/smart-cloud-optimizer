@@ -71,20 +71,40 @@ class CollectorRunner:
                         conn=None) -> "CollectorRunner":
         """Create a runner from an aws_connections row.
 
+        Branches on the connection's auth type:
+
+        * **keys** — ``auth_type == "keys"`` (or an ``aws_access_key_id`` is
+          present): authenticate with UI-entered access keys via
+          :meth:`AWSConfig.from_keys`.
+        * **role** — otherwise: assume the IAM role via
+          :meth:`AWSConfig.from_role`.
+
         Args:
-            connection: Dict with ``iam_role_arn``, ``external_id``,
-                ``aws_region``, ``aws_account_id``.
+            connection: Dict with either ``aws_access_key_id`` /
+                ``aws_secret_access_key`` (+ optional ``aws_session_token``)
+                for key auth, or ``iam_role_arn`` / ``external_id`` for role
+                auth, plus ``aws_region``, ``aws_account_id``, ``auth_type``.
             user_id: The data-user_id (``"aws-{account_id}"``).
             conn: Optional SQLite connection.
 
         Returns:
             A configured :class:`CollectorRunner`.
         """
-        aws_cfg = AWSConfig.from_role(
-            role_arn=connection["iam_role_arn"],
-            external_id=connection.get("external_id", ""),
-            region=connection.get("aws_region", "us-east-1"),
-        )
+        if connection.get("auth_type") == "keys" or connection.get(
+            "aws_access_key_id"
+        ):
+            aws_cfg = AWSConfig.from_keys(
+                access_key_id=connection["aws_access_key_id"],
+                secret_access_key=connection["aws_secret_access_key"],
+                session_token=connection.get("aws_session_token", "") or "",
+                region=connection.get("aws_region", "us-east-1"),
+            )
+        else:
+            aws_cfg = AWSConfig.from_role(
+                role_arn=connection["iam_role_arn"],
+                external_id=connection.get("external_id", "") or "",
+                region=connection.get("aws_region", "us-east-1"),
+            )
         return cls(config=aws_cfg, conn=conn, user_id=user_id)
 
     def run(self, months: int = 12) -> None:

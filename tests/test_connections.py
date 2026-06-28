@@ -1,8 +1,12 @@
 """Tests for the real-AWS connection backend (backend_api/routers/connections).
 
 Fully hermetic: a temporary SQLite DB, no real AWS, no network. AWS access is
-either mocked with moto (@mock_aws) or monkeypatched at AWSConfig.from_role /
+either mocked with moto (@mock_aws) or monkeypatched at AWSConfig.from_keys /
 CollectorRunner.from_connection so the blocking collector never runs.
+
+The connection model is UI-entered AWS access keys: the user pastes an access
+key id + secret (+ optional session token); the secret is stored server-side
+and must NEVER appear in any API response.
 """
 from __future__ import annotations
 
@@ -17,7 +21,8 @@ from backend_api.main import app
 from backend_api.routers import connections
 from storage import db as storage_db
 
-ROLE_ARN = "arn:aws:iam::123456789012:role/CloudOptimizerReadOnly"
+ACCESS_KEY_ID = "AKIAIOSFODNN7EXAMPLE"
+SECRET_KEY = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
 ACCOUNT_ID = "123456789012"
 
 
@@ -57,12 +62,16 @@ class _FakeCfg:
 
 def test_test_happy_path_monkeypatched(client, monkeypatch):
     monkeypatch.setattr(
-        connections.AWSConfig, "from_role", lambda *a, **k: _FakeCfg()
+        connections.AWSConfig, "from_keys", lambda *a, **k: _FakeCfg()
     )
 
     resp = client.post(
         "/api/connections/test",
-        json={"iam_role_arn": ROLE_ARN, "aws_region": "us-east-1"},
+        json={
+            "aws_access_key_id": ACCESS_KEY_ID,
+            "aws_secret_access_key": SECRET_KEY,
+            "aws_region": "us-east-1",
+        },
     )
     assert resp.status_code == 200
     body = resp.json()
@@ -72,48 +81,48 @@ def test_test_happy_path_monkeypatched(client, monkeypatch):
 
 
 def test_test_happy_path_real_moto(client, monkeypatch):
-    """Real-moto variant: mock STS assume_role + get_caller_identity and the
-    other clients AWSConfig eagerly builds. Falls back to the monkeypatch path
+    """Real-moto variant: the supplied keys hit moto's STS, whose
+    get_caller_identity returns a 12-digit moto account. Falls back to a skip
     if moto cannot satisfy AWSConfig.__init__.
     """
     moto = pytest.importorskip("moto")
-    monkeypatch.setenv("AWS_ACCESS_KEY_ID", "testing")
-    monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "testing")
     monkeypatch.setenv("AWS_DEFAULT_REGION", "us-east-1")
 
-    trust_policy = (
-        '{"Version":"2012-10-17","Statement":[{"Effect":"Allow",'
-        '"Principal":{"AWS":"*"},"Action":"sts:AssumeRole"}]}'
-    )
-
     with moto.mock_aws():
-        import boto3
-
-        iam = boto3.client("iam", region_name="us-east-1")
-        role = iam.create_role(
-            RoleName="CloudOptimizerReadOnly",
-            AssumeRolePolicyDocument=trust_policy,
-        )["Role"]
-        role_arn = role["Arn"]
-
         try:
             resp = client.post(
                 "/api/connections/test",
-                json={"iam_role_arn": role_arn, "aws_region": "us-east-1"},
+                json={
+                    "aws_access_key_id": ACCESS_KEY_ID,
+                    "aws_secret_access_key": SECRET_KEY,
+                    "aws_region": "us-east-1",
+                },
             )
         except Exception as exc:  # pragma: no cover - moto incompat fallback
             pytest.skip(f"moto cannot satisfy AWSConfig.__init__: {exc}")
 
     assert resp.status_code == 200
     body = resp.json()
-    # moto's assumed identity is a 12-digit account id.
+    # moto's identity is a 12-digit account id.
     assert body["ok"] is True, body
     assert body["account_id"] and len(body["account_id"]) == 12
 
 
-def test_test_malformed_arn_is_400(client):
+def test_test_malformed_key_is_400(client):
     resp = client.post(
-        "/api/connections/test", json={"iam_role_arn": "not-an-arn"}
+        "/api/connections/test",
+        json={
+            "aws_access_key_id": "not-a-key",
+            "aws_secret_access_key": SECRET_KEY,
+        },
+    )
+    assert resp.status_code == 400
+
+
+def test_test_missing_secret_is_400(client):
+    resp = client.post(
+        "/api/connections/test",
+        json={"aws_access_key_id": ACCESS_KEY_ID, "aws_secret_access_key": ""},
     )
     assert resp.status_code == 400
 
@@ -121,35 +130,24 @@ def test_test_malformed_arn_is_400(client):
 def test_test_failure_returns_200_not_500(client, monkeypatch):
     def boom(*a, **k):
         raise ClientError(
-            {"Error": {"Code": "AccessDenied", "Message": "denied"}},
-            "AssumeRole",
+            {"Error": {"Code": "InvalidClientTokenId", "Message": "invalid"}},
+            "GetCallerIdentity",
         )
 
-    monkeypatch.setattr(connections.AWSConfig, "from_role", boom)
-
-    resp = client.post(
-        "/api/connections/test", json={"iam_role_arn": ROLE_ARN}
-    )
-    assert resp.status_code == 200
-    body = resp.json()
-    assert body["ok"] is False
-    assert body["error"]
-
-
-def test_test_account_mismatch(client, monkeypatch):
-    monkeypatch.setattr(
-        connections.AWSConfig, "from_role", lambda *a, **k: _FakeCfg("999999999999")
-    )
+    monkeypatch.setattr(connections.AWSConfig, "from_keys", boom)
 
     resp = client.post(
         "/api/connections/test",
-        json={"iam_role_arn": ROLE_ARN, "aws_account_id": ACCOUNT_ID},
+        json={
+            "aws_access_key_id": ACCESS_KEY_ID,
+            "aws_secret_access_key": SECRET_KEY,
+        },
     )
     assert resp.status_code == 200
     body = resp.json()
     assert body["ok"] is False
-    assert "mismatch" in body["error"]
-    assert body["account_id"] == "999999999999"
+    assert body["account_id"] is None
+    assert body["error"]
 
 
 # ---------------------------------------------------------------------------
@@ -160,10 +158,11 @@ def test_test_account_mismatch(client, monkeypatch):
 def _save_payload(name: str = "Prod") -> dict:
     return {
         "connection_name": name,
-        "aws_account_id": ACCOUNT_ID,
-        "iam_role_arn": ROLE_ARN,
-        "external_id": "secret-xyz",
+        "aws_access_key_id": ACCESS_KEY_ID,
+        "aws_secret_access_key": SECRET_KEY,
+        "aws_session_token": "",
         "aws_region": "us-east-1",
+        "aws_account_id": ACCOUNT_ID,
     }
 
 
@@ -173,10 +172,36 @@ def test_save_then_duplicate_conflict(client):
     body = resp.json()
     assert body["aws_account_id"] == ACCOUNT_ID
     assert body["data_user_id"] == f"aws-{ACCOUNT_ID}"
-    assert "external_id" not in body  # secret never exposed
+    assert body["auth_type"] == "keys"
+    assert body["access_key_last4"] == ACCESS_KEY_ID[-4:]
+    # SECURITY: secrets never exposed.
+    assert "aws_secret_access_key" not in body
+    assert "aws_session_token" not in body
+    assert "external_id" not in body
+    assert "iam_role_arn" not in body
 
     dup = client.post("/api/connections", json=_save_payload("Prod2"))
     assert dup.status_code == 409
+
+
+def test_save_derives_account_via_from_keys(client, monkeypatch):
+    """When aws_account_id is omitted it is resolved from the keys."""
+    monkeypatch.setattr(
+        connections.AWSConfig, "from_keys", lambda *a, **k: _FakeCfg()
+    )
+    payload = _save_payload()
+    del payload["aws_account_id"]
+
+    resp = client.post("/api/connections", json=payload)
+    assert resp.status_code == 200
+    assert resp.json()["aws_account_id"] == ACCOUNT_ID
+
+
+def test_save_malformed_key_is_400(client):
+    payload = _save_payload()
+    payload["aws_access_key_id"] = "AKIA-short"
+    resp = client.post("/api/connections", json=payload)
+    assert resp.status_code == 400
 
 
 def test_save_malformed_account_is_400(client):
@@ -184,6 +209,28 @@ def test_save_malformed_account_is_400(client):
     payload["aws_account_id"] = "12"
     resp = client.post("/api/connections", json=payload)
     assert resp.status_code == 400
+
+
+def test_save_stores_secret_and_auth_type(client, tmp_path):
+    """The secret + auth_type must be persisted server-side for later sync."""
+    resp = client.post("/api/connections", json=_save_payload())
+    assert resp.status_code == 200
+
+    db_path = tmp_path / "connections.db"
+    conn = storage_db.get_connection(db_path)
+    try:
+        rows = storage_db._rows_to_dicts(
+            conn.execute(
+                "SELECT * FROM aws_connections WHERE aws_account_id = ?",
+                (ACCOUNT_ID,),
+            )
+        )
+    finally:
+        conn.close()
+    assert len(rows) == 1
+    assert rows[0]["aws_secret_access_key"] == SECRET_KEY
+    assert rows[0]["aws_access_key_id"] == ACCESS_KEY_ID
+    assert rows[0]["auth_type"] == "keys"
 
 
 def test_list_and_delete(client):
@@ -196,7 +243,8 @@ def test_list_and_delete(client):
     rows = listed.json()
     assert len(rows) == 1
     assert rows[0]["id"] == conn_id
-    assert "external_id" not in rows[0]
+    assert "aws_secret_access_key" not in rows[0]
+    assert "aws_session_token" not in rows[0]
 
     wrong = client.delete(
         f"/api/connections/{conn_id}", params={"user_id": "aws-000000000000"}
@@ -220,9 +268,15 @@ def test_test_sets_access_verified_on_saved_row(client, monkeypatch):
     assert before[0]["access_verified"] is False
 
     monkeypatch.setattr(
-        connections.AWSConfig, "from_role", lambda *a, **k: _FakeCfg()
+        connections.AWSConfig, "from_keys", lambda *a, **k: _FakeCfg()
     )
-    resp = client.post("/api/connections/test", json={"iam_role_arn": ROLE_ARN})
+    resp = client.post(
+        "/api/connections/test",
+        json={
+            "aws_access_key_id": ACCESS_KEY_ID,
+            "aws_secret_access_key": SECRET_KEY,
+        },
+    )
     assert resp.json()["ok"] is True
 
     after = client.get("/api/connections", params={"user_id": owner}).json()
