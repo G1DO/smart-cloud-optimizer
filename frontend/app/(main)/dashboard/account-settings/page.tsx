@@ -504,19 +504,28 @@ export default function AccountSettingsPage() {
       }
 
       const row = (await response.json()) as ConnectionOut;
-      const created = toAwsConnection(row);
+      const savedConn = toAwsConnection(row);
 
-      setConnections((prev) => {
-        const index = prev.findIndex((item) => item.id === created.id);
-        if (index >= 0) {
-          const next = [...prev];
-          next[index] = created;
-          return next;
-        }
-        return [...prev, created];
-      });
+      const nextConnections = connections.some(
+        (item) => item.id === savedConn.id,
+      )
+        ? connections.map((item) =>
+            item.id === savedConn.id ? savedConn : item,
+          )
+        : [...connections, savedConn];
 
-      await refreshConnections();
+      setConnections(nextConnections);
+
+      // Switch the active workspace at save time. The connection is self-owned
+      // under `aws-<accountId>`, but the session id right after login is the
+      // login id — a list query keyed by it returns nothing after navigation.
+      // Activating here makes the session id `aws-<accountId>` immediately so the
+      // list query matches and the Sync button survives navigation/reload. Use
+      // the account id from the saved response (the form's may be blank since it
+      // is auto-detected).
+      activateConnectedWorkspace(savedConn.awsAccountId, nextConnections);
+
+      await refreshConnections(`aws-${savedConn.awsAccountId}`);
       resetConnectionForm();
       setConnectionMessage("Connection added.");
     } catch {
