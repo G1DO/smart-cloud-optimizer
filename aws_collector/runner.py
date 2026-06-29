@@ -127,7 +127,10 @@ class CollectorRunner:
         storage.clear_user_data(self.conn, self.user_id)
         self.conn.commit()
 
-        month_ranges = get_last_n_months(months)
+        # Collect newest month first so the most-relevant recent data (what the
+        # dashboards' default ranges show) lands and commits first, instead of
+        # waiting out 12 months of older data before anything appears.
+        month_ranges = list(reversed(get_last_n_months(months)))
         total_months = len(month_ranges)
 
         for month_idx, (start_date, end_date) in enumerate(month_ranges, 1):
