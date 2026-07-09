@@ -3,7 +3,7 @@
 An AI-powered AWS cost-optimization platform: a **FastAPI** backend wrapping four engines (cost optimizer, ML forecaster, AI advisor, AWS collector) behind a **Next.js** dashboard. It collects real AWS cost/usage data (or ships synthetic demo data), forecasts spend, detects anomalies, and recommends right-sizing and pricing changes.
 
 > **Demo Mode (default).** The app ships with a pre-loaded synthetic AWS dataset (committed in the demo DB) — no AWS credentials needed. Sign in, or click **Try Demo Mode**, to explore costs, forecasts, anomalies, and recommendations immediately. Real user accounts start with empty dashboards until an AWS account is connected from **Account Settings**.
-
+V
 ---
 
 ## How it works
