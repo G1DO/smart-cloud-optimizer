@@ -1,0 +1,20 @@
+\begin{table}[t]
+\caption{Runtime and clone-stress diagnostics for the generated evidence script. GWA Bitbrains/Materna raw-trace parsing runtimes are recorded in \texttt{trace\_provenance.md}; Azure raw parsing runtime was not recorded because the raw \texttt{vmtable.csv.gz} input was not restored. These diagnostics are not a hardware-normalized scalability study.}
+\label{tab:runtime}
+\centering
+\renewcommand{\arraystretch}{1.06}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{@{}l r r r r r l@{}}
+\toprule
+Experiment & $n$ & Vars & Solves & Solve s & Peak MB & Status \\
+\midrule
+baseline sweep & 10 & 1624 & 14 & 0.117 & 114.1 & computed \\
+ablation sweep & 10 & 3480 & 30 & 0.248 & 118.6 & computed \\
+rule-set ablation & 10 & 0 & 0 & 0.557 & 118.6 & computed \\
+EC2 MILP stress n=100 & 100 & 2800 & 1 & 0.071 & 120.4 & Optimal \\
+EC2 MILP stress n=500 & 500 & 14000 & 1 & 0.396 & 141.5 & Optimal \\
+EC2 MILP stress n=1000 & 1000 & 28000 & 1 & 1.285 & 171.4 & Optimal \\
+evidence script total & 10 & 49904 & 47 & 7.860 & 171.4 & computed \\
+\bottomrule
+\end{tabular}}
+\end{table}

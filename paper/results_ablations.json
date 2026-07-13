@@ -1,0 +1,5840 @@
+{
+  "ablations": [
+    {
+      "budget_ratio": null,
+      "comparable": true,
+      "cost_policy": "failed service-level solves are kept at current inventory cost for diagnostics only; partial/failed rows are not comparable savings estimates",
+      "cpu_exceedance_pct": 1.25,
+      "current_monthly": 1241.58,
+      "decision_variables": 232,
+      "dimension": "percentile q",
+      "downsized": 9,
+      "failed_services": {},
+      "fallback_cpu_exceedance_pct": 1.25,
+      "fallback_optimized_monthly": 478.0,
+      "fallback_savings_monthly": 763.58,
+      "fallback_savings_pct": 61.5,
+      "fallback_service_breakdown": {
+        "aggregate": {
+          "current_monthly": 1241.58,
+          "delta_monthly": -763.58,
+          "delta_pct": -61.501,
+          "optimized_monthly": 478.0,
+          "savings_monthly": 763.58,
+          "savings_pct": 61.501
+        },
+        "services": {
+          "EC2": {
+            "current_monthly": 843.73,
+            "delta_monthly": -400.77,
+            "delta_pct": -47.5,
+            "optimized_monthly": 442.96,
+            "savings_monthly": 400.77,
+            "savings_pct": 47.5
+          },
+          "RDS": {
+            "current_monthly": 397.85,
+            "delta_monthly": -362.81,
+            "delta_pct": -91.193,
+            "optimized_monthly": 35.04,
+            "savings_monthly": 362.81,
+            "savings_pct": 91.193
+          }
+        }
+      },
+      "headroom": 1.3,
+      "label": "q=0.75, h=1.3",
+      "level": "0.75",
+      "memory_mode": "observed",
+      "optimized_monthly": 478.0,
+      "q": 0.75,
+      "resources": 10,
+      "savings_monthly": 763.58,
+      "savings_pct": 61.5,
+      "service_breakdown": {
+        "aggregate": {
+          "current_monthly": 1241.58,
+          "delta_monthly": -763.58,
+          "delta_pct": -61.501,
+          "optimized_monthly": 478.0,
+          "savings_monthly": 763.58,
+          "savings_pct": 61.501
+        },
+        "services": {
+          "EC2": {
+            "current_monthly": 843.73,
+            "delta_monthly": -400.77,
+            "delta_pct": -47.5,
+            "optimized_monthly": 442.96,
+            "savings_monthly": 400.77,
+            "savings_pct": 47.5
+          },
+          "RDS": {
+            "current_monthly": 397.85,
+            "delta_monthly": -362.81,
+            "delta_pct": -91.193,
+            "optimized_monthly": 35.04,
+            "savings_monthly": 362.81,
+            "savings_pct": 91.193
+          }
+        }
+      },
+      "solve_meta": [
+        {
+          "budget_cap": null,
+          "candidates": 28,
+          "constraints": 24,
+          "decision_variables": 224,
+          "label": "q=0.75, h=1.3:EC2",
+          "objective": 442.964,
+          "resources": 8,
+          "solve_seconds": 0.012123,
+          "status": "Optimal"
+        },
+        {
+          "budget_cap": null,
+          "candidates": 4,
+          "constraints": 4,
+          "decision_variables": 8,
+          "label": "q=0.75, h=1.3:RDS",
+          "objective": 23.36,
+          "resources": 2,
+          "solve_seconds": 0.005881,
+          "status": "Optimal"
+        }
+      ],
+      "solve_seconds": 0.018004,
+      "solver": "PuLP CBC",
+      "stat": "percentile",
+      "status": "Optimal",
+      "upsized": 0
+    },
+    {
+      "budget_ratio": null,
+      "comparable": true,
+      "cost_policy": "failed service-level solves are kept at current inventory cost for diagnostics only; partial/failed rows are not comparable savings estimates",
+      "cpu_exceedance_pct": 0.0,
+      "current_monthly": 1241.58,
+      "decision_variables": 232,
+      "dimension": "percentile q",
+      "downsized": 8,
+      "failed_services": {},
+      "fallback_cpu_exceedance_pct": 0.0,
+      "fallback_optimized_monthly": 1005.65,
+      "fallback_savings_monthly": 235.94,
+      "fallback_savings_pct": 19.003,
+      "fallback_service_breakdown": {
+        "aggregate": {
+          "current_monthly": 1241.58,
+          "delta_monthly": -235.93,
+          "delta_pct": -19.002,
+          "optimized_monthly": 1005.65,
+          "savings_monthly": 235.93,
+          "savings_pct": 19.002
+        },
+        "services": {
+          "EC2": {
+            "current_monthly": 843.73,
+            "delta_monthly": 126.87,
+            "delta_pct": 15.037,
+            "optimized_monthly": 970.61,
+            "savings_monthly": -126.87,
+            "savings_pct": -15.037
+          },
+          "RDS": {
+            "current_monthly": 397.85,
+            "delta_monthly": -362.81,
+            "delta_pct": -91.193,
+            "optimized_monthly": 35.04,
+            "savings_monthly": 362.81,
+            "savings_pct": 91.193
+          }
+        }
+      },
+      "headroom": 1.3,
+      "label": "q=0.90, h=1.3",
+      "level": "0.90",
+      "memory_mode": "observed",
+      "optimized_monthly": 1005.65,
+      "q": 0.9,
+      "resources": 10,
+      "savings_monthly": 235.94,
+      "savings_pct": 19.003,
+      "service_breakdown": {
+        "aggregate": {
+          "current_monthly": 1241.58,
+          "delta_monthly": -235.93,
+          "delta_pct": -19.002,
+          "optimized_monthly": 1005.65,
+          "savings_monthly": 235.93,
+          "savings_pct": 19.002
+        },
+        "services": {
+          "EC2": {
+            "current_monthly": 843.73,
+            "delta_monthly": 126.87,
+            "delta_pct": 15.037,
+            "optimized_monthly": 970.61,
+            "savings_monthly": -126.87,
+            "savings_pct": -15.037
+          },
+          "RDS": {
+            "current_monthly": 397.85,
+            "delta_monthly": -362.81,
+            "delta_pct": -91.193,
+            "optimized_monthly": 35.04,
+            "savings_monthly": 362.81,
+            "savings_pct": 91.193
+          }
+        }
+      },
+      "solve_meta": [
+        {
+          "budget_cap": null,
+          "candidates": 28,
+          "constraints": 24,
+          "decision_variables": 224,
+          "label": "q=0.90, h=1.3:EC2",
+          "objective": 970.608,
+          "resources": 8,
+          "solve_seconds": 0.010814,
+          "status": "Optimal"
+        },
+        {
+          "budget_cap": null,
+          "candidates": 4,
+          "constraints": 4,
+          "decision_variables": 8,
+          "label": "q=0.90, h=1.3:RDS",
+          "objective": 23.36,
+          "resources": 2,
+          "solve_seconds": 0.005571,
+          "status": "Optimal"
+        }
+      ],
+      "solve_seconds": 0.016385,
+      "solver": "PuLP CBC",
+      "stat": "percentile",
+      "status": "Optimal",
+      "upsized": 2
+    },
+    {
+      "budget_ratio": null,
+      "comparable": true,
+      "cost_policy": "failed service-level solves are kept at current inventory cost for diagnostics only; partial/failed rows are not comparable savings estimates",
+      "cpu_exceedance_pct": 0.0,
+      "current_monthly": 1241.58,
+      "decision_variables": 232,
+      "dimension": "percentile q",
+      "downsized": 8,
+      "failed_services": {},
+      "fallback_cpu_exceedance_pct": 0.0,
+      "fallback_optimized_monthly": 1005.65,
+      "fallback_savings_monthly": 235.94,
+      "fallback_savings_pct": 19.003,
+      "fallback_service_breakdown": {
+        "aggregate": {
+          "current_monthly": 1241.58,
+          "delta_monthly": -235.93,
+          "delta_pct": -19.002,
+          "optimized_monthly": 1005.65,
+          "savings_monthly": 235.93,
+          "savings_pct": 19.002
+        },
+        "services": {
+          "EC2": {
+            "current_monthly": 843.73,
+            "delta_monthly": 126.87,
+            "delta_pct": 15.037,
+            "optimized_monthly": 970.61,
+            "savings_monthly": -126.87,
+            "savings_pct": -15.037
+          },
+          "RDS": {
+            "current_monthly": 397.85,
+            "delta_monthly": -362.81,
+            "delta_pct": -91.193,
+            "optimized_monthly": 35.04,
+            "savings_monthly": 362.81,
+            "savings_pct": 91.193
+          }
+        }
+      },
+      "headroom": 1.3,
+      "label": "q=0.95, h=1.3",
+      "level": "0.95",
+      "memory_mode": "observed",
+      "optimized_monthly": 1005.65,
+      "q": 0.95,
+      "resources": 10,
+      "savings_monthly": 235.94,
+      "savings_pct": 19.003,
+      "service_breakdown": {
+        "aggregate": {
+          "current_monthly": 1241.58,
+          "delta_monthly": -235.93,
+          "delta_pct": -19.002,
+          "optimized_monthly": 1005.65,
+          "savings_monthly": 235.93,
+          "savings_pct": 19.002
+        },
+        "services": {
+          "EC2": {
+            "current_monthly": 843.73,
+            "delta_monthly": 126.87,
+            "delta_pct": 15.037,
+            "optimized_monthly": 970.61,
+            "savings_monthly": -126.87,
+            "savings_pct": -15.037
+          },
+          "RDS": {
+            "current_monthly": 397.85,
+            "delta_monthly": -362.81,
+            "delta_pct": -91.193,
+            "optimized_monthly": 35.04,
+            "savings_monthly": 362.81,
+            "savings_pct": 91.193
+          }
+        }
+      },
+      "solve_meta": [
+        {
+          "budget_cap": null,
+          "candidates": 28,
+          "constraints": 24,
+          "decision_variables": 224,
+          "label": "q=0.95, h=1.3:EC2",
+          "objective": 970.608,
+          "resources": 8,
+          "solve_seconds": 0.01167,
+          "status": "Optimal"
+        },
+        {
+          "budget_cap": null,
+          "candidates": 4,
+          "constraints": 4,
+          "decision_variables": 8,
+          "label": "q=0.95, h=1.3:RDS",
+          "objective": 23.36,
+          "resources": 2,
+          "solve_seconds": 0.005878,
+          "status": "Optimal"
+        }
+      ],
+      "solve_seconds": 0.017548,
+      "solver": "PuLP CBC",
+      "stat": "percentile",
+      "status": "Optimal",
+      "upsized": 2
+    },
+    {
+      "budget_ratio": null,
+      "comparable": true,
+      "cost_policy": "failed service-level solves are kept at current inventory cost for diagnostics only; partial/failed rows are not comparable savings estimates",
+      "cpu_exceedance_pct": 0.0,
+      "current_monthly": 1241.58,
+      "decision_variables": 232,
+      "dimension": "percentile q",
+      "downsized": 6,
+      "failed_services": {},
+      "fallback_cpu_exceedance_pct": 0.0,
+      "fallback_optimized_monthly": 1140.55,
+      "fallback_savings_monthly": 101.03,
+      "fallback_savings_pct": 8.137,
+      "fallback_service_breakdown": {
+        "aggregate": {
+          "current_monthly": 1241.58,
+          "delta_monthly": -101.03,
+          "delta_pct": -8.137,
+          "optimized_monthly": 1140.55,
+          "savings_monthly": 101.03,
+          "savings_pct": 8.137
+        },
+        "services": {
+          "EC2": {
+            "current_monthly": 843.73,
+            "delta_monthly": 261.78,
+            "delta_pct": 31.026,
+            "optimized_monthly": 1105.51,
+            "savings_monthly": -261.78,
+            "savings_pct": -31.026
+          },
+          "RDS": {
+            "current_monthly": 397.85,
+            "delta_monthly": -362.81,
+            "delta_pct": -91.193,
+            "optimized_monthly": 35.04,
+            "savings_monthly": 362.81,
+            "savings_pct": 91.193
+          }
+        }
+      },
+      "headroom": 1.3,
+      "label": "q=0.99, h=1.3",
+      "level": "0.99",
+      "memory_mode": "observed",
+      "optimized_monthly": 1140.55,
+      "q": 0.99,
+      "resources": 10,
+      "savings_monthly": 101.03,
+      "savings_pct": 8.137,
+      "service_breakdown": {
+        "aggregate": {
+          "current_monthly": 1241.58,
+          "delta_monthly": -101.03,
+          "delta_pct": -8.137,
+          "optimized_monthly": 1140.55,
+          "savings_monthly": 101.03,
+          "savings_pct": 8.137
+        },
+        "services": {
+          "EC2": {
+            "current_monthly": 843.73,
+            "delta_monthly": 261.78,
+            "delta_pct": 31.026,
+            "optimized_monthly": 1105.51,
+            "savings_monthly": -261.78,
+            "savings_pct": -31.026
+          },
+          "RDS": {
+            "current_monthly": 397.85,
+            "delta_monthly": -362.81,
+            "delta_pct": -91.193,
+            "optimized_monthly": 35.04,
+            "savings_monthly": 362.81,
+            "savings_pct": 91.193
+          }
+        }
+      },
+      "solve_meta": [
+        {
+          "budget_cap": null,
+          "candidates": 28,
+          "constraints": 24,
+          "decision_variables": 224,
+          "label": "q=0.99, h=1.3:EC2",
+          "objective": 1105.5120000000002,
+          "resources": 8,
+          "solve_seconds": 0.011159,
+          "status": "Optimal"
+        },
+        {
+          "budget_cap": null,
+          "candidates": 4,
+          "constraints": 4,
+          "decision_variables": 8,
+          "label": "q=0.99, h=1.3:RDS",
+          "objective": 23.36,
+          "resources": 2,
+          "solve_seconds": 0.005022,
+          "status": "Optimal"
+        }
+      ],
+      "solve_seconds": 0.016181,
+      "solver": "PuLP CBC",
+      "stat": "percentile",
+      "status": "Optimal",
+      "upsized": 2
+    },
+    {
+      "budget_ratio": null,
+      "comparable": true,
+      "cost_policy": "failed service-level solves are kept at current inventory cost for diagnostics only; partial/failed rows are not comparable savings estimates",
+      "cpu_exceedance_pct": 0.0,
+      "current_monthly": 1241.58,
+      "decision_variables": 232,
+      "dimension": "headroom h",
+      "downsized": 9,
+      "failed_services": {},
+      "fallback_cpu_exceedance_pct": 0.0,
+      "fallback_optimized_monthly": 660.21,
+      "fallback_savings_monthly": 581.37,
+      "fallback_savings_pct": 46.825,
+      "fallback_service_breakdown": {
+        "aggregate": {
+          "current_monthly": 1241.58,
+          "delta_monthly": -581.37,
+          "delta_pct": -46.825,
+          "optimized_monthly": 660.21,
+          "savings_monthly": 581.37,
+          "savings_pct": 46.825
+        },
+        "services": {
+          "EC2": {
+            "current_monthly": 843.73,
+            "delta_monthly": -218.56,
+            "delta_pct": -25.904,
+            "optimized_monthly": 625.17,
+            "savings_monthly": 218.56,
+            "savings_pct": 25.904
+          },
+          "RDS": {
+            "current_monthly": 397.85,
+            "delta_monthly": -362.81,
+            "delta_pct": -91.193,
+            "optimized_monthly": 35.04,
+            "savings_monthly": 362.81,
+            "savings_pct": 91.193
+          }
+        }
+      },
+      "headroom": 1.0,
+      "label": "q=0.95, h=1.0",
+      "level": "1.0",
+      "memory_mode": "observed",
+      "optimized_monthly": 660.21,
+      "q": 0.95,
+      "resources": 10,
+      "savings_monthly": 581.37,
+      "savings_pct": 46.825,
+      "service_breakdown": {
+        "aggregate": {
+          "current_monthly": 1241.58,
+          "delta_monthly": -581.37,
+          "delta_pct": -46.825,
+          "optimized_monthly": 660.21,
+          "savings_monthly": 581.37,
+          "savings_pct": 46.825
+        },
+        "services": {
+          "EC2": {
+            "current_monthly": 843.73,
+            "delta_monthly": -218.56,
+            "delta_pct": -25.904,
+            "optimized_monthly": 625.17,
+            "savings_monthly": 218.56,
+            "savings_pct": 25.904
+          },
+          "RDS": {
+            "current_monthly": 397.85,
+            "delta_monthly": -362.81,
+            "delta_pct": -91.193,
+            "optimized_monthly": 35.04,
+            "savings_monthly": 362.81,
+            "savings_pct": 91.193
+          }
+        }
+      },
+      "solve_meta": [
+        {
+          "budget_cap": null,
+          "candidates": 28,
+          "constraints": 24,
+          "decision_variables": 224,
+          "label": "q=0.95, h=1.0:EC2",
+          "objective": 625.172,
+          "resources": 8,
+          "solve_seconds": 0.011988,
+          "status": "Optimal"
+        },
+        {
+          "budget_cap": null,
+          "candidates": 4,
+          "constraints": 4,
+          "decision_variables": 8,
+          "label": "q=0.95, h=1.0:RDS",
+          "objective": 23.36,
+          "resources": 2,
+          "solve_seconds": 0.00538,
+          "status": "Optimal"
+        }
+      ],
+      "solve_seconds": 0.017368,
+      "solver": "PuLP CBC",
+      "stat": "percentile",
+      "status": "Optimal",
+      "upsized": 0
+    },
+    {
+      "budget_ratio": null,
+      "comparable": true,
+      "cost_policy": "failed service-level solves are kept at current inventory cost for diagnostics only; partial/failed rows are not comparable savings estimates",
+      "cpu_exceedance_pct": 0.0,
+      "current_monthly": 1241.58,
+      "decision_variables": 232,
+      "dimension": "headroom h",
+      "downsized": 9,
+      "failed_services": {},
+      "fallback_cpu_exceedance_pct": 0.0,
+      "fallback_optimized_monthly": 660.21,
+      "fallback_savings_monthly": 581.37,
+      "fallback_savings_pct": 46.825,
+      "fallback_service_breakdown": {
+        "aggregate": {
+          "current_monthly": 1241.58,
+          "delta_monthly": -581.37,
+          "delta_pct": -46.825,
+          "optimized_monthly": 660.21,
+          "savings_monthly": 581.37,
+          "savings_pct": 46.825
+        },
+        "services": {
+          "EC2": {
+            "current_monthly": 843.73,
+            "delta_monthly": -218.56,
+            "delta_pct": -25.904,
+            "optimized_monthly": 625.17,
+            "savings_monthly": 218.56,
+            "savings_pct": 25.904
+          },
+          "RDS": {
+            "current_monthly": 397.85,
+            "delta_monthly": -362.81,
+            "delta_pct": -91.193,
+            "optimized_monthly": 35.04,
+            "savings_monthly": 362.81,
+            "savings_pct": 91.193
+          }
+        }
+      },
+      "headroom": 1.1,
+      "label": "q=0.95, h=1.1",
+      "level": "1.1",
+      "memory_mode": "observed",
+      "optimized_monthly": 660.21,
+      "q": 0.95,
+      "resources": 10,
+      "savings_monthly": 581.37,
+      "savings_pct": 46.825,
+      "service_breakdown": {
+        "aggregate": {
+          "current_monthly": 1241.58,
+          "delta_monthly": -581.37,
+          "delta_pct": -46.825,
+          "optimized_monthly": 660.21,
+          "savings_monthly": 581.37,
+          "savings_pct": 46.825
+        },
+        "services": {
+          "EC2": {
+            "current_monthly": 843.73,
+            "delta_monthly": -218.56,
+            "delta_pct": -25.904,
+            "optimized_monthly": 625.17,
+            "savings_monthly": 218.56,
+            "savings_pct": 25.904
+          },
+          "RDS": {
+            "current_monthly": 397.85,
+            "delta_monthly": -362.81,
+            "delta_pct": -91.193,
+            "optimized_monthly": 35.04,
+            "savings_monthly": 362.81,
+            "savings_pct": 91.193
+          }
+        }
+      },
+      "solve_meta": [
+        {
+          "budget_cap": null,
+          "candidates": 28,
+          "constraints": 24,
+          "decision_variables": 224,
+          "label": "q=0.95, h=1.1:EC2",
+          "objective": 625.172,
+          "resources": 8,
+          "solve_seconds": 0.010505,
+          "status": "Optimal"
+        },
+        {
+          "budget_cap": null,
+          "candidates": 4,
+          "constraints": 4,
+          "decision_variables": 8,
+          "label": "q=0.95, h=1.1:RDS",
+          "objective": 23.36,
+          "resources": 2,
+          "solve_seconds": 0.005216,
+          "status": "Optimal"
+        }
+      ],
+      "solve_seconds": 0.015721,
+      "solver": "PuLP CBC",
+      "stat": "percentile",
+      "status": "Optimal",
+      "upsized": 0
+    },
+    {
+      "budget_ratio": null,
+      "comparable": true,
+      "cost_policy": "failed service-level solves are kept at current inventory cost for diagnostics only; partial/failed rows are not comparable savings estimates",
+      "cpu_exceedance_pct": 0.0,
+      "current_monthly": 1241.58,
+      "decision_variables": 232,
+      "dimension": "headroom h",
+      "downsized": 8,
+      "failed_services": {},
+      "fallback_cpu_exceedance_pct": 0.0,
+      "fallback_optimized_monthly": 1005.65,
+      "fallback_savings_monthly": 235.94,
+      "fallback_savings_pct": 19.003,
+      "fallback_service_breakdown": {
+        "aggregate": {
+          "current_monthly": 1241.58,
+          "delta_monthly": -235.93,
+          "delta_pct": -19.002,
+          "optimized_monthly": 1005.65,
+          "savings_monthly": 235.93,
+          "savings_pct": 19.002
+        },
+        "services": {
+          "EC2": {
+            "current_monthly": 843.73,
+            "delta_monthly": 126.87,
+            "delta_pct": 15.037,
+            "optimized_monthly": 970.61,
+            "savings_monthly": -126.87,
+            "savings_pct": -15.037
+          },
+          "RDS": {
+            "current_monthly": 397.85,
+            "delta_monthly": -362.81,
+            "delta_pct": -91.193,
+            "optimized_monthly": 35.04,
+            "savings_monthly": 362.81,
+            "savings_pct": 91.193
+          }
+        }
+      },
+      "headroom": 1.3,
+      "label": "q=0.95, h=1.3",
+      "level": "1.3",
+      "memory_mode": "observed",
+      "optimized_monthly": 1005.65,
+      "q": 0.95,
+      "resources": 10,
+      "savings_monthly": 235.94,
+      "savings_pct": 19.003,
+      "service_breakdown": {
+        "aggregate": {
+          "current_monthly": 1241.58,
+          "delta_monthly": -235.93,
+          "delta_pct": -19.002,
+          "optimized_monthly": 1005.65,
+          "savings_monthly": 235.93,
+          "savings_pct": 19.002
+        },
+        "services": {
+          "EC2": {
+            "current_monthly": 843.73,
+            "delta_monthly": 126.87,
+            "delta_pct": 15.037,
+            "optimized_monthly": 970.61,
+            "savings_monthly": -126.87,
+            "savings_pct": -15.037
+          },
+          "RDS": {
+            "current_monthly": 397.85,
+            "delta_monthly": -362.81,
+            "delta_pct": -91.193,
+            "optimized_monthly": 35.04,
+            "savings_monthly": 362.81,
+            "savings_pct": 91.193
+          }
+        }
+      },
+      "solve_meta": [
+        {
+          "budget_cap": null,
+          "candidates": 28,
+          "constraints": 24,
+          "decision_variables": 224,
+          "label": "q=0.95, h=1.3:EC2",
+          "objective": 970.608,
+          "resources": 8,
+          "solve_seconds": 0.011355,
+          "status": "Optimal"
+        },
+        {
+          "budget_cap": null,
+          "candidates": 4,
+          "constraints": 4,
+          "decision_variables": 8,
+          "label": "q=0.95, h=1.3:RDS",
+          "objective": 23.36,
+          "resources": 2,
+          "solve_seconds": 0.005458,
+          "status": "Optimal"
+        }
+      ],
+      "solve_seconds": 0.016813,
+      "solver": "PuLP CBC",
+      "stat": "percentile",
+      "status": "Optimal",
+      "upsized": 2
+    },
+    {
+      "budget_ratio": null,
+      "comparable": true,
+      "cost_policy": "failed service-level solves are kept at current inventory cost for diagnostics only; partial/failed rows are not comparable savings estimates",
+      "cpu_exceedance_pct": 0.0,
+      "current_monthly": 1241.58,
+      "decision_variables": 232,
+      "dimension": "headroom h",
+      "downsized": 6,
+      "failed_services": {},
+      "fallback_cpu_exceedance_pct": 0.0,
+      "fallback_optimized_monthly": 1140.55,
+      "fallback_savings_monthly": 101.03,
+      "fallback_savings_pct": 8.137,
+      "fallback_service_breakdown": {
+        "aggregate": {
+          "current_monthly": 1241.58,
+          "delta_monthly": -101.03,
+          "delta_pct": -8.137,
+          "optimized_monthly": 1140.55,
+          "savings_monthly": 101.03,
+          "savings_pct": 8.137
+        },
+        "services": {
+          "EC2": {
+            "current_monthly": 843.73,
+            "delta_monthly": 261.78,
+            "delta_pct": 31.026,
+            "optimized_monthly": 1105.51,
+            "savings_monthly": -261.78,
+            "savings_pct": -31.026
+          },
+          "RDS": {
+            "current_monthly": 397.85,
+            "delta_monthly": -362.81,
+            "delta_pct": -91.193,
+            "optimized_monthly": 35.04,
+            "savings_monthly": 362.81,
+            "savings_pct": 91.193
+          }
+        }
+      },
+      "headroom": 1.5,
+      "label": "q=0.95, h=1.5",
+      "level": "1.5",
+      "memory_mode": "observed",
+      "optimized_monthly": 1140.55,
+      "q": 0.95,
+      "resources": 10,
+      "savings_monthly": 101.03,
+      "savings_pct": 8.137,
+      "service_breakdown": {
+        "aggregate": {
+          "current_monthly": 1241.58,
+          "delta_monthly": -101.03,
+          "delta_pct": -8.137,
+          "optimized_monthly": 1140.55,
+          "savings_monthly": 101.03,
+          "savings_pct": 8.137
+        },
+        "services": {
+          "EC2": {
+            "current_monthly": 843.73,
+            "delta_monthly": 261.78,
+            "delta_pct": 31.026,
+            "optimized_monthly": 1105.51,
+            "savings_monthly": -261.78,
+            "savings_pct": -31.026
+          },
+          "RDS": {
+            "current_monthly": 397.85,
+            "delta_monthly": -362.81,
+            "delta_pct": -91.193,
+            "optimized_monthly": 35.04,
+            "savings_monthly": 362.81,
+            "savings_pct": 91.193
+          }
+        }
+      },
+      "solve_meta": [
+        {
+          "budget_cap": null,
+          "candidates": 28,
+          "constraints": 24,
+          "decision_variables": 224,
+          "label": "q=0.95, h=1.5:EC2",
+          "objective": 1105.5120000000002,
+          "resources": 8,
+          "solve_seconds": 0.011075,
+          "status": "Optimal"
+        },
+        {
+          "budget_cap": null,
+          "candidates": 4,
+          "constraints": 4,
+          "decision_variables": 8,
+          "label": "q=0.95, h=1.5:RDS",
+          "objective": 23.36,
+          "resources": 2,
+          "solve_seconds": 0.005112,
+          "status": "Optimal"
+        }
+      ],
+      "solve_seconds": 0.016187,
+      "solver": "PuLP CBC",
+      "stat": "percentile",
+      "status": "Optimal",
+      "upsized": 2
+    },
+    {
+      "budget_ratio": null,
+      "comparable": true,
+      "cost_policy": "failed service-level solves are kept at current inventory cost for diagnostics only; partial/failed rows are not comparable savings estimates",
+      "cpu_exceedance_pct": 0.0,
+      "current_monthly": 1241.58,
+      "decision_variables": 232,
+      "dimension": "memory constraint",
+      "downsized": 9,
+      "failed_services": {},
+      "fallback_cpu_exceedance_pct": 0.0,
+      "fallback_optimized_monthly": 584.58,
+      "fallback_savings_monthly": 657.0,
+      "fallback_savings_pct": 52.916,
+      "fallback_service_breakdown": {
+        "aggregate": {
+          "current_monthly": 1241.58,
+          "delta_monthly": -657.0,
+          "delta_pct": -52.916,
+          "optimized_monthly": 584.58,
+          "savings_monthly": 657.0,
+          "savings_pct": 52.916
+        },
+        "services": {
+          "EC2": {
+            "current_monthly": 843.73,
+            "delta_monthly": -294.19,
+            "delta_pct": -34.868,
+            "optimized_monthly": 549.54,
+            "savings_monthly": 294.19,
+            "savings_pct": 34.868
+          },
+          "RDS": {
+            "current_monthly": 397.85,
+            "delta_monthly": -362.81,
+            "delta_pct": -91.193,
+            "optimized_monthly": 35.04,
+            "savings_monthly": 362.81,
+            "savings_pct": 91.193
+          }
+        }
+      },
+      "headroom": 1.3,
+      "label": "memory off",
+      "level": "off",
+      "memory_mode": "off",
+      "optimized_monthly": 584.58,
+      "q": 0.95,
+      "resources": 10,
+      "savings_monthly": 657.0,
+      "savings_pct": 52.916,
+      "service_breakdown": {
+        "aggregate": {
+          "current_monthly": 1241.58,
+          "delta_monthly": -657.0,
+          "delta_pct": -52.916,
+          "optimized_monthly": 584.58,
+          "savings_monthly": 657.0,
+          "savings_pct": 52.916
+        },
+        "services": {
+          "EC2": {
+            "current_monthly": 843.73,
+            "delta_monthly": -294.19,
+            "delta_pct": -34.868,
+            "optimized_monthly": 549.54,
+            "savings_monthly": 294.19,
+            "savings_pct": 34.868
+          },
+          "RDS": {
+            "current_monthly": 397.85,
+            "delta_monthly": -362.81,
+            "delta_pct": -91.193,
+            "optimized_monthly": 35.04,
+            "savings_monthly": 362.81,
+            "savings_pct": 91.193
+          }
+        }
+      },
+      "solve_meta": [
+        {
+          "budget_cap": null,
+          "candidates": 28,
+          "constraints": 16,
+          "decision_variables": 224,
+          "label": "memory off:EC2",
+          "objective": 549.544,
+          "resources": 8,
+          "solve_seconds": 0.009753,
+          "status": "Optimal"
+        },
+        {
+          "budget_cap": null,
+          "candidates": 4,
+          "constraints": 4,
+          "decision_variables": 8,
+          "label": "memory off:RDS",
+          "objective": 23.36,
+          "resources": 2,
+          "solve_seconds": 0.005057,
+          "status": "Optimal"
+        }
+      ],
+      "solve_seconds": 0.01481,
+      "solver": "PuLP CBC",
+      "stat": "percentile",
+      "status": "Optimal",
+      "upsized": 1
+    },
+    {
+      "budget_ratio": null,
+      "comparable": true,
+      "cost_policy": "failed service-level solves are kept at current inventory cost for diagnostics only; partial/failed rows are not comparable savings estimates",
+      "cpu_exceedance_pct": 0.0,
+      "current_monthly": 1241.58,
+      "decision_variables": 232,
+      "dimension": "memory constraint",
+      "downsized": 8,
+      "failed_services": {},
+      "fallback_cpu_exceedance_pct": 0.0,
+      "fallback_optimized_monthly": 1005.65,
+      "fallback_savings_monthly": 235.94,
+      "fallback_savings_pct": 19.003,
+      "fallback_service_breakdown": {
+        "aggregate": {
+          "current_monthly": 1241.58,
+          "delta_monthly": -235.93,
+          "delta_pct": -19.002,
+          "optimized_monthly": 1005.65,
+          "savings_monthly": 235.93,
+          "savings_pct": 19.002
+        },
+        "services": {
+          "EC2": {
+            "current_monthly": 843.73,
+            "delta_monthly": 126.87,
+            "delta_pct": 15.037,
+            "optimized_monthly": 970.61,
+            "savings_monthly": -126.87,
+            "savings_pct": -15.037
+          },
+          "RDS": {
+            "current_monthly": 397.85,
+            "delta_monthly": -362.81,
+            "delta_pct": -91.193,
+            "optimized_monthly": 35.04,
+            "savings_monthly": 362.81,
+            "savings_pct": 91.193
+          }
+        }
+      },
+      "headroom": 1.3,
+      "label": "memory observed",
+      "level": "observed",
+      "memory_mode": "observed",
+      "optimized_monthly": 1005.65,
+      "q": 0.95,
+      "resources": 10,
+      "savings_monthly": 235.94,
+      "savings_pct": 19.003,
+      "service_breakdown": {
+        "aggregate": {
+          "current_monthly": 1241.58,
+          "delta_monthly": -235.93,
+          "delta_pct": -19.002,
+          "optimized_monthly": 1005.65,
+          "savings_monthly": 235.93,
+          "savings_pct": 19.002
+        },
+        "services": {
+          "EC2": {
+            "current_monthly": 843.73,
+            "delta_monthly": 126.87,
+            "delta_pct": 15.037,
+            "optimized_monthly": 970.61,
+            "savings_monthly": -126.87,
+            "savings_pct": -15.037
+          },
+          "RDS": {
+            "current_monthly": 397.85,
+            "delta_monthly": -362.81,
+            "delta_pct": -91.193,
+            "optimized_monthly": 35.04,
+            "savings_monthly": 362.81,
+            "savings_pct": 91.193
+          }
+        }
+      },
+      "solve_meta": [
+        {
+          "budget_cap": null,
+          "candidates": 28,
+          "constraints": 24,
+          "decision_variables": 224,
+          "label": "memory observed:EC2",
+          "objective": 970.608,
+          "resources": 8,
+          "solve_seconds": 0.011744,
+          "status": "Optimal"
+        },
+        {
+          "budget_cap": null,
+          "candidates": 4,
+          "constraints": 4,
+          "decision_variables": 8,
+          "label": "memory observed:RDS",
+          "objective": 23.36,
+          "resources": 2,
+          "solve_seconds": 0.005162,
+          "status": "Optimal"
+        }
+      ],
+      "solve_seconds": 0.016906,
+      "solver": "PuLP CBC",
+      "stat": "percentile",
+      "status": "Optimal",
+      "upsized": 2
+    },
+    {
+      "budget_ratio": null,
+      "comparable": true,
+      "cost_policy": "failed service-level solves are kept at current inventory cost for diagnostics only; partial/failed rows are not comparable savings estimates",
+      "cpu_exceedance_pct": 0.0,
+      "current_monthly": 1241.58,
+      "decision_variables": 232,
+      "dimension": "budget cap",
+      "downsized": 8,
+      "failed_services": {},
+      "fallback_cpu_exceedance_pct": 0.0,
+      "fallback_optimized_monthly": 1005.65,
+      "fallback_savings_monthly": 235.94,
+      "fallback_savings_pct": 19.003,
+      "fallback_service_breakdown": {
+        "aggregate": {
+          "current_monthly": 1241.58,
+          "delta_monthly": -235.93,
+          "delta_pct": -19.002,
+          "optimized_monthly": 1005.65,
+          "savings_monthly": 235.93,
+          "savings_pct": 19.002
+        },
+        "services": {
+          "EC2": {
+            "current_monthly": 843.73,
+            "delta_monthly": 126.87,
+            "delta_pct": 15.037,
+            "optimized_monthly": 970.61,
+            "savings_monthly": -126.87,
+            "savings_pct": -15.037
+          },
+          "RDS": {
+            "current_monthly": 397.85,
+            "delta_monthly": -362.81,
+            "delta_pct": -91.193,
+            "optimized_monthly": 35.04,
+            "savings_monthly": 362.81,
+            "savings_pct": 91.193
+          }
+        }
+      },
+      "headroom": 1.3,
+      "label": "budget none",
+      "level": "none",
+      "memory_mode": "observed",
+      "optimized_monthly": 1005.65,
+      "q": 0.95,
+      "resources": 10,
+      "savings_monthly": 235.94,
+      "savings_pct": 19.003,
+      "service_breakdown": {
+        "aggregate": {
+          "current_monthly": 1241.58,
+          "delta_monthly": -235.93,
+          "delta_pct": -19.002,
+          "optimized_monthly": 1005.65,
+          "savings_monthly": 235.93,
+          "savings_pct": 19.002
+        },
+        "services": {
+          "EC2": {
+            "current_monthly": 843.73,
+            "delta_monthly": 126.87,
+            "delta_pct": 15.037,
+            "optimized_monthly": 970.61,
+            "savings_monthly": -126.87,
+            "savings_pct": -15.037
+          },
+          "RDS": {
+            "current_monthly": 397.85,
+            "delta_monthly": -362.81,
+            "delta_pct": -91.193,
+            "optimized_monthly": 35.04,
+            "savings_monthly": 362.81,
+            "savings_pct": 91.193
+          }
+        }
+      },
+      "solve_meta": [
+        {
+          "budget_cap": null,
+          "candidates": 28,
+          "constraints": 24,
+          "decision_variables": 224,
+          "label": "budget none:EC2",
+          "objective": 970.608,
+          "resources": 8,
+          "solve_seconds": 0.010757,
+          "status": "Optimal"
+        },
+        {
+          "budget_cap": null,
+          "candidates": 4,
+          "constraints": 4,
+          "decision_variables": 8,
+          "label": "budget none:RDS",
+          "objective": 23.36,
+          "resources": 2,
+          "solve_seconds": 0.005696,
+          "status": "Optimal"
+        }
+      ],
+      "solve_seconds": 0.016453,
+      "solver": "PuLP CBC",
+      "stat": "percentile",
+      "status": "Optimal",
+      "upsized": 2
+    },
+    {
+      "budget_ratio": 1.0,
+      "comparable": false,
+      "cost_policy": "failed service-level solves are kept at current inventory cost for diagnostics only; partial/failed rows are not comparable savings estimates",
+      "cpu_exceedance_pct": null,
+      "current_monthly": 1241.58,
+      "decision_variables": 232,
+      "dimension": "budget cap",
+      "downsized": 2,
+      "failed_services": {
+        "EC2": "Infeasible"
+      },
+      "fallback_cpu_exceedance_pct": 0.0,
+      "fallback_optimized_monthly": 878.77,
+      "fallback_savings_monthly": 362.81,
+      "fallback_savings_pct": 29.222,
+      "fallback_service_breakdown": {
+        "aggregate": {
+          "current_monthly": 1241.58,
+          "delta_monthly": -362.81,
+          "delta_pct": -29.222,
+          "optimized_monthly": 878.77,
+          "savings_monthly": 362.81,
+          "savings_pct": 29.222
+        },
+        "services": {
+          "EC2": {
+            "current_monthly": 843.73,
+            "delta_monthly": 0.0,
+            "delta_pct": 0.0,
+            "optimized_monthly": 843.73,
+            "savings_monthly": 0.0,
+            "savings_pct": 0.0
+          },
+          "RDS": {
+            "current_monthly": 397.85,
+            "delta_monthly": -362.81,
+            "delta_pct": -91.193,
+            "optimized_monthly": 35.04,
+            "savings_monthly": 362.81,
+            "savings_pct": 91.193
+          }
+        }
+      },
+      "headroom": 1.3,
+      "label": "budget 100% current",
+      "level": "100% current",
+      "memory_mode": "observed",
+      "optimized_monthly": null,
+      "q": 0.95,
+      "resources": 10,
+      "savings_monthly": null,
+      "savings_pct": null,
+      "service_breakdown": null,
+      "solve_meta": [
+        {
+          "budget_cap": 843.7339999999999,
+          "candidates": 28,
+          "constraints": 25,
+          "decision_variables": 224,
+          "label": "budget 100% current:EC2",
+          "objective": 557.3111447273201,
+          "resources": 8,
+          "solve_seconds": 0.010657,
+          "status": "Infeasible"
+        },
+        {
+          "budget_cap": 397.84999999999997,
+          "candidates": 4,
+          "constraints": 5,
+          "decision_variables": 8,
+          "label": "budget 100% current:RDS",
+          "objective": 23.36,
+          "resources": 2,
+          "solve_seconds": 0.005857,
+          "status": "Optimal"
+        }
+      ],
+      "solve_seconds": 0.016514,
+      "solver": "PuLP CBC",
+      "stat": "percentile",
+      "status": "Partial (EC2 Infeasible)",
+      "upsized": 0
+    },
+    {
+      "budget_ratio": 0.9,
+      "comparable": false,
+      "cost_policy": "failed service-level solves are kept at current inventory cost for diagnostics only; partial/failed rows are not comparable savings estimates",
+      "cpu_exceedance_pct": null,
+      "current_monthly": 1241.58,
+      "decision_variables": 232,
+      "dimension": "budget cap",
+      "downsized": 2,
+      "failed_services": {
+        "EC2": "Infeasible"
+      },
+      "fallback_cpu_exceedance_pct": 0.0,
+      "fallback_optimized_monthly": 878.77,
+      "fallback_savings_monthly": 362.81,
+      "fallback_savings_pct": 29.222,
+      "fallback_service_breakdown": {
+        "aggregate": {
+          "current_monthly": 1241.58,
+          "delta_monthly": -362.81,
+          "delta_pct": -29.222,
+          "optimized_monthly": 878.77,
+          "savings_monthly": 362.81,
+          "savings_pct": 29.222
+        },
+        "services": {
+          "EC2": {
+            "current_monthly": 843.73,
+            "delta_monthly": 0.0,
+            "delta_pct": 0.0,
+            "optimized_monthly": 843.73,
+            "savings_monthly": 0.0,
+            "savings_pct": 0.0
+          },
+          "RDS": {
+            "current_monthly": 397.85,
+            "delta_monthly": -362.81,
+            "delta_pct": -91.193,
+            "optimized_monthly": 35.04,
+            "savings_monthly": 362.81,
+            "savings_pct": 91.193
+          }
+        }
+      },
+      "headroom": 1.3,
+      "label": "budget 90% current",
+      "level": "90% current",
+      "memory_mode": "observed",
+      "optimized_monthly": null,
+      "q": 0.95,
+      "resources": 10,
+      "savings_monthly": null,
+      "savings_pct": null,
+      "service_breakdown": null,
+      "solve_meta": [
+        {
+          "budget_cap": 759.3606,
+          "candidates": 28,
+          "constraints": 25,
+          "decision_variables": 224,
+          "label": "budget 90% current:EC2",
+          "objective": 557.3111447273201,
+          "resources": 8,
+          "solve_seconds": 0.009993,
+          "status": "Infeasible"
+        },
+        {
+          "budget_cap": 358.065,
+          "candidates": 4,
+          "constraints": 5,
+          "decision_variables": 8,
+          "label": "budget 90% current:RDS",
+          "objective": 23.36,
+          "resources": 2,
+          "solve_seconds": 0.007135,
+          "status": "Optimal"
+        }
+      ],
+      "solve_seconds": 0.017128,
+      "solver": "PuLP CBC",
+      "stat": "percentile",
+      "status": "Partial (EC2 Infeasible)",
+      "upsized": 0
+    },
+    {
+      "budget_ratio": 0.75,
+      "comparable": false,
+      "cost_policy": "failed service-level solves are kept at current inventory cost for diagnostics only; partial/failed rows are not comparable savings estimates",
+      "cpu_exceedance_pct": null,
+      "current_monthly": 1241.58,
+      "decision_variables": 232,
+      "dimension": "budget cap",
+      "downsized": 2,
+      "failed_services": {
+        "EC2": "Infeasible"
+      },
+      "fallback_cpu_exceedance_pct": 0.0,
+      "fallback_optimized_monthly": 878.77,
+      "fallback_savings_monthly": 362.81,
+      "fallback_savings_pct": 29.222,
+      "fallback_service_breakdown": {
+        "aggregate": {
+          "current_monthly": 1241.58,
+          "delta_monthly": -362.81,
+          "delta_pct": -29.222,
+          "optimized_monthly": 878.77,
+          "savings_monthly": 362.81,
+          "savings_pct": 29.222
+        },
+        "services": {
+          "EC2": {
+            "current_monthly": 843.73,
+            "delta_monthly": 0.0,
+            "delta_pct": 0.0,
+            "optimized_monthly": 843.73,
+            "savings_monthly": 0.0,
+            "savings_pct": 0.0
+          },
+          "RDS": {
+            "current_monthly": 397.85,
+            "delta_monthly": -362.81,
+            "delta_pct": -91.193,
+            "optimized_monthly": 35.04,
+            "savings_monthly": 362.81,
+            "savings_pct": 91.193
+          }
+        }
+      },
+      "headroom": 1.3,
+      "label": "budget 75% current",
+      "level": "75% current",
+      "memory_mode": "observed",
+      "optimized_monthly": null,
+      "q": 0.95,
+      "resources": 10,
+      "savings_monthly": null,
+      "savings_pct": null,
+      "service_breakdown": null,
+      "solve_meta": [
+        {
+          "budget_cap": 632.8004999999999,
+          "candidates": 28,
+          "constraints": 25,
+          "decision_variables": 224,
+          "label": "budget 75% current:EC2",
+          "objective": 557.3111447273201,
+          "resources": 8,
+          "solve_seconds": 0.011218,
+          "status": "Infeasible"
+        },
+        {
+          "budget_cap": 298.3875,
+          "candidates": 4,
+          "constraints": 5,
+          "decision_variables": 8,
+          "label": "budget 75% current:RDS",
+          "objective": 23.36,
+          "resources": 2,
+          "solve_seconds": 0.005963,
+          "status": "Optimal"
+        }
+      ],
+      "solve_seconds": 0.017181,
+      "solver": "PuLP CBC",
+      "stat": "percentile",
+      "status": "Partial (EC2 Infeasible)",
+      "upsized": 0
+    },
+    {
+      "budget_ratio": 0.01,
+      "comparable": false,
+      "cost_policy": "failed service-level solves are kept at current inventory cost for diagnostics only; partial/failed rows are not comparable savings estimates",
+      "cpu_exceedance_pct": null,
+      "current_monthly": 1241.58,
+      "decision_variables": 232,
+      "dimension": "budget cap",
+      "downsized": 0,
+      "failed_services": {
+        "EC2": "Infeasible",
+        "RDS": "Infeasible"
+      },
+      "fallback_cpu_exceedance_pct": 0.0,
+      "fallback_optimized_monthly": 1241.58,
+      "fallback_savings_monthly": 0.0,
+      "fallback_savings_pct": 0.0,
+      "fallback_service_breakdown": {
+        "aggregate": {
+          "current_monthly": 1241.58,
+          "delta_monthly": 0.0,
+          "delta_pct": 0.0,
+          "optimized_monthly": 1241.58,
+          "savings_monthly": 0.0,
+          "savings_pct": 0.0
+        },
+        "services": {
+          "EC2": {
+            "current_monthly": 843.73,
+            "delta_monthly": 0.0,
+            "delta_pct": 0.0,
+            "optimized_monthly": 843.73,
+            "savings_monthly": 0.0,
+            "savings_pct": 0.0
+          },
+          "RDS": {
+            "current_monthly": 397.85,
+            "delta_monthly": 0.0,
+            "delta_pct": 0.0,
+            "optimized_monthly": 397.85,
+            "savings_monthly": 0.0,
+            "savings_pct": 0.0
+          }
+        }
+      },
+      "headroom": 1.3,
+      "label": "budget 1% current",
+      "level": "1% current",
+      "memory_mode": "observed",
+      "optimized_monthly": null,
+      "q": 0.95,
+      "resources": 10,
+      "savings_monthly": null,
+      "savings_pct": null,
+      "service_breakdown": null,
+      "solve_meta": [
+        {
+          "budget_cap": 8.437339999999999,
+          "candidates": 28,
+          "constraints": 25,
+          "decision_variables": 224,
+          "label": "budget 1% current:EC2",
+          "objective": 296.04122115616,
+          "resources": 8,
+          "solve_seconds": 0.009333,
+          "status": "Infeasible"
+        },
+        {
+          "budget_cap": 3.9785,
+          "candidates": 4,
+          "constraints": 5,
+          "decision_variables": 8,
+          "label": "budget 1% current:RDS",
+          "objective": 23.36,
+          "resources": 2,
+          "solve_seconds": 0.005624,
+          "status": "Infeasible"
+        }
+      ],
+      "solve_seconds": 0.014957,
+      "solver": "PuLP CBC",
+      "stat": "percentile",
+      "status": "Failed (EC2 Infeasible, RDS Infeasible)",
+      "upsized": 0
+    }
+  ],
+  "metadata": {
+    "bootstrap_reps": 5000,
+    "bootstrap_seed": 20260709,
+    "implementation_match_original_demo_catalog": {
+      "EC2": {
+        "implementation_assignments": {},
+        "instrumented_assignments": {},
+        "instrumented_status": "Infeasible",
+        "matches": true
+      },
+      "RDS": {
+        "implementation_assignments": {
+          "prod-postgres-primary": "db.t4g.micro",
+          "staging-postgres": "db.t4g.micro"
+        },
+        "instrumented_assignments": {
+          "prod-postgres-primary": "db.t4g.micro",
+          "staging-postgres": "db.t4g.micro"
+        },
+        "instrumented_status": "Optimal",
+        "matches": true
+      }
+    },
+    "missing_snapshot_current_types": [],
+    "notes": [
+      "Synthetic confidence intervals are bootstrap intervals across the 10 compute resources and are descriptive, not population-level inference.",
+      "Direct AWS Compute Optimizer, Azure Advisor, Savings Plans, or commercial FinOps outputs are not included because no direct comparable tool output exists in the repository.",
+      "Partial and failed MILP rows are retained, but their savings fields are null because fallback costs are diagnostics only.",
+      "Original demo-catalog results are preserved under original_demo_* keys; headline synthetic right-sizing rows use the snapshot-repriced EC2 basis."
+    ],
+    "original_demo_raw_candidate_counts": {
+      "EC2": 13,
+      "RDS": 6
+    },
+    "original_demo_valid_candidate_counts": {
+      "EC2": 4,
+      "RDS": 4
+    },
+    "price_basis": "EC2 snapshot on-demand current and candidates; RDS committed demo DB current and candidates",
+    "raw_candidate_counts": {
+      "EC2": 28,
+      "RDS": 6
+    },
+    "resource_counts": {
+      "EC2": 8,
+      "RDS": 2
+    },
+    "resources": 10,
+    "snapshot_date": "2026-06-30",
+    "snapshot_source_url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonEC2/current/us-east-1/index.csv",
+    "user_id": "aws-SYNTHETIC-001",
+    "valid_candidate_counts": {
+      "EC2": 28,
+      "RDS": 4
+    },
+    "valid_candidate_filter": "positive on-demand monthly price and nonmissing vCPU specification; memory constraints require memory_gb when used"
+  },
+  "original_demo_ablations": [
+    {
+      "budget_ratio": null,
+      "comparable": true,
+      "cost_policy": "failed service-level solves are kept at current inventory cost for diagnostics only; partial/failed rows are not comparable savings estimates",
+      "cpu_exceedance_pct": 1.25,
+      "current_monthly": 1137.87,
+      "decision_variables": 40,
+      "dimension": "percentile q",
+      "downsized": 3,
+      "failed_services": {},
+      "fallback_cpu_exceedance_pct": 1.25,
+      "fallback_optimized_monthly": 770.88,
+      "fallback_savings_monthly": 366.99,
+      "fallback_savings_pct": 32.252,
+      "fallback_service_breakdown": {
+        "aggregate": {
+          "current_monthly": 1137.87,
+          "delta_monthly": -366.99,
+          "delta_pct": -32.252,
+          "optimized_monthly": 770.88,
+          "savings_monthly": 366.99,
+          "savings_pct": 32.252
+        },
+        "services": {
+          "EC2": {
+            "current_monthly": 740.02,
+            "delta_monthly": -4.18,
+            "delta_pct": -0.565,
+            "optimized_monthly": 735.84,
+            "savings_monthly": 4.18,
+            "savings_pct": 0.565
+          },
+          "RDS": {
+            "current_monthly": 397.85,
+            "delta_monthly": -362.81,
+            "delta_pct": -91.193,
+            "optimized_monthly": 35.04,
+            "savings_monthly": 362.81,
+            "savings_pct": 91.193
+          }
+        }
+      },
+      "headroom": 1.3,
+      "label": "q=0.75, h=1.3",
+      "level": "0.75",
+      "memory_mode": "observed",
+      "optimized_monthly": 770.88,
+      "q": 0.75,
+      "resources": 10,
+      "savings_monthly": 366.99,
+      "savings_pct": 32.252,
+      "service_breakdown": {
+        "aggregate": {
+          "current_monthly": 1137.87,
+          "delta_monthly": -366.99,
+          "delta_pct": -32.252,
+          "optimized_monthly": 770.88,
+          "savings_monthly": 366.99,
+          "savings_pct": 32.252
+        },
+        "services": {
+          "EC2": {
+            "current_monthly": 740.02,
+            "delta_monthly": -4.18,
+            "delta_pct": -0.565,
+            "optimized_monthly": 735.84,
+            "savings_monthly": 4.18,
+            "savings_pct": 0.565
+          },
+          "RDS": {
+            "current_monthly": 397.85,
+            "delta_monthly": -362.81,
+            "delta_pct": -91.193,
+            "optimized_monthly": 35.04,
+            "savings_monthly": 362.81,
+            "savings_pct": 91.193
+          }
+        }
+      },
+      "solve_meta": [
+        {
+          "budget_cap": null,
+          "candidates": 4,
+          "constraints": 24,
+          "decision_variables": 32,
+          "label": "q=0.75, h=1.3:EC2",
+          "objective": 735.84,
+          "resources": 8,
+          "solve_seconds": 0.00616,
+          "status": "Optimal"
+        },
+        {
+          "budget_cap": null,
+          "candidates": 4,
+          "constraints": 4,
+          "decision_variables": 8,
+          "label": "q=0.75, h=1.3:RDS",
+          "objective": 23.36,
+          "resources": 2,
+          "solve_seconds": 0.006101,
+          "status": "Optimal"
+        }
+      ],
+      "solve_seconds": 0.012261,
+      "solver": "PuLP CBC",
+      "stat": "percentile",
+      "status": "Optimal",
+      "upsized": 6
+    },
+    {
+      "budget_ratio": null,
+      "comparable": false,
+      "cost_policy": "failed service-level solves are kept at current inventory cost for diagnostics only; partial/failed rows are not comparable savings estimates",
+      "cpu_exceedance_pct": null,
+      "current_monthly": 1137.87,
+      "decision_variables": 40,
+      "dimension": "percentile q",
+      "downsized": 2,
+      "failed_services": {
+        "EC2": "Infeasible"
+      },
+      "fallback_cpu_exceedance_pct": 0.0,
+      "fallback_optimized_monthly": 775.06,
+      "fallback_savings_monthly": 362.81,
+      "fallback_savings_pct": 31.885,
+      "fallback_service_breakdown": {
+        "aggregate": {
+          "current_monthly": 1137.87,
+          "delta_monthly": -362.81,
+          "delta_pct": -31.885,
+          "optimized_monthly": 775.06,
+          "savings_monthly": 362.81,
+          "savings_pct": 31.885
+        },
+        "services": {
+          "EC2": {
+            "current_monthly": 740.02,
+            "delta_monthly": 0.0,
+            "delta_pct": 0.0,
+            "optimized_monthly": 740.02,
+            "savings_monthly": 0.0,
+            "savings_pct": 0.0
+          },
+          "RDS": {
+            "current_monthly": 397.85,
+            "delta_monthly": -362.81,
+            "delta_pct": -91.193,
+            "optimized_monthly": 35.04,
+            "savings_monthly": 362.81,
+            "savings_pct": 91.193
+          }
+        }
+      },
+      "headroom": 1.3,
+      "label": "q=0.90, h=1.3",
+      "level": "0.90",
+      "memory_mode": "observed",
+      "optimized_monthly": null,
+      "q": 0.9,
+      "resources": 10,
+      "savings_monthly": null,
+      "savings_pct": null,
+      "service_breakdown": null,
+      "solve_meta": [
+        {
+          "budget_cap": null,
+          "candidates": 4,
+          "constraints": 24,
+          "decision_variables": 32,
+          "label": "q=0.90, h=1.3:EC2",
+          "objective": 921.61571714,
+          "resources": 8,
+          "solve_seconds": 0.005306,
+          "status": "Infeasible"
+        },
+        {
+          "budget_cap": null,
+          "candidates": 4,
+          "constraints": 4,
+          "decision_variables": 8,
+          "label": "q=0.90, h=1.3:RDS",
+          "objective": 23.36,
+          "resources": 2,
+          "solve_seconds": 0.006449,
+          "status": "Optimal"
+        }
+      ],
+      "solve_seconds": 0.011755,
+      "solver": "PuLP CBC",
+      "stat": "percentile",
+      "status": "Partial (EC2 Infeasible)",
+      "upsized": 0
+    },
+    {
+      "budget_ratio": null,
+      "comparable": false,
+      "cost_policy": "failed service-level solves are kept at current inventory cost for diagnostics only; partial/failed rows are not comparable savings estimates",
+      "cpu_exceedance_pct": null,
+      "current_monthly": 1137.87,
+      "decision_variables": 40,
+      "dimension": "percentile q",
+      "downsized": 2,
+      "failed_services": {
+        "EC2": "Infeasible"
+      },
+      "fallback_cpu_exceedance_pct": 0.0,
+      "fallback_optimized_monthly": 775.06,
+      "fallback_savings_monthly": 362.81,
+      "fallback_savings_pct": 31.885,
+      "fallback_service_breakdown": {
+        "aggregate": {
+          "current_monthly": 1137.87,
+          "delta_monthly": -362.81,
+          "delta_pct": -31.885,
+          "optimized_monthly": 775.06,
+          "savings_monthly": 362.81,
+          "savings_pct": 31.885
+        },
+        "services": {
+          "EC2": {
+            "current_monthly": 740.02,
+            "delta_monthly": 0.0,
+            "delta_pct": 0.0,
+            "optimized_monthly": 740.02,
+            "savings_monthly": 0.0,
+            "savings_pct": 0.0
+          },
+          "RDS": {
+            "current_monthly": 397.85,
+            "delta_monthly": -362.81,
+            "delta_pct": -91.193,
+            "optimized_monthly": 35.04,
+            "savings_monthly": 362.81,
+            "savings_pct": 91.193
+          }
+        }
+      },
+      "headroom": 1.3,
+      "label": "q=0.95, h=1.3",
+      "level": "0.95",
+      "memory_mode": "observed",
+      "optimized_monthly": null,
+      "q": 0.95,
+      "resources": 10,
+      "savings_monthly": null,
+      "savings_pct": null,
+      "service_breakdown": null,
+      "solve_meta": [
+        {
+          "budget_cap": null,
+          "candidates": 4,
+          "constraints": 24,
+          "decision_variables": 32,
+          "label": "q=0.95, h=1.3:EC2",
+          "objective": 936.37887503,
+          "resources": 8,
+          "solve_seconds": 0.004937,
+          "status": "Infeasible"
+        },
+        {
+          "budget_cap": null,
+          "candidates": 4,
+          "constraints": 4,
+          "decision_variables": 8,
+          "label": "q=0.95, h=1.3:RDS",
+          "objective": 23.36,
+          "resources": 2,
+          "solve_seconds": 0.005008,
+          "status": "Optimal"
+        }
+      ],
+      "solve_seconds": 0.009945,
+      "solver": "PuLP CBC",
+      "stat": "percentile",
+      "status": "Partial (EC2 Infeasible)",
+      "upsized": 0
+    },
+    {
+      "budget_ratio": null,
+      "comparable": false,
+      "cost_policy": "failed service-level solves are kept at current inventory cost for diagnostics only; partial/failed rows are not comparable savings estimates",
+      "cpu_exceedance_pct": null,
+      "current_monthly": 1137.87,
+      "decision_variables": 40,
+      "dimension": "percentile q",
+      "downsized": 2,
+      "failed_services": {
+        "EC2": "Infeasible"
+      },
+      "fallback_cpu_exceedance_pct": 0.0,
+      "fallback_optimized_monthly": 775.06,
+      "fallback_savings_monthly": 362.81,
+      "fallback_savings_pct": 31.885,
+      "fallback_service_breakdown": {
+        "aggregate": {
+          "current_monthly": 1137.87,
+          "delta_monthly": -362.81,
+          "delta_pct": -31.885,
+          "optimized_monthly": 775.06,
+          "savings_monthly": 362.81,
+          "savings_pct": 31.885
+        },
+        "services": {
+          "EC2": {
+            "current_monthly": 740.02,
+            "delta_monthly": 0.0,
+            "delta_pct": 0.0,
+            "optimized_monthly": 740.02,
+            "savings_monthly": 0.0,
+            "savings_pct": 0.0
+          },
+          "RDS": {
+            "current_monthly": 397.85,
+            "delta_monthly": -362.81,
+            "delta_pct": -91.193,
+            "optimized_monthly": 35.04,
+            "savings_monthly": 362.81,
+            "savings_pct": 91.193
+          }
+        }
+      },
+      "headroom": 1.3,
+      "label": "q=0.99, h=1.3",
+      "level": "0.99",
+      "memory_mode": "observed",
+      "optimized_monthly": null,
+      "q": 0.99,
+      "resources": 10,
+      "savings_monthly": null,
+      "savings_pct": null,
+      "service_breakdown": null,
+      "solve_meta": [
+        {
+          "budget_cap": null,
+          "candidates": 4,
+          "constraints": 24,
+          "decision_variables": 32,
+          "label": "q=0.99, h=1.3:EC2",
+          "objective": 952.91473216,
+          "resources": 8,
+          "solve_seconds": 0.005467,
+          "status": "Infeasible"
+        },
+        {
+          "budget_cap": null,
+          "candidates": 4,
+          "constraints": 4,
+          "decision_variables": 8,
+          "label": "q=0.99, h=1.3:RDS",
+          "objective": 23.36,
+          "resources": 2,
+          "solve_seconds": 0.005566,
+          "status": "Optimal"
+        }
+      ],
+      "solve_seconds": 0.011033,
+      "solver": "PuLP CBC",
+      "stat": "percentile",
+      "status": "Partial (EC2 Infeasible)",
+      "upsized": 0
+    },
+    {
+      "budget_ratio": null,
+      "comparable": true,
+      "cost_policy": "failed service-level solves are kept at current inventory cost for diagnostics only; partial/failed rows are not comparable savings estimates",
+      "cpu_exceedance_pct": 0.0,
+      "current_monthly": 1137.87,
+      "decision_variables": 40,
+      "dimension": "headroom h",
+      "downsized": 2,
+      "failed_services": {},
+      "fallback_cpu_exceedance_pct": 0.0,
+      "fallback_optimized_monthly": 927.1,
+      "fallback_savings_monthly": 210.77,
+      "fallback_savings_pct": 18.523,
+      "fallback_service_breakdown": {
+        "aggregate": {
+          "current_monthly": 1137.87,
+          "delta_monthly": -210.77,
+          "delta_pct": -18.523,
+          "optimized_monthly": 927.1,
+          "savings_monthly": 210.77,
+          "savings_pct": 18.523
+        },
+        "services": {
+          "EC2": {
+            "current_monthly": 740.02,
+            "delta_monthly": 152.04,
+            "delta_pct": 20.545,
+            "optimized_monthly": 892.06,
+            "savings_monthly": -152.04,
+            "savings_pct": -20.545
+          },
+          "RDS": {
+            "current_monthly": 397.85,
+            "delta_monthly": -362.81,
+            "delta_pct": -91.193,
+            "optimized_monthly": 35.04,
+            "savings_monthly": 362.81,
+            "savings_pct": 91.193
+          }
+        }
+      },
+      "headroom": 1.0,
+      "label": "q=0.95, h=1.0",
+      "level": "1.0",
+      "memory_mode": "observed",
+      "optimized_monthly": 927.1,
+      "q": 0.95,
+      "resources": 10,
+      "savings_monthly": 210.77,
+      "savings_pct": 18.523,
+      "service_breakdown": {
+        "aggregate": {
+          "current_monthly": 1137.87,
+          "delta_monthly": -210.77,
+          "delta_pct": -18.523,
+          "optimized_monthly": 927.1,
+          "savings_monthly": 210.77,
+          "savings_pct": 18.523
+        },
+        "services": {
+          "EC2": {
+            "current_monthly": 740.02,
+            "delta_monthly": 152.04,
+            "delta_pct": 20.545,
+            "optimized_monthly": 892.06,
+            "savings_monthly": -152.04,
+            "savings_pct": -20.545
+          },
+          "RDS": {
+            "current_monthly": 397.85,
+            "delta_monthly": -362.81,
+            "delta_pct": -91.193,
+            "optimized_monthly": 35.04,
+            "savings_monthly": 362.81,
+            "savings_pct": 91.193
+          }
+        }
+      },
+      "solve_meta": [
+        {
+          "budget_cap": null,
+          "candidates": 4,
+          "constraints": 24,
+          "decision_variables": 32,
+          "label": "q=0.95, h=1.0:EC2",
+          "objective": 892.06,
+          "resources": 8,
+          "solve_seconds": 0.00673,
+          "status": "Optimal"
+        },
+        {
+          "budget_cap": null,
+          "candidates": 4,
+          "constraints": 4,
+          "decision_variables": 8,
+          "label": "q=0.95, h=1.0:RDS",
+          "objective": 23.36,
+          "resources": 2,
+          "solve_seconds": 0.00584,
+          "status": "Optimal"
+        }
+      ],
+      "solve_seconds": 0.01257,
+      "solver": "PuLP CBC",
+      "stat": "percentile",
+      "status": "Optimal",
+      "upsized": 6
+    },
+    {
+      "budget_ratio": null,
+      "comparable": true,
+      "cost_policy": "failed service-level solves are kept at current inventory cost for diagnostics only; partial/failed rows are not comparable savings estimates",
+      "cpu_exceedance_pct": 0.0,
+      "current_monthly": 1137.87,
+      "decision_variables": 40,
+      "dimension": "headroom h",
+      "downsized": 2,
+      "failed_services": {},
+      "fallback_cpu_exceedance_pct": 0.0,
+      "fallback_optimized_monthly": 927.1,
+      "fallback_savings_monthly": 210.77,
+      "fallback_savings_pct": 18.523,
+      "fallback_service_breakdown": {
+        "aggregate": {
+          "current_monthly": 1137.87,
+          "delta_monthly": -210.77,
+          "delta_pct": -18.523,
+          "optimized_monthly": 927.1,
+          "savings_monthly": 210.77,
+          "savings_pct": 18.523
+        },
+        "services": {
+          "EC2": {
+            "current_monthly": 740.02,
+            "delta_monthly": 152.04,
+            "delta_pct": 20.545,
+            "optimized_monthly": 892.06,
+            "savings_monthly": -152.04,
+            "savings_pct": -20.545
+          },
+          "RDS": {
+            "current_monthly": 397.85,
+            "delta_monthly": -362.81,
+            "delta_pct": -91.193,
+            "optimized_monthly": 35.04,
+            "savings_monthly": 362.81,
+            "savings_pct": 91.193
+          }
+        }
+      },
+      "headroom": 1.1,
+      "label": "q=0.95, h=1.1",
+      "level": "1.1",
+      "memory_mode": "observed",
+      "optimized_monthly": 927.1,
+      "q": 0.95,
+      "resources": 10,
+      "savings_monthly": 210.77,
+      "savings_pct": 18.523,
+      "service_breakdown": {
+        "aggregate": {
+          "current_monthly": 1137.87,
+          "delta_monthly": -210.77,
+          "delta_pct": -18.523,
+          "optimized_monthly": 927.1,
+          "savings_monthly": 210.77,
+          "savings_pct": 18.523
+        },
+        "services": {
+          "EC2": {
+            "current_monthly": 740.02,
+            "delta_monthly": 152.04,
+            "delta_pct": 20.545,
+            "optimized_monthly": 892.06,
+            "savings_monthly": -152.04,
+            "savings_pct": -20.545
+          },
+          "RDS": {
+            "current_monthly": 397.85,
+            "delta_monthly": -362.81,
+            "delta_pct": -91.193,
+            "optimized_monthly": 35.04,
+            "savings_monthly": 362.81,
+            "savings_pct": 91.193
+          }
+        }
+      },
+      "solve_meta": [
+        {
+          "budget_cap": null,
+          "candidates": 4,
+          "constraints": 24,
+          "decision_variables": 32,
+          "label": "q=0.95, h=1.1:EC2",
+          "objective": 892.06,
+          "resources": 8,
+          "solve_seconds": 0.006177,
+          "status": "Optimal"
+        },
+        {
+          "budget_cap": null,
+          "candidates": 4,
+          "constraints": 4,
+          "decision_variables": 8,
+          "label": "q=0.95, h=1.1:RDS",
+          "objective": 23.36,
+          "resources": 2,
+          "solve_seconds": 0.005263,
+          "status": "Optimal"
+        }
+      ],
+      "solve_seconds": 0.01144,
+      "solver": "PuLP CBC",
+      "stat": "percentile",
+      "status": "Optimal",
+      "upsized": 6
+    },
+    {
+      "budget_ratio": null,
+      "comparable": false,
+      "cost_policy": "failed service-level solves are kept at current inventory cost for diagnostics only; partial/failed rows are not comparable savings estimates",
+      "cpu_exceedance_pct": null,
+      "current_monthly": 1137.87,
+      "decision_variables": 40,
+      "dimension": "headroom h",
+      "downsized": 2,
+      "failed_services": {
+        "EC2": "Infeasible"
+      },
+      "fallback_cpu_exceedance_pct": 0.0,
+      "fallback_optimized_monthly": 775.06,
+      "fallback_savings_monthly": 362.81,
+      "fallback_savings_pct": 31.885,
+      "fallback_service_breakdown": {
+        "aggregate": {
+          "current_monthly": 1137.87,
+          "delta_monthly": -362.81,
+          "delta_pct": -31.885,
+          "optimized_monthly": 775.06,
+          "savings_monthly": 362.81,
+          "savings_pct": 31.885
+        },
+        "services": {
+          "EC2": {
+            "current_monthly": 740.02,
+            "delta_monthly": 0.0,
+            "delta_pct": 0.0,
+            "optimized_monthly": 740.02,
+            "savings_monthly": 0.0,
+            "savings_pct": 0.0
+          },
+          "RDS": {
+            "current_monthly": 397.85,
+            "delta_monthly": -362.81,
+            "delta_pct": -91.193,
+            "optimized_monthly": 35.04,
+            "savings_monthly": 362.81,
+            "savings_pct": 91.193
+          }
+        }
+      },
+      "headroom": 1.3,
+      "label": "q=0.95, h=1.3",
+      "level": "1.3",
+      "memory_mode": "observed",
+      "optimized_monthly": null,
+      "q": 0.95,
+      "resources": 10,
+      "savings_monthly": null,
+      "savings_pct": null,
+      "service_breakdown": null,
+      "solve_meta": [
+        {
+          "budget_cap": null,
+          "candidates": 4,
+          "constraints": 24,
+          "decision_variables": 32,
+          "label": "q=0.95, h=1.3:EC2",
+          "objective": 936.37887503,
+          "resources": 8,
+          "solve_seconds": 0.005462,
+          "status": "Infeasible"
+        },
+        {
+          "budget_cap": null,
+          "candidates": 4,
+          "constraints": 4,
+          "decision_variables": 8,
+          "label": "q=0.95, h=1.3:RDS",
+          "objective": 23.36,
+          "resources": 2,
+          "solve_seconds": 0.006122,
+          "status": "Optimal"
+        }
+      ],
+      "solve_seconds": 0.011584,
+      "solver": "PuLP CBC",
+      "stat": "percentile",
+      "status": "Partial (EC2 Infeasible)",
+      "upsized": 0
+    },
+    {
+      "budget_ratio": null,
+      "comparable": false,
+      "cost_policy": "failed service-level solves are kept at current inventory cost for diagnostics only; partial/failed rows are not comparable savings estimates",
+      "cpu_exceedance_pct": null,
+      "current_monthly": 1137.87,
+      "decision_variables": 40,
+      "dimension": "headroom h",
+      "downsized": 2,
+      "failed_services": {
+        "EC2": "Infeasible"
+      },
+      "fallback_cpu_exceedance_pct": 0.0,
+      "fallback_optimized_monthly": 775.06,
+      "fallback_savings_monthly": 362.81,
+      "fallback_savings_pct": 31.885,
+      "fallback_service_breakdown": {
+        "aggregate": {
+          "current_monthly": 1137.87,
+          "delta_monthly": -362.81,
+          "delta_pct": -31.885,
+          "optimized_monthly": 775.06,
+          "savings_monthly": 362.81,
+          "savings_pct": 31.885
+        },
+        "services": {
+          "EC2": {
+            "current_monthly": 740.02,
+            "delta_monthly": 0.0,
+            "delta_pct": 0.0,
+            "optimized_monthly": 740.02,
+            "savings_monthly": 0.0,
+            "savings_pct": 0.0
+          },
+          "RDS": {
+            "current_monthly": 397.85,
+            "delta_monthly": -362.81,
+            "delta_pct": -91.193,
+            "optimized_monthly": 35.04,
+            "savings_monthly": 362.81,
+            "savings_pct": 91.193
+          }
+        }
+      },
+      "headroom": 1.5,
+      "label": "q=0.95, h=1.5",
+      "level": "1.5",
+      "memory_mode": "observed",
+      "optimized_monthly": null,
+      "q": 0.95,
+      "resources": 10,
+      "savings_monthly": null,
+      "savings_pct": null,
+      "service_breakdown": null,
+      "solve_meta": [
+        {
+          "budget_cap": null,
+          "candidates": 4,
+          "constraints": 24,
+          "decision_variables": 32,
+          "label": "q=0.95, h=1.5:EC2",
+          "objective": 982.1910096500001,
+          "resources": 8,
+          "solve_seconds": 0.005415,
+          "status": "Infeasible"
+        },
+        {
+          "budget_cap": null,
+          "candidates": 4,
+          "constraints": 4,
+          "decision_variables": 8,
+          "label": "q=0.95, h=1.5:RDS",
+          "objective": 23.36,
+          "resources": 2,
+          "solve_seconds": 0.006162,
+          "status": "Optimal"
+        }
+      ],
+      "solve_seconds": 0.011577,
+      "solver": "PuLP CBC",
+      "stat": "percentile",
+      "status": "Partial (EC2 Infeasible)",
+      "upsized": 0
+    },
+    {
+      "budget_ratio": null,
+      "comparable": false,
+      "cost_policy": "failed service-level solves are kept at current inventory cost for diagnostics only; partial/failed rows are not comparable savings estimates",
+      "cpu_exceedance_pct": null,
+      "current_monthly": 1137.87,
+      "decision_variables": 40,
+      "dimension": "memory constraint",
+      "downsized": 2,
+      "failed_services": {
+        "EC2": "Infeasible"
+      },
+      "fallback_cpu_exceedance_pct": 0.0,
+      "fallback_optimized_monthly": 775.06,
+      "fallback_savings_monthly": 362.81,
+      "fallback_savings_pct": 31.885,
+      "fallback_service_breakdown": {
+        "aggregate": {
+          "current_monthly": 1137.87,
+          "delta_monthly": -362.81,
+          "delta_pct": -31.885,
+          "optimized_monthly": 775.06,
+          "savings_monthly": 362.81,
+          "savings_pct": 31.885
+        },
+        "services": {
+          "EC2": {
+            "current_monthly": 740.02,
+            "delta_monthly": 0.0,
+            "delta_pct": 0.0,
+            "optimized_monthly": 740.02,
+            "savings_monthly": 0.0,
+            "savings_pct": 0.0
+          },
+          "RDS": {
+            "current_monthly": 397.85,
+            "delta_monthly": -362.81,
+            "delta_pct": -91.193,
+            "optimized_monthly": 35.04,
+            "savings_monthly": 362.81,
+            "savings_pct": 91.193
+          }
+        }
+      },
+      "headroom": 1.3,
+      "label": "memory off",
+      "level": "off",
+      "memory_mode": "off",
+      "optimized_monthly": null,
+      "q": 0.95,
+      "resources": 10,
+      "savings_monthly": null,
+      "savings_pct": null,
+      "service_breakdown": null,
+      "solve_meta": [
+        {
+          "budget_cap": null,
+          "candidates": 4,
+          "constraints": 16,
+          "decision_variables": 32,
+          "label": "memory off:EC2",
+          "objective": 936.37887503,
+          "resources": 8,
+          "solve_seconds": 0.005372,
+          "status": "Infeasible"
+        },
+        {
+          "budget_cap": null,
+          "candidates": 4,
+          "constraints": 4,
+          "decision_variables": 8,
+          "label": "memory off:RDS",
+          "objective": 23.36,
+          "resources": 2,
+          "solve_seconds": 0.00571,
+          "status": "Optimal"
+        }
+      ],
+      "solve_seconds": 0.011082,
+      "solver": "PuLP CBC",
+      "stat": "percentile",
+      "status": "Partial (EC2 Infeasible)",
+      "upsized": 0
+    },
+    {
+      "budget_ratio": null,
+      "comparable": false,
+      "cost_policy": "failed service-level solves are kept at current inventory cost for diagnostics only; partial/failed rows are not comparable savings estimates",
+      "cpu_exceedance_pct": null,
+      "current_monthly": 1137.87,
+      "decision_variables": 40,
+      "dimension": "memory constraint",
+      "downsized": 2,
+      "failed_services": {
+        "EC2": "Infeasible"
+      },
+      "fallback_cpu_exceedance_pct": 0.0,
+      "fallback_optimized_monthly": 775.06,
+      "fallback_savings_monthly": 362.81,
+      "fallback_savings_pct": 31.885,
+      "fallback_service_breakdown": {
+        "aggregate": {
+          "current_monthly": 1137.87,
+          "delta_monthly": -362.81,
+          "delta_pct": -31.885,
+          "optimized_monthly": 775.06,
+          "savings_monthly": 362.81,
+          "savings_pct": 31.885
+        },
+        "services": {
+          "EC2": {
+            "current_monthly": 740.02,
+            "delta_monthly": 0.0,
+            "delta_pct": 0.0,
+            "optimized_monthly": 740.02,
+            "savings_monthly": 0.0,
+            "savings_pct": 0.0
+          },
+          "RDS": {
+            "current_monthly": 397.85,
+            "delta_monthly": -362.81,
+            "delta_pct": -91.193,
+            "optimized_monthly": 35.04,
+            "savings_monthly": 362.81,
+            "savings_pct": 91.193
+          }
+        }
+      },
+      "headroom": 1.3,
+      "label": "memory observed",
+      "level": "observed",
+      "memory_mode": "observed",
+      "optimized_monthly": null,
+      "q": 0.95,
+      "resources": 10,
+      "savings_monthly": null,
+      "savings_pct": null,
+      "service_breakdown": null,
+      "solve_meta": [
+        {
+          "budget_cap": null,
+          "candidates": 4,
+          "constraints": 24,
+          "decision_variables": 32,
+          "label": "memory observed:EC2",
+          "objective": 936.37887503,
+          "resources": 8,
+          "solve_seconds": 0.005541,
+          "status": "Infeasible"
+        },
+        {
+          "budget_cap": null,
+          "candidates": 4,
+          "constraints": 4,
+          "decision_variables": 8,
+          "label": "memory observed:RDS",
+          "objective": 23.36,
+          "resources": 2,
+          "solve_seconds": 0.006024,
+          "status": "Optimal"
+        }
+      ],
+      "solve_seconds": 0.011565,
+      "solver": "PuLP CBC",
+      "stat": "percentile",
+      "status": "Partial (EC2 Infeasible)",
+      "upsized": 0
+    },
+    {
+      "budget_ratio": null,
+      "comparable": false,
+      "cost_policy": "failed service-level solves are kept at current inventory cost for diagnostics only; partial/failed rows are not comparable savings estimates",
+      "cpu_exceedance_pct": null,
+      "current_monthly": 1137.87,
+      "decision_variables": 40,
+      "dimension": "budget cap",
+      "downsized": 2,
+      "failed_services": {
+        "EC2": "Infeasible"
+      },
+      "fallback_cpu_exceedance_pct": 0.0,
+      "fallback_optimized_monthly": 775.06,
+      "fallback_savings_monthly": 362.81,
+      "fallback_savings_pct": 31.885,
+      "fallback_service_breakdown": {
+        "aggregate": {
+          "current_monthly": 1137.87,
+          "delta_monthly": -362.81,
+          "delta_pct": -31.885,
+          "optimized_monthly": 775.06,
+          "savings_monthly": 362.81,
+          "savings_pct": 31.885
+        },
+        "services": {
+          "EC2": {
+            "current_monthly": 740.02,
+            "delta_monthly": 0.0,
+            "delta_pct": 0.0,
+            "optimized_monthly": 740.02,
+            "savings_monthly": 0.0,
+            "savings_pct": 0.0
+          },
+          "RDS": {
+            "current_monthly": 397.85,
+            "delta_monthly": -362.81,
+            "delta_pct": -91.193,
+            "optimized_monthly": 35.04,
+            "savings_monthly": 362.81,
+            "savings_pct": 91.193
+          }
+        }
+      },
+      "headroom": 1.3,
+      "label": "budget none",
+      "level": "none",
+      "memory_mode": "observed",
+      "optimized_monthly": null,
+      "q": 0.95,
+      "resources": 10,
+      "savings_monthly": null,
+      "savings_pct": null,
+      "service_breakdown": null,
+      "solve_meta": [
+        {
+          "budget_cap": null,
+          "candidates": 4,
+          "constraints": 24,
+          "decision_variables": 32,
+          "label": "budget none:EC2",
+          "objective": 936.37887503,
+          "resources": 8,
+          "solve_seconds": 0.004859,
+          "status": "Infeasible"
+        },
+        {
+          "budget_cap": null,
+          "candidates": 4,
+          "constraints": 4,
+          "decision_variables": 8,
+          "label": "budget none:RDS",
+          "objective": 23.36,
+          "resources": 2,
+          "solve_seconds": 0.005572,
+          "status": "Optimal"
+        }
+      ],
+      "solve_seconds": 0.010431,
+      "solver": "PuLP CBC",
+      "stat": "percentile",
+      "status": "Partial (EC2 Infeasible)",
+      "upsized": 0
+    },
+    {
+      "budget_ratio": 1.0,
+      "comparable": false,
+      "cost_policy": "failed service-level solves are kept at current inventory cost for diagnostics only; partial/failed rows are not comparable savings estimates",
+      "cpu_exceedance_pct": null,
+      "current_monthly": 1137.87,
+      "decision_variables": 40,
+      "dimension": "budget cap",
+      "downsized": 2,
+      "failed_services": {
+        "EC2": "Infeasible"
+      },
+      "fallback_cpu_exceedance_pct": 0.0,
+      "fallback_optimized_monthly": 775.06,
+      "fallback_savings_monthly": 362.81,
+      "fallback_savings_pct": 31.885,
+      "fallback_service_breakdown": {
+        "aggregate": {
+          "current_monthly": 1137.87,
+          "delta_monthly": -362.81,
+          "delta_pct": -31.885,
+          "optimized_monthly": 775.06,
+          "savings_monthly": 362.81,
+          "savings_pct": 31.885
+        },
+        "services": {
+          "EC2": {
+            "current_monthly": 740.02,
+            "delta_monthly": 0.0,
+            "delta_pct": 0.0,
+            "optimized_monthly": 740.02,
+            "savings_monthly": 0.0,
+            "savings_pct": 0.0
+          },
+          "RDS": {
+            "current_monthly": 397.85,
+            "delta_monthly": -362.81,
+            "delta_pct": -91.193,
+            "optimized_monthly": 35.04,
+            "savings_monthly": 362.81,
+            "savings_pct": 91.193
+          }
+        }
+      },
+      "headroom": 1.3,
+      "label": "budget 100% current",
+      "level": "100% current",
+      "memory_mode": "observed",
+      "optimized_monthly": null,
+      "q": 0.95,
+      "resources": 10,
+      "savings_monthly": null,
+      "savings_pct": null,
+      "service_breakdown": null,
+      "solve_meta": [
+        {
+          "budget_cap": 740.02,
+          "candidates": 4,
+          "constraints": 25,
+          "decision_variables": 32,
+          "label": "budget 100% current:EC2",
+          "objective": 936.37887503,
+          "resources": 8,
+          "solve_seconds": 0.005405,
+          "status": "Infeasible"
+        },
+        {
+          "budget_cap": 397.84999999999997,
+          "candidates": 4,
+          "constraints": 5,
+          "decision_variables": 8,
+          "label": "budget 100% current:RDS",
+          "objective": 23.36,
+          "resources": 2,
+          "solve_seconds": 0.006825,
+          "status": "Optimal"
+        }
+      ],
+      "solve_seconds": 0.01223,
+      "solver": "PuLP CBC",
+      "stat": "percentile",
+      "status": "Partial (EC2 Infeasible)",
+      "upsized": 0
+    },
+    {
+      "budget_ratio": 0.9,
+      "comparable": false,
+      "cost_policy": "failed service-level solves are kept at current inventory cost for diagnostics only; partial/failed rows are not comparable savings estimates",
+      "cpu_exceedance_pct": null,
+      "current_monthly": 1137.87,
+      "decision_variables": 40,
+      "dimension": "budget cap",
+      "downsized": 2,
+      "failed_services": {
+        "EC2": "Infeasible"
+      },
+      "fallback_cpu_exceedance_pct": 0.0,
+      "fallback_optimized_monthly": 775.06,
+      "fallback_savings_monthly": 362.81,
+      "fallback_savings_pct": 31.885,
+      "fallback_service_breakdown": {
+        "aggregate": {
+          "current_monthly": 1137.87,
+          "delta_monthly": -362.81,
+          "delta_pct": -31.885,
+          "optimized_monthly": 775.06,
+          "savings_monthly": 362.81,
+          "savings_pct": 31.885
+        },
+        "services": {
+          "EC2": {
+            "current_monthly": 740.02,
+            "delta_monthly": 0.0,
+            "delta_pct": 0.0,
+            "optimized_monthly": 740.02,
+            "savings_monthly": 0.0,
+            "savings_pct": 0.0
+          },
+          "RDS": {
+            "current_monthly": 397.85,
+            "delta_monthly": -362.81,
+            "delta_pct": -91.193,
+            "optimized_monthly": 35.04,
+            "savings_monthly": 362.81,
+            "savings_pct": 91.193
+          }
+        }
+      },
+      "headroom": 1.3,
+      "label": "budget 90% current",
+      "level": "90% current",
+      "memory_mode": "observed",
+      "optimized_monthly": null,
+      "q": 0.95,
+      "resources": 10,
+      "savings_monthly": null,
+      "savings_pct": null,
+      "service_breakdown": null,
+      "solve_meta": [
+        {
+          "budget_cap": 666.018,
+          "candidates": 4,
+          "constraints": 25,
+          "decision_variables": 32,
+          "label": "budget 90% current:EC2",
+          "objective": 932.8291351,
+          "resources": 8,
+          "solve_seconds": 0.005263,
+          "status": "Infeasible"
+        },
+        {
+          "budget_cap": 358.065,
+          "candidates": 4,
+          "constraints": 5,
+          "decision_variables": 8,
+          "label": "budget 90% current:RDS",
+          "objective": 23.36,
+          "resources": 2,
+          "solve_seconds": 0.006035,
+          "status": "Optimal"
+        }
+      ],
+      "solve_seconds": 0.011298,
+      "solver": "PuLP CBC",
+      "stat": "percentile",
+      "status": "Partial (EC2 Infeasible)",
+      "upsized": 0
+    },
+    {
+      "budget_ratio": 0.75,
+      "comparable": false,
+      "cost_policy": "failed service-level solves are kept at current inventory cost for diagnostics only; partial/failed rows are not comparable savings estimates",
+      "cpu_exceedance_pct": null,
+      "current_monthly": 1137.87,
+      "decision_variables": 40,
+      "dimension": "budget cap",
+      "downsized": 2,
+      "failed_services": {
+        "EC2": "Infeasible"
+      },
+      "fallback_cpu_exceedance_pct": 0.0,
+      "fallback_optimized_monthly": 775.06,
+      "fallback_savings_monthly": 362.81,
+      "fallback_savings_pct": 31.885,
+      "fallback_service_breakdown": {
+        "aggregate": {
+          "current_monthly": 1137.87,
+          "delta_monthly": -362.81,
+          "delta_pct": -31.885,
+          "optimized_monthly": 775.06,
+          "savings_monthly": 362.81,
+          "savings_pct": 31.885
+        },
+        "services": {
+          "EC2": {
+            "current_monthly": 740.02,
+            "delta_monthly": 0.0,
+            "delta_pct": 0.0,
+            "optimized_monthly": 740.02,
+            "savings_monthly": 0.0,
+            "savings_pct": 0.0
+          },
+          "RDS": {
+            "current_monthly": 397.85,
+            "delta_monthly": -362.81,
+            "delta_pct": -91.193,
+            "optimized_monthly": 35.04,
+            "savings_monthly": 362.81,
+            "savings_pct": 91.193
+          }
+        }
+      },
+      "headroom": 1.3,
+      "label": "budget 75% current",
+      "level": "75% current",
+      "memory_mode": "observed",
+      "optimized_monthly": null,
+      "q": 0.95,
+      "resources": 10,
+      "savings_monthly": null,
+      "savings_pct": null,
+      "service_breakdown": null,
+      "solve_meta": [
+        {
+          "budget_cap": 555.015,
+          "candidates": 4,
+          "constraints": 25,
+          "decision_variables": 32,
+          "label": "budget 75% current:EC2",
+          "objective": 932.8291351,
+          "resources": 8,
+          "solve_seconds": 0.004912,
+          "status": "Infeasible"
+        },
+        {
+          "budget_cap": 298.3875,
+          "candidates": 4,
+          "constraints": 5,
+          "decision_variables": 8,
+          "label": "budget 75% current:RDS",
+          "objective": 23.36,
+          "resources": 2,
+          "solve_seconds": 0.007309,
+          "status": "Optimal"
+        }
+      ],
+      "solve_seconds": 0.012221,
+      "solver": "PuLP CBC",
+      "stat": "percentile",
+      "status": "Partial (EC2 Infeasible)",
+      "upsized": 0
+    },
+    {
+      "budget_ratio": 0.01,
+      "comparable": false,
+      "cost_policy": "failed service-level solves are kept at current inventory cost for diagnostics only; partial/failed rows are not comparable savings estimates",
+      "cpu_exceedance_pct": null,
+      "current_monthly": 1137.87,
+      "decision_variables": 40,
+      "dimension": "budget cap",
+      "downsized": 0,
+      "failed_services": {
+        "EC2": "Infeasible",
+        "RDS": "Infeasible"
+      },
+      "fallback_cpu_exceedance_pct": 0.0,
+      "fallback_optimized_monthly": 1137.87,
+      "fallback_savings_monthly": 0.0,
+      "fallback_savings_pct": 0.0,
+      "fallback_service_breakdown": {
+        "aggregate": {
+          "current_monthly": 1137.87,
+          "delta_monthly": 0.0,
+          "delta_pct": 0.0,
+          "optimized_monthly": 1137.87,
+          "savings_monthly": 0.0,
+          "savings_pct": 0.0
+        },
+        "services": {
+          "EC2": {
+            "current_monthly": 740.02,
+            "delta_monthly": 0.0,
+            "delta_pct": 0.0,
+            "optimized_monthly": 740.02,
+            "savings_monthly": 0.0,
+            "savings_pct": 0.0
+          },
+          "RDS": {
+            "current_monthly": 397.85,
+            "delta_monthly": 0.0,
+            "delta_pct": 0.0,
+            "optimized_monthly": 397.85,
+            "savings_monthly": 0.0,
+            "savings_pct": 0.0
+          }
+        }
+      },
+      "headroom": 1.3,
+      "label": "budget 1% current",
+      "level": "1% current",
+      "memory_mode": "observed",
+      "optimized_monthly": null,
+      "q": 0.95,
+      "resources": 10,
+      "savings_monthly": null,
+      "savings_pct": null,
+      "service_breakdown": null,
+      "solve_meta": [
+        {
+          "budget_cap": 7.4002,
+          "candidates": 4,
+          "constraints": 25,
+          "decision_variables": 32,
+          "label": "budget 1% current:EC2",
+          "objective": 380.94913510000003,
+          "resources": 8,
+          "solve_seconds": 0.004909,
+          "status": "Infeasible"
+        },
+        {
+          "budget_cap": 3.9785,
+          "candidates": 4,
+          "constraints": 5,
+          "decision_variables": 8,
+          "label": "budget 1% current:RDS",
+          "objective": 23.36,
+          "resources": 2,
+          "solve_seconds": 0.004425,
+          "status": "Infeasible"
+        }
+      ],
+      "solve_seconds": 0.009334,
+      "solver": "PuLP CBC",
+      "stat": "percentile",
+      "status": "Failed (EC2 Infeasible, RDS Infeasible)",
+      "upsized": 0
+    }
+  ],
+  "original_demo_resource_rows": {
+    "budget 1% current": [
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 88.3,
+        "kept_current_due_to_failure": true,
+        "new_cost": 88.3,
+        "resource_id": "i-fe01442ffcbdd8b17",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 88.3,
+        "kept_current_due_to_failure": true,
+        "new_cost": 88.3,
+        "resource_id": "i-322ced9d357a71851",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 62.05,
+        "kept_current_due_to_failure": true,
+        "new_cost": 62.05,
+        "resource_id": "i-62c9b73536b4afb64",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 91.98,
+        "kept_current_due_to_failure": true,
+        "new_cost": 91.98,
+        "resource_id": "i-9ad0eb8ce137a7aa6",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 70.08,
+        "kept_current_due_to_failure": true,
+        "new_cost": 70.08,
+        "resource_id": "i-6fcb9841d7a4596cc",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 30.37,
+        "kept_current_due_to_failure": true,
+        "new_cost": 30.37,
+        "resource_id": "i-f785f27a24b145b6a",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 60.74,
+        "kept_current_due_to_failure": true,
+        "new_cost": 60.74,
+        "resource_id": "i-8a2f2d2dd5bc5cab6",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 248.2,
+        "kept_current_due_to_failure": true,
+        "new_cost": 248.2,
+        "resource_id": "i-7f2d2987eea6a58df",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 350.4,
+        "kept_current_due_to_failure": true,
+        "new_cost": 350.4,
+        "resource_id": "prod-postgres-primary",
+        "savings": 0.0,
+        "service": "RDS"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 47.45,
+        "kept_current_due_to_failure": true,
+        "new_cost": 47.45,
+        "resource_id": "staging-postgres",
+        "savings": 0.0,
+        "service": "RDS"
+      }
+    ],
+    "budget 100% current": [
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 88.3,
+        "kept_current_due_to_failure": true,
+        "new_cost": 88.3,
+        "resource_id": "i-fe01442ffcbdd8b17",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 88.3,
+        "kept_current_due_to_failure": true,
+        "new_cost": 88.3,
+        "resource_id": "i-322ced9d357a71851",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 62.05,
+        "kept_current_due_to_failure": true,
+        "new_cost": 62.05,
+        "resource_id": "i-62c9b73536b4afb64",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 91.98,
+        "kept_current_due_to_failure": true,
+        "new_cost": 91.98,
+        "resource_id": "i-9ad0eb8ce137a7aa6",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 70.08,
+        "kept_current_due_to_failure": true,
+        "new_cost": 70.08,
+        "resource_id": "i-6fcb9841d7a4596cc",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 30.37,
+        "kept_current_due_to_failure": true,
+        "new_cost": 30.37,
+        "resource_id": "i-f785f27a24b145b6a",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 60.74,
+        "kept_current_due_to_failure": true,
+        "new_cost": 60.74,
+        "resource_id": "i-8a2f2d2dd5bc5cab6",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 248.2,
+        "kept_current_due_to_failure": true,
+        "new_cost": 248.2,
+        "resource_id": "i-7f2d2987eea6a58df",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "db.t4g.micro",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 350.4,
+        "kept_current_due_to_failure": false,
+        "new_cost": 23.36,
+        "resource_id": "prod-postgres-primary",
+        "savings": 327.03999999999996,
+        "service": "RDS"
+      },
+      {
+        "assigned_type": "db.t4g.micro",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 47.45,
+        "kept_current_due_to_failure": false,
+        "new_cost": 11.68,
+        "resource_id": "staging-postgres",
+        "savings": 35.77,
+        "service": "RDS"
+      }
+    ],
+    "budget 75% current": [
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 88.3,
+        "kept_current_due_to_failure": true,
+        "new_cost": 88.3,
+        "resource_id": "i-fe01442ffcbdd8b17",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 88.3,
+        "kept_current_due_to_failure": true,
+        "new_cost": 88.3,
+        "resource_id": "i-322ced9d357a71851",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 62.05,
+        "kept_current_due_to_failure": true,
+        "new_cost": 62.05,
+        "resource_id": "i-62c9b73536b4afb64",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 91.98,
+        "kept_current_due_to_failure": true,
+        "new_cost": 91.98,
+        "resource_id": "i-9ad0eb8ce137a7aa6",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 70.08,
+        "kept_current_due_to_failure": true,
+        "new_cost": 70.08,
+        "resource_id": "i-6fcb9841d7a4596cc",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 30.37,
+        "kept_current_due_to_failure": true,
+        "new_cost": 30.37,
+        "resource_id": "i-f785f27a24b145b6a",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 60.74,
+        "kept_current_due_to_failure": true,
+        "new_cost": 60.74,
+        "resource_id": "i-8a2f2d2dd5bc5cab6",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 248.2,
+        "kept_current_due_to_failure": true,
+        "new_cost": 248.2,
+        "resource_id": "i-7f2d2987eea6a58df",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "db.t4g.micro",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 350.4,
+        "kept_current_due_to_failure": false,
+        "new_cost": 23.36,
+        "resource_id": "prod-postgres-primary",
+        "savings": 327.03999999999996,
+        "service": "RDS"
+      },
+      {
+        "assigned_type": "db.t4g.micro",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 47.45,
+        "kept_current_due_to_failure": false,
+        "new_cost": 11.68,
+        "resource_id": "staging-postgres",
+        "savings": 35.77,
+        "service": "RDS"
+      }
+    ],
+    "budget 90% current": [
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 88.3,
+        "kept_current_due_to_failure": true,
+        "new_cost": 88.3,
+        "resource_id": "i-fe01442ffcbdd8b17",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 88.3,
+        "kept_current_due_to_failure": true,
+        "new_cost": 88.3,
+        "resource_id": "i-322ced9d357a71851",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 62.05,
+        "kept_current_due_to_failure": true,
+        "new_cost": 62.05,
+        "resource_id": "i-62c9b73536b4afb64",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 91.98,
+        "kept_current_due_to_failure": true,
+        "new_cost": 91.98,
+        "resource_id": "i-9ad0eb8ce137a7aa6",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 70.08,
+        "kept_current_due_to_failure": true,
+        "new_cost": 70.08,
+        "resource_id": "i-6fcb9841d7a4596cc",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 30.37,
+        "kept_current_due_to_failure": true,
+        "new_cost": 30.37,
+        "resource_id": "i-f785f27a24b145b6a",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 60.74,
+        "kept_current_due_to_failure": true,
+        "new_cost": 60.74,
+        "resource_id": "i-8a2f2d2dd5bc5cab6",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 248.2,
+        "kept_current_due_to_failure": true,
+        "new_cost": 248.2,
+        "resource_id": "i-7f2d2987eea6a58df",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "db.t4g.micro",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 350.4,
+        "kept_current_due_to_failure": false,
+        "new_cost": 23.36,
+        "resource_id": "prod-postgres-primary",
+        "savings": 327.03999999999996,
+        "service": "RDS"
+      },
+      {
+        "assigned_type": "db.t4g.micro",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 47.45,
+        "kept_current_due_to_failure": false,
+        "new_cost": 11.68,
+        "resource_id": "staging-postgres",
+        "savings": 35.77,
+        "service": "RDS"
+      }
+    ],
+    "budget none": [
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 88.3,
+        "kept_current_due_to_failure": true,
+        "new_cost": 88.3,
+        "resource_id": "i-fe01442ffcbdd8b17",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 88.3,
+        "kept_current_due_to_failure": true,
+        "new_cost": 88.3,
+        "resource_id": "i-322ced9d357a71851",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 62.05,
+        "kept_current_due_to_failure": true,
+        "new_cost": 62.05,
+        "resource_id": "i-62c9b73536b4afb64",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 91.98,
+        "kept_current_due_to_failure": true,
+        "new_cost": 91.98,
+        "resource_id": "i-9ad0eb8ce137a7aa6",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 70.08,
+        "kept_current_due_to_failure": true,
+        "new_cost": 70.08,
+        "resource_id": "i-6fcb9841d7a4596cc",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 30.37,
+        "kept_current_due_to_failure": true,
+        "new_cost": 30.37,
+        "resource_id": "i-f785f27a24b145b6a",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 60.74,
+        "kept_current_due_to_failure": true,
+        "new_cost": 60.74,
+        "resource_id": "i-8a2f2d2dd5bc5cab6",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 248.2,
+        "kept_current_due_to_failure": true,
+        "new_cost": 248.2,
+        "resource_id": "i-7f2d2987eea6a58df",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "db.t4g.micro",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 350.4,
+        "kept_current_due_to_failure": false,
+        "new_cost": 23.36,
+        "resource_id": "prod-postgres-primary",
+        "savings": 327.03999999999996,
+        "service": "RDS"
+      },
+      {
+        "assigned_type": "db.t4g.micro",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 47.45,
+        "kept_current_due_to_failure": false,
+        "new_cost": 11.68,
+        "resource_id": "staging-postgres",
+        "savings": 35.77,
+        "service": "RDS"
+      }
+    ],
+    "memory observed": [
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 88.3,
+        "kept_current_due_to_failure": true,
+        "new_cost": 88.3,
+        "resource_id": "i-fe01442ffcbdd8b17",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 88.3,
+        "kept_current_due_to_failure": true,
+        "new_cost": 88.3,
+        "resource_id": "i-322ced9d357a71851",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 62.05,
+        "kept_current_due_to_failure": true,
+        "new_cost": 62.05,
+        "resource_id": "i-62c9b73536b4afb64",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 91.98,
+        "kept_current_due_to_failure": true,
+        "new_cost": 91.98,
+        "resource_id": "i-9ad0eb8ce137a7aa6",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 70.08,
+        "kept_current_due_to_failure": true,
+        "new_cost": 70.08,
+        "resource_id": "i-6fcb9841d7a4596cc",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 30.37,
+        "kept_current_due_to_failure": true,
+        "new_cost": 30.37,
+        "resource_id": "i-f785f27a24b145b6a",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 60.74,
+        "kept_current_due_to_failure": true,
+        "new_cost": 60.74,
+        "resource_id": "i-8a2f2d2dd5bc5cab6",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 248.2,
+        "kept_current_due_to_failure": true,
+        "new_cost": 248.2,
+        "resource_id": "i-7f2d2987eea6a58df",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "db.t4g.micro",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 350.4,
+        "kept_current_due_to_failure": false,
+        "new_cost": 23.36,
+        "resource_id": "prod-postgres-primary",
+        "savings": 327.03999999999996,
+        "service": "RDS"
+      },
+      {
+        "assigned_type": "db.t4g.micro",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 47.45,
+        "kept_current_due_to_failure": false,
+        "new_cost": 11.68,
+        "resource_id": "staging-postgres",
+        "savings": 35.77,
+        "service": "RDS"
+      }
+    ],
+    "memory off": [
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 88.3,
+        "kept_current_due_to_failure": true,
+        "new_cost": 88.3,
+        "resource_id": "i-fe01442ffcbdd8b17",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 88.3,
+        "kept_current_due_to_failure": true,
+        "new_cost": 88.3,
+        "resource_id": "i-322ced9d357a71851",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 62.05,
+        "kept_current_due_to_failure": true,
+        "new_cost": 62.05,
+        "resource_id": "i-62c9b73536b4afb64",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 91.98,
+        "kept_current_due_to_failure": true,
+        "new_cost": 91.98,
+        "resource_id": "i-9ad0eb8ce137a7aa6",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 70.08,
+        "kept_current_due_to_failure": true,
+        "new_cost": 70.08,
+        "resource_id": "i-6fcb9841d7a4596cc",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 30.37,
+        "kept_current_due_to_failure": true,
+        "new_cost": 30.37,
+        "resource_id": "i-f785f27a24b145b6a",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 60.74,
+        "kept_current_due_to_failure": true,
+        "new_cost": 60.74,
+        "resource_id": "i-8a2f2d2dd5bc5cab6",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 248.2,
+        "kept_current_due_to_failure": true,
+        "new_cost": 248.2,
+        "resource_id": "i-7f2d2987eea6a58df",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "db.t4g.micro",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 350.4,
+        "kept_current_due_to_failure": false,
+        "new_cost": 23.36,
+        "resource_id": "prod-postgres-primary",
+        "savings": 327.03999999999996,
+        "service": "RDS"
+      },
+      {
+        "assigned_type": "db.t4g.micro",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 47.45,
+        "kept_current_due_to_failure": false,
+        "new_cost": 11.68,
+        "resource_id": "staging-postgres",
+        "savings": 35.77,
+        "service": "RDS"
+      }
+    ],
+    "q=0.75, h=1.3": [
+      {
+        "assigned_type": "r5.large",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 88.3,
+        "kept_current_due_to_failure": false,
+        "new_cost": 91.98,
+        "resource_id": "i-fe01442ffcbdd8b17",
+        "savings": -3.680000000000007,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "r5.large",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 88.3,
+        "kept_current_due_to_failure": false,
+        "new_cost": 91.98,
+        "resource_id": "i-322ced9d357a71851",
+        "savings": -3.680000000000007,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "r5.large",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 62.05,
+        "kept_current_due_to_failure": false,
+        "new_cost": 91.98,
+        "resource_id": "i-62c9b73536b4afb64",
+        "savings": -29.930000000000007,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "r5.large",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 91.98,
+        "kept_current_due_to_failure": false,
+        "new_cost": 91.98,
+        "resource_id": "i-9ad0eb8ce137a7aa6",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "r5.large",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 70.08,
+        "kept_current_due_to_failure": false,
+        "new_cost": 91.98,
+        "resource_id": "i-6fcb9841d7a4596cc",
+        "savings": -21.900000000000006,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "r5.large",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 30.37,
+        "kept_current_due_to_failure": false,
+        "new_cost": 91.98,
+        "resource_id": "i-f785f27a24b145b6a",
+        "savings": -61.61,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "r5.large",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 60.74,
+        "kept_current_due_to_failure": false,
+        "new_cost": 91.98,
+        "resource_id": "i-8a2f2d2dd5bc5cab6",
+        "savings": -31.240000000000002,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "r5.large",
+        "cpu_exceedance_pct": 12.5,
+        "current_cost": 248.2,
+        "kept_current_due_to_failure": false,
+        "new_cost": 91.98,
+        "resource_id": "i-7f2d2987eea6a58df",
+        "savings": 156.21999999999997,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "db.t4g.micro",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 350.4,
+        "kept_current_due_to_failure": false,
+        "new_cost": 23.36,
+        "resource_id": "prod-postgres-primary",
+        "savings": 327.03999999999996,
+        "service": "RDS"
+      },
+      {
+        "assigned_type": "db.t4g.micro",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 47.45,
+        "kept_current_due_to_failure": false,
+        "new_cost": 11.68,
+        "resource_id": "staging-postgres",
+        "savings": 35.77,
+        "service": "RDS"
+      }
+    ],
+    "q=0.90, h=1.3": [
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 88.3,
+        "kept_current_due_to_failure": true,
+        "new_cost": 88.3,
+        "resource_id": "i-fe01442ffcbdd8b17",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 88.3,
+        "kept_current_due_to_failure": true,
+        "new_cost": 88.3,
+        "resource_id": "i-322ced9d357a71851",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 62.05,
+        "kept_current_due_to_failure": true,
+        "new_cost": 62.05,
+        "resource_id": "i-62c9b73536b4afb64",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 91.98,
+        "kept_current_due_to_failure": true,
+        "new_cost": 91.98,
+        "resource_id": "i-9ad0eb8ce137a7aa6",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 70.08,
+        "kept_current_due_to_failure": true,
+        "new_cost": 70.08,
+        "resource_id": "i-6fcb9841d7a4596cc",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 30.37,
+        "kept_current_due_to_failure": true,
+        "new_cost": 30.37,
+        "resource_id": "i-f785f27a24b145b6a",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 60.74,
+        "kept_current_due_to_failure": true,
+        "new_cost": 60.74,
+        "resource_id": "i-8a2f2d2dd5bc5cab6",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 248.2,
+        "kept_current_due_to_failure": true,
+        "new_cost": 248.2,
+        "resource_id": "i-7f2d2987eea6a58df",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "db.t4g.micro",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 350.4,
+        "kept_current_due_to_failure": false,
+        "new_cost": 23.36,
+        "resource_id": "prod-postgres-primary",
+        "savings": 327.03999999999996,
+        "service": "RDS"
+      },
+      {
+        "assigned_type": "db.t4g.micro",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 47.45,
+        "kept_current_due_to_failure": false,
+        "new_cost": 11.68,
+        "resource_id": "staging-postgres",
+        "savings": 35.77,
+        "service": "RDS"
+      }
+    ],
+    "q=0.95, h=1.0": [
+      {
+        "assigned_type": "r5.large",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 88.3,
+        "kept_current_due_to_failure": false,
+        "new_cost": 91.98,
+        "resource_id": "i-fe01442ffcbdd8b17",
+        "savings": -3.680000000000007,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "r5.large",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 88.3,
+        "kept_current_due_to_failure": false,
+        "new_cost": 91.98,
+        "resource_id": "i-322ced9d357a71851",
+        "savings": -3.680000000000007,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "r5.large",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 62.05,
+        "kept_current_due_to_failure": false,
+        "new_cost": 91.98,
+        "resource_id": "i-62c9b73536b4afb64",
+        "savings": -29.930000000000007,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "r5.large",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 91.98,
+        "kept_current_due_to_failure": false,
+        "new_cost": 91.98,
+        "resource_id": "i-9ad0eb8ce137a7aa6",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "r5.large",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 70.08,
+        "kept_current_due_to_failure": false,
+        "new_cost": 91.98,
+        "resource_id": "i-6fcb9841d7a4596cc",
+        "savings": -21.900000000000006,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "r5.large",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 30.37,
+        "kept_current_due_to_failure": false,
+        "new_cost": 91.98,
+        "resource_id": "i-f785f27a24b145b6a",
+        "savings": -61.61,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "r5.large",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 60.74,
+        "kept_current_due_to_failure": false,
+        "new_cost": 91.98,
+        "resource_id": "i-8a2f2d2dd5bc5cab6",
+        "savings": -31.240000000000002,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "c5.2xlarge",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 248.2,
+        "kept_current_due_to_failure": false,
+        "new_cost": 248.2,
+        "resource_id": "i-7f2d2987eea6a58df",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "db.t4g.micro",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 350.4,
+        "kept_current_due_to_failure": false,
+        "new_cost": 23.36,
+        "resource_id": "prod-postgres-primary",
+        "savings": 327.03999999999996,
+        "service": "RDS"
+      },
+      {
+        "assigned_type": "db.t4g.micro",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 47.45,
+        "kept_current_due_to_failure": false,
+        "new_cost": 11.68,
+        "resource_id": "staging-postgres",
+        "savings": 35.77,
+        "service": "RDS"
+      }
+    ],
+    "q=0.95, h=1.1": [
+      {
+        "assigned_type": "r5.large",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 88.3,
+        "kept_current_due_to_failure": false,
+        "new_cost": 91.98,
+        "resource_id": "i-fe01442ffcbdd8b17",
+        "savings": -3.680000000000007,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "r5.large",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 88.3,
+        "kept_current_due_to_failure": false,
+        "new_cost": 91.98,
+        "resource_id": "i-322ced9d357a71851",
+        "savings": -3.680000000000007,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "r5.large",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 62.05,
+        "kept_current_due_to_failure": false,
+        "new_cost": 91.98,
+        "resource_id": "i-62c9b73536b4afb64",
+        "savings": -29.930000000000007,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "r5.large",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 91.98,
+        "kept_current_due_to_failure": false,
+        "new_cost": 91.98,
+        "resource_id": "i-9ad0eb8ce137a7aa6",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "r5.large",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 70.08,
+        "kept_current_due_to_failure": false,
+        "new_cost": 91.98,
+        "resource_id": "i-6fcb9841d7a4596cc",
+        "savings": -21.900000000000006,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "r5.large",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 30.37,
+        "kept_current_due_to_failure": false,
+        "new_cost": 91.98,
+        "resource_id": "i-f785f27a24b145b6a",
+        "savings": -61.61,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "r5.large",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 60.74,
+        "kept_current_due_to_failure": false,
+        "new_cost": 91.98,
+        "resource_id": "i-8a2f2d2dd5bc5cab6",
+        "savings": -31.240000000000002,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "c5.2xlarge",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 248.2,
+        "kept_current_due_to_failure": false,
+        "new_cost": 248.2,
+        "resource_id": "i-7f2d2987eea6a58df",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "db.t4g.micro",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 350.4,
+        "kept_current_due_to_failure": false,
+        "new_cost": 23.36,
+        "resource_id": "prod-postgres-primary",
+        "savings": 327.03999999999996,
+        "service": "RDS"
+      },
+      {
+        "assigned_type": "db.t4g.micro",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 47.45,
+        "kept_current_due_to_failure": false,
+        "new_cost": 11.68,
+        "resource_id": "staging-postgres",
+        "savings": 35.77,
+        "service": "RDS"
+      }
+    ],
+    "q=0.95, h=1.3": [
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 88.3,
+        "kept_current_due_to_failure": true,
+        "new_cost": 88.3,
+        "resource_id": "i-fe01442ffcbdd8b17",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 88.3,
+        "kept_current_due_to_failure": true,
+        "new_cost": 88.3,
+        "resource_id": "i-322ced9d357a71851",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 62.05,
+        "kept_current_due_to_failure": true,
+        "new_cost": 62.05,
+        "resource_id": "i-62c9b73536b4afb64",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 91.98,
+        "kept_current_due_to_failure": true,
+        "new_cost": 91.98,
+        "resource_id": "i-9ad0eb8ce137a7aa6",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 70.08,
+        "kept_current_due_to_failure": true,
+        "new_cost": 70.08,
+        "resource_id": "i-6fcb9841d7a4596cc",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 30.37,
+        "kept_current_due_to_failure": true,
+        "new_cost": 30.37,
+        "resource_id": "i-f785f27a24b145b6a",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 60.74,
+        "kept_current_due_to_failure": true,
+        "new_cost": 60.74,
+        "resource_id": "i-8a2f2d2dd5bc5cab6",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 248.2,
+        "kept_current_due_to_failure": true,
+        "new_cost": 248.2,
+        "resource_id": "i-7f2d2987eea6a58df",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "db.t4g.micro",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 350.4,
+        "kept_current_due_to_failure": false,
+        "new_cost": 23.36,
+        "resource_id": "prod-postgres-primary",
+        "savings": 327.03999999999996,
+        "service": "RDS"
+      },
+      {
+        "assigned_type": "db.t4g.micro",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 47.45,
+        "kept_current_due_to_failure": false,
+        "new_cost": 11.68,
+        "resource_id": "staging-postgres",
+        "savings": 35.77,
+        "service": "RDS"
+      }
+    ],
+    "q=0.95, h=1.5": [
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 88.3,
+        "kept_current_due_to_failure": true,
+        "new_cost": 88.3,
+        "resource_id": "i-fe01442ffcbdd8b17",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 88.3,
+        "kept_current_due_to_failure": true,
+        "new_cost": 88.3,
+        "resource_id": "i-322ced9d357a71851",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 62.05,
+        "kept_current_due_to_failure": true,
+        "new_cost": 62.05,
+        "resource_id": "i-62c9b73536b4afb64",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 91.98,
+        "kept_current_due_to_failure": true,
+        "new_cost": 91.98,
+        "resource_id": "i-9ad0eb8ce137a7aa6",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 70.08,
+        "kept_current_due_to_failure": true,
+        "new_cost": 70.08,
+        "resource_id": "i-6fcb9841d7a4596cc",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 30.37,
+        "kept_current_due_to_failure": true,
+        "new_cost": 30.37,
+        "resource_id": "i-f785f27a24b145b6a",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 60.74,
+        "kept_current_due_to_failure": true,
+        "new_cost": 60.74,
+        "resource_id": "i-8a2f2d2dd5bc5cab6",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 248.2,
+        "kept_current_due_to_failure": true,
+        "new_cost": 248.2,
+        "resource_id": "i-7f2d2987eea6a58df",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "db.t4g.micro",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 350.4,
+        "kept_current_due_to_failure": false,
+        "new_cost": 23.36,
+        "resource_id": "prod-postgres-primary",
+        "savings": 327.03999999999996,
+        "service": "RDS"
+      },
+      {
+        "assigned_type": "db.t4g.micro",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 47.45,
+        "kept_current_due_to_failure": false,
+        "new_cost": 11.68,
+        "resource_id": "staging-postgres",
+        "savings": 35.77,
+        "service": "RDS"
+      }
+    ],
+    "q=0.99, h=1.3": [
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 88.3,
+        "kept_current_due_to_failure": true,
+        "new_cost": 88.3,
+        "resource_id": "i-fe01442ffcbdd8b17",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 88.3,
+        "kept_current_due_to_failure": true,
+        "new_cost": 88.3,
+        "resource_id": "i-322ced9d357a71851",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 62.05,
+        "kept_current_due_to_failure": true,
+        "new_cost": 62.05,
+        "resource_id": "i-62c9b73536b4afb64",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 91.98,
+        "kept_current_due_to_failure": true,
+        "new_cost": 91.98,
+        "resource_id": "i-9ad0eb8ce137a7aa6",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 70.08,
+        "kept_current_due_to_failure": true,
+        "new_cost": 70.08,
+        "resource_id": "i-6fcb9841d7a4596cc",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 30.37,
+        "kept_current_due_to_failure": true,
+        "new_cost": 30.37,
+        "resource_id": "i-f785f27a24b145b6a",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 60.74,
+        "kept_current_due_to_failure": true,
+        "new_cost": 60.74,
+        "resource_id": "i-8a2f2d2dd5bc5cab6",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 248.2,
+        "kept_current_due_to_failure": true,
+        "new_cost": 248.2,
+        "resource_id": "i-7f2d2987eea6a58df",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "db.t4g.micro",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 350.4,
+        "kept_current_due_to_failure": false,
+        "new_cost": 23.36,
+        "resource_id": "prod-postgres-primary",
+        "savings": 327.03999999999996,
+        "service": "RDS"
+      },
+      {
+        "assigned_type": "db.t4g.micro",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 47.45,
+        "kept_current_due_to_failure": false,
+        "new_cost": 11.68,
+        "resource_id": "staging-postgres",
+        "savings": 35.77,
+        "service": "RDS"
+      }
+    ]
+  },
+  "rerun": "venv/bin/python paper/evidence_experiments.py",
+  "resource_rows": {
+    "budget 1% current": [
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 140.16,
+        "kept_current_due_to_failure": true,
+        "new_cost": 140.16,
+        "resource_id": "i-fe01442ffcbdd8b17",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 140.16,
+        "kept_current_due_to_failure": true,
+        "new_cost": 140.16,
+        "resource_id": "i-322ced9d357a71851",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 62.05,
+        "kept_current_due_to_failure": true,
+        "new_cost": 62.05,
+        "resource_id": "i-62c9b73536b4afb64",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 91.98,
+        "kept_current_due_to_failure": true,
+        "new_cost": 91.98,
+        "resource_id": "i-9ad0eb8ce137a7aa6",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 70.08,
+        "kept_current_due_to_failure": true,
+        "new_cost": 70.08,
+        "resource_id": "i-6fcb9841d7a4596cc",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 30.368,
+        "kept_current_due_to_failure": true,
+        "new_cost": 30.368,
+        "resource_id": "i-f785f27a24b145b6a",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 60.736,
+        "kept_current_due_to_failure": true,
+        "new_cost": 60.736,
+        "resource_id": "i-8a2f2d2dd5bc5cab6",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 248.2,
+        "kept_current_due_to_failure": true,
+        "new_cost": 248.2,
+        "resource_id": "i-7f2d2987eea6a58df",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 350.4,
+        "kept_current_due_to_failure": true,
+        "new_cost": 350.4,
+        "resource_id": "prod-postgres-primary",
+        "savings": 0.0,
+        "service": "RDS"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 47.45,
+        "kept_current_due_to_failure": true,
+        "new_cost": 47.45,
+        "resource_id": "staging-postgres",
+        "savings": 0.0,
+        "service": "RDS"
+      }
+    ],
+    "budget 100% current": [
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 140.16,
+        "kept_current_due_to_failure": true,
+        "new_cost": 140.16,
+        "resource_id": "i-fe01442ffcbdd8b17",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 140.16,
+        "kept_current_due_to_failure": true,
+        "new_cost": 140.16,
+        "resource_id": "i-322ced9d357a71851",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 62.05,
+        "kept_current_due_to_failure": true,
+        "new_cost": 62.05,
+        "resource_id": "i-62c9b73536b4afb64",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 91.98,
+        "kept_current_due_to_failure": true,
+        "new_cost": 91.98,
+        "resource_id": "i-9ad0eb8ce137a7aa6",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 70.08,
+        "kept_current_due_to_failure": true,
+        "new_cost": 70.08,
+        "resource_id": "i-6fcb9841d7a4596cc",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 30.368,
+        "kept_current_due_to_failure": true,
+        "new_cost": 30.368,
+        "resource_id": "i-f785f27a24b145b6a",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 60.736,
+        "kept_current_due_to_failure": true,
+        "new_cost": 60.736,
+        "resource_id": "i-8a2f2d2dd5bc5cab6",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 248.2,
+        "kept_current_due_to_failure": true,
+        "new_cost": 248.2,
+        "resource_id": "i-7f2d2987eea6a58df",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "db.t4g.micro",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 350.4,
+        "kept_current_due_to_failure": false,
+        "new_cost": 23.36,
+        "resource_id": "prod-postgres-primary",
+        "savings": 327.03999999999996,
+        "service": "RDS"
+      },
+      {
+        "assigned_type": "db.t4g.micro",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 47.45,
+        "kept_current_due_to_failure": false,
+        "new_cost": 11.68,
+        "resource_id": "staging-postgres",
+        "savings": 35.77,
+        "service": "RDS"
+      }
+    ],
+    "budget 75% current": [
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 140.16,
+        "kept_current_due_to_failure": true,
+        "new_cost": 140.16,
+        "resource_id": "i-fe01442ffcbdd8b17",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 140.16,
+        "kept_current_due_to_failure": true,
+        "new_cost": 140.16,
+        "resource_id": "i-322ced9d357a71851",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 62.05,
+        "kept_current_due_to_failure": true,
+        "new_cost": 62.05,
+        "resource_id": "i-62c9b73536b4afb64",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 91.98,
+        "kept_current_due_to_failure": true,
+        "new_cost": 91.98,
+        "resource_id": "i-9ad0eb8ce137a7aa6",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 70.08,
+        "kept_current_due_to_failure": true,
+        "new_cost": 70.08,
+        "resource_id": "i-6fcb9841d7a4596cc",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 30.368,
+        "kept_current_due_to_failure": true,
+        "new_cost": 30.368,
+        "resource_id": "i-f785f27a24b145b6a",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 60.736,
+        "kept_current_due_to_failure": true,
+        "new_cost": 60.736,
+        "resource_id": "i-8a2f2d2dd5bc5cab6",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 248.2,
+        "kept_current_due_to_failure": true,
+        "new_cost": 248.2,
+        "resource_id": "i-7f2d2987eea6a58df",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "db.t4g.micro",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 350.4,
+        "kept_current_due_to_failure": false,
+        "new_cost": 23.36,
+        "resource_id": "prod-postgres-primary",
+        "savings": 327.03999999999996,
+        "service": "RDS"
+      },
+      {
+        "assigned_type": "db.t4g.micro",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 47.45,
+        "kept_current_due_to_failure": false,
+        "new_cost": 11.68,
+        "resource_id": "staging-postgres",
+        "savings": 35.77,
+        "service": "RDS"
+      }
+    ],
+    "budget 90% current": [
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 140.16,
+        "kept_current_due_to_failure": true,
+        "new_cost": 140.16,
+        "resource_id": "i-fe01442ffcbdd8b17",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 140.16,
+        "kept_current_due_to_failure": true,
+        "new_cost": 140.16,
+        "resource_id": "i-322ced9d357a71851",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 62.05,
+        "kept_current_due_to_failure": true,
+        "new_cost": 62.05,
+        "resource_id": "i-62c9b73536b4afb64",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 91.98,
+        "kept_current_due_to_failure": true,
+        "new_cost": 91.98,
+        "resource_id": "i-9ad0eb8ce137a7aa6",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 70.08,
+        "kept_current_due_to_failure": true,
+        "new_cost": 70.08,
+        "resource_id": "i-6fcb9841d7a4596cc",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 30.368,
+        "kept_current_due_to_failure": true,
+        "new_cost": 30.368,
+        "resource_id": "i-f785f27a24b145b6a",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 60.736,
+        "kept_current_due_to_failure": true,
+        "new_cost": 60.736,
+        "resource_id": "i-8a2f2d2dd5bc5cab6",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": null,
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 248.2,
+        "kept_current_due_to_failure": true,
+        "new_cost": 248.2,
+        "resource_id": "i-7f2d2987eea6a58df",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "db.t4g.micro",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 350.4,
+        "kept_current_due_to_failure": false,
+        "new_cost": 23.36,
+        "resource_id": "prod-postgres-primary",
+        "savings": 327.03999999999996,
+        "service": "RDS"
+      },
+      {
+        "assigned_type": "db.t4g.micro",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 47.45,
+        "kept_current_due_to_failure": false,
+        "new_cost": 11.68,
+        "resource_id": "staging-postgres",
+        "savings": 35.77,
+        "service": "RDS"
+      }
+    ],
+    "budget none": [
+      {
+        "assigned_type": "r5.large",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 140.16,
+        "kept_current_due_to_failure": false,
+        "new_cost": 91.98,
+        "resource_id": "i-fe01442ffcbdd8b17",
+        "savings": 48.17999999999999,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "r5.large",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 140.16,
+        "kept_current_due_to_failure": false,
+        "new_cost": 91.98,
+        "resource_id": "i-322ced9d357a71851",
+        "savings": 48.17999999999999,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "t3.medium",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 62.05,
+        "kept_current_due_to_failure": false,
+        "new_cost": 30.368,
+        "resource_id": "i-62c9b73536b4afb64",
+        "savings": 31.682,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "r5.xlarge",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 91.98,
+        "kept_current_due_to_failure": false,
+        "new_cost": 183.96,
+        "resource_id": "i-9ad0eb8ce137a7aa6",
+        "savings": -91.98,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "t3.medium",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 70.08,
+        "kept_current_due_to_failure": false,
+        "new_cost": 30.368,
+        "resource_id": "i-6fcb9841d7a4596cc",
+        "savings": 39.712,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "t3.small",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 30.368,
+        "kept_current_due_to_failure": false,
+        "new_cost": 15.184,
+        "resource_id": "i-f785f27a24b145b6a",
+        "savings": 15.184,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "t3.medium",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 60.736,
+        "kept_current_due_to_failure": false,
+        "new_cost": 30.368,
+        "resource_id": "i-8a2f2d2dd5bc5cab6",
+        "savings": 30.368,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "c5.4xlarge",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 248.2,
+        "kept_current_due_to_failure": false,
+        "new_cost": 496.4,
+        "resource_id": "i-7f2d2987eea6a58df",
+        "savings": -248.2,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "db.t4g.micro",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 350.4,
+        "kept_current_due_to_failure": false,
+        "new_cost": 23.36,
+        "resource_id": "prod-postgres-primary",
+        "savings": 327.03999999999996,
+        "service": "RDS"
+      },
+      {
+        "assigned_type": "db.t4g.micro",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 47.45,
+        "kept_current_due_to_failure": false,
+        "new_cost": 11.68,
+        "resource_id": "staging-postgres",
+        "savings": 35.77,
+        "service": "RDS"
+      }
+    ],
+    "memory observed": [
+      {
+        "assigned_type": "r5.large",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 140.16,
+        "kept_current_due_to_failure": false,
+        "new_cost": 91.98,
+        "resource_id": "i-fe01442ffcbdd8b17",
+        "savings": 48.17999999999999,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "r5.large",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 140.16,
+        "kept_current_due_to_failure": false,
+        "new_cost": 91.98,
+        "resource_id": "i-322ced9d357a71851",
+        "savings": 48.17999999999999,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "t3.medium",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 62.05,
+        "kept_current_due_to_failure": false,
+        "new_cost": 30.368,
+        "resource_id": "i-62c9b73536b4afb64",
+        "savings": 31.682,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "r5.xlarge",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 91.98,
+        "kept_current_due_to_failure": false,
+        "new_cost": 183.96,
+        "resource_id": "i-9ad0eb8ce137a7aa6",
+        "savings": -91.98,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "t3.medium",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 70.08,
+        "kept_current_due_to_failure": false,
+        "new_cost": 30.368,
+        "resource_id": "i-6fcb9841d7a4596cc",
+        "savings": 39.712,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "t3.small",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 30.368,
+        "kept_current_due_to_failure": false,
+        "new_cost": 15.184,
+        "resource_id": "i-f785f27a24b145b6a",
+        "savings": 15.184,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "t3.medium",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 60.736,
+        "kept_current_due_to_failure": false,
+        "new_cost": 30.368,
+        "resource_id": "i-8a2f2d2dd5bc5cab6",
+        "savings": 30.368,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "c5.4xlarge",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 248.2,
+        "kept_current_due_to_failure": false,
+        "new_cost": 496.4,
+        "resource_id": "i-7f2d2987eea6a58df",
+        "savings": -248.2,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "db.t4g.micro",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 350.4,
+        "kept_current_due_to_failure": false,
+        "new_cost": 23.36,
+        "resource_id": "prod-postgres-primary",
+        "savings": 327.03999999999996,
+        "service": "RDS"
+      },
+      {
+        "assigned_type": "db.t4g.micro",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 47.45,
+        "kept_current_due_to_failure": false,
+        "new_cost": 11.68,
+        "resource_id": "staging-postgres",
+        "savings": 35.77,
+        "service": "RDS"
+      }
+    ],
+    "memory off": [
+      {
+        "assigned_type": "t3.micro",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 140.16,
+        "kept_current_due_to_failure": false,
+        "new_cost": 7.592,
+        "resource_id": "i-fe01442ffcbdd8b17",
+        "savings": 132.56799999999998,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "t3.micro",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 140.16,
+        "kept_current_due_to_failure": false,
+        "new_cost": 7.592,
+        "resource_id": "i-322ced9d357a71851",
+        "savings": 132.56799999999998,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "t3.micro",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 62.05,
+        "kept_current_due_to_failure": false,
+        "new_cost": 7.592,
+        "resource_id": "i-62c9b73536b4afb64",
+        "savings": 54.458,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "t3.micro",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 91.98,
+        "kept_current_due_to_failure": false,
+        "new_cost": 7.592,
+        "resource_id": "i-9ad0eb8ce137a7aa6",
+        "savings": 84.388,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "t3.micro",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 70.08,
+        "kept_current_due_to_failure": false,
+        "new_cost": 7.592,
+        "resource_id": "i-6fcb9841d7a4596cc",
+        "savings": 62.488,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "t3.micro",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 30.368,
+        "kept_current_due_to_failure": false,
+        "new_cost": 7.592,
+        "resource_id": "i-f785f27a24b145b6a",
+        "savings": 22.776,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "t3.micro",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 60.736,
+        "kept_current_due_to_failure": false,
+        "new_cost": 7.592,
+        "resource_id": "i-8a2f2d2dd5bc5cab6",
+        "savings": 53.144,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "c5.4xlarge",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 248.2,
+        "kept_current_due_to_failure": false,
+        "new_cost": 496.4,
+        "resource_id": "i-7f2d2987eea6a58df",
+        "savings": -248.2,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "db.t4g.micro",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 350.4,
+        "kept_current_due_to_failure": false,
+        "new_cost": 23.36,
+        "resource_id": "prod-postgres-primary",
+        "savings": 327.03999999999996,
+        "service": "RDS"
+      },
+      {
+        "assigned_type": "db.t4g.micro",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 47.45,
+        "kept_current_due_to_failure": false,
+        "new_cost": 11.68,
+        "resource_id": "staging-postgres",
+        "savings": 35.77,
+        "service": "RDS"
+      }
+    ],
+    "q=0.75, h=1.3": [
+      {
+        "assigned_type": "r5.large",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 140.16,
+        "kept_current_due_to_failure": false,
+        "new_cost": 91.98,
+        "resource_id": "i-fe01442ffcbdd8b17",
+        "savings": 48.17999999999999,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "r5.large",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 140.16,
+        "kept_current_due_to_failure": false,
+        "new_cost": 91.98,
+        "resource_id": "i-322ced9d357a71851",
+        "savings": 48.17999999999999,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "t3.medium",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 62.05,
+        "kept_current_due_to_failure": false,
+        "new_cost": 30.368,
+        "resource_id": "i-62c9b73536b4afb64",
+        "savings": 31.682,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "r5.large",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 91.98,
+        "kept_current_due_to_failure": false,
+        "new_cost": 91.98,
+        "resource_id": "i-9ad0eb8ce137a7aa6",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "t3.medium",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 70.08,
+        "kept_current_due_to_failure": false,
+        "new_cost": 30.368,
+        "resource_id": "i-6fcb9841d7a4596cc",
+        "savings": 39.712,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "t3.small",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 30.368,
+        "kept_current_due_to_failure": false,
+        "new_cost": 15.184,
+        "resource_id": "i-f785f27a24b145b6a",
+        "savings": 15.184,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "t3.medium",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 60.736,
+        "kept_current_due_to_failure": false,
+        "new_cost": 30.368,
+        "resource_id": "i-8a2f2d2dd5bc5cab6",
+        "savings": 30.368,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "t3.large",
+        "cpu_exceedance_pct": 12.5,
+        "current_cost": 248.2,
+        "kept_current_due_to_failure": false,
+        "new_cost": 60.736,
+        "resource_id": "i-7f2d2987eea6a58df",
+        "savings": 187.464,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "db.t4g.micro",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 350.4,
+        "kept_current_due_to_failure": false,
+        "new_cost": 23.36,
+        "resource_id": "prod-postgres-primary",
+        "savings": 327.03999999999996,
+        "service": "RDS"
+      },
+      {
+        "assigned_type": "db.t4g.micro",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 47.45,
+        "kept_current_due_to_failure": false,
+        "new_cost": 11.68,
+        "resource_id": "staging-postgres",
+        "savings": 35.77,
+        "service": "RDS"
+      }
+    ],
+    "q=0.90, h=1.3": [
+      {
+        "assigned_type": "r5.large",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 140.16,
+        "kept_current_due_to_failure": false,
+        "new_cost": 91.98,
+        "resource_id": "i-fe01442ffcbdd8b17",
+        "savings": 48.17999999999999,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "r5.large",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 140.16,
+        "kept_current_due_to_failure": false,
+        "new_cost": 91.98,
+        "resource_id": "i-322ced9d357a71851",
+        "savings": 48.17999999999999,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "t3.medium",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 62.05,
+        "kept_current_due_to_failure": false,
+        "new_cost": 30.368,
+        "resource_id": "i-62c9b73536b4afb64",
+        "savings": 31.682,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "r5.xlarge",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 91.98,
+        "kept_current_due_to_failure": false,
+        "new_cost": 183.96,
+        "resource_id": "i-9ad0eb8ce137a7aa6",
+        "savings": -91.98,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "t3.medium",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 70.08,
+        "kept_current_due_to_failure": false,
+        "new_cost": 30.368,
+        "resource_id": "i-6fcb9841d7a4596cc",
+        "savings": 39.712,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "t3.small",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 30.368,
+        "kept_current_due_to_failure": false,
+        "new_cost": 15.184,
+        "resource_id": "i-f785f27a24b145b6a",
+        "savings": 15.184,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "t3.medium",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 60.736,
+        "kept_current_due_to_failure": false,
+        "new_cost": 30.368,
+        "resource_id": "i-8a2f2d2dd5bc5cab6",
+        "savings": 30.368,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "c5.4xlarge",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 248.2,
+        "kept_current_due_to_failure": false,
+        "new_cost": 496.4,
+        "resource_id": "i-7f2d2987eea6a58df",
+        "savings": -248.2,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "db.t4g.micro",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 350.4,
+        "kept_current_due_to_failure": false,
+        "new_cost": 23.36,
+        "resource_id": "prod-postgres-primary",
+        "savings": 327.03999999999996,
+        "service": "RDS"
+      },
+      {
+        "assigned_type": "db.t4g.micro",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 47.45,
+        "kept_current_due_to_failure": false,
+        "new_cost": 11.68,
+        "resource_id": "staging-postgres",
+        "savings": 35.77,
+        "service": "RDS"
+      }
+    ],
+    "q=0.95, h=1.0": [
+      {
+        "assigned_type": "r5.large",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 140.16,
+        "kept_current_due_to_failure": false,
+        "new_cost": 91.98,
+        "resource_id": "i-fe01442ffcbdd8b17",
+        "savings": 48.17999999999999,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "r5.large",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 140.16,
+        "kept_current_due_to_failure": false,
+        "new_cost": 91.98,
+        "resource_id": "i-322ced9d357a71851",
+        "savings": 48.17999999999999,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "t3.medium",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 62.05,
+        "kept_current_due_to_failure": false,
+        "new_cost": 30.368,
+        "resource_id": "i-62c9b73536b4afb64",
+        "savings": 31.682,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "r5.large",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 91.98,
+        "kept_current_due_to_failure": false,
+        "new_cost": 91.98,
+        "resource_id": "i-9ad0eb8ce137a7aa6",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "t3.medium",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 70.08,
+        "kept_current_due_to_failure": false,
+        "new_cost": 30.368,
+        "resource_id": "i-6fcb9841d7a4596cc",
+        "savings": 39.712,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "t3.small",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 30.368,
+        "kept_current_due_to_failure": false,
+        "new_cost": 15.184,
+        "resource_id": "i-f785f27a24b145b6a",
+        "savings": 15.184,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "t3.medium",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 60.736,
+        "kept_current_due_to_failure": false,
+        "new_cost": 30.368,
+        "resource_id": "i-8a2f2d2dd5bc5cab6",
+        "savings": 30.368,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "t3.2xlarge",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 248.2,
+        "kept_current_due_to_failure": false,
+        "new_cost": 242.944,
+        "resource_id": "i-7f2d2987eea6a58df",
+        "savings": 5.256,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "db.t4g.micro",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 350.4,
+        "kept_current_due_to_failure": false,
+        "new_cost": 23.36,
+        "resource_id": "prod-postgres-primary",
+        "savings": 327.03999999999996,
+        "service": "RDS"
+      },
+      {
+        "assigned_type": "db.t4g.micro",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 47.45,
+        "kept_current_due_to_failure": false,
+        "new_cost": 11.68,
+        "resource_id": "staging-postgres",
+        "savings": 35.77,
+        "service": "RDS"
+      }
+    ],
+    "q=0.95, h=1.1": [
+      {
+        "assigned_type": "r5.large",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 140.16,
+        "kept_current_due_to_failure": false,
+        "new_cost": 91.98,
+        "resource_id": "i-fe01442ffcbdd8b17",
+        "savings": 48.17999999999999,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "r5.large",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 140.16,
+        "kept_current_due_to_failure": false,
+        "new_cost": 91.98,
+        "resource_id": "i-322ced9d357a71851",
+        "savings": 48.17999999999999,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "t3.medium",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 62.05,
+        "kept_current_due_to_failure": false,
+        "new_cost": 30.368,
+        "resource_id": "i-62c9b73536b4afb64",
+        "savings": 31.682,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "r5.large",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 91.98,
+        "kept_current_due_to_failure": false,
+        "new_cost": 91.98,
+        "resource_id": "i-9ad0eb8ce137a7aa6",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "t3.medium",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 70.08,
+        "kept_current_due_to_failure": false,
+        "new_cost": 30.368,
+        "resource_id": "i-6fcb9841d7a4596cc",
+        "savings": 39.712,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "t3.small",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 30.368,
+        "kept_current_due_to_failure": false,
+        "new_cost": 15.184,
+        "resource_id": "i-f785f27a24b145b6a",
+        "savings": 15.184,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "t3.medium",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 60.736,
+        "kept_current_due_to_failure": false,
+        "new_cost": 30.368,
+        "resource_id": "i-8a2f2d2dd5bc5cab6",
+        "savings": 30.368,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "t3.2xlarge",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 248.2,
+        "kept_current_due_to_failure": false,
+        "new_cost": 242.944,
+        "resource_id": "i-7f2d2987eea6a58df",
+        "savings": 5.256,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "db.t4g.micro",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 350.4,
+        "kept_current_due_to_failure": false,
+        "new_cost": 23.36,
+        "resource_id": "prod-postgres-primary",
+        "savings": 327.03999999999996,
+        "service": "RDS"
+      },
+      {
+        "assigned_type": "db.t4g.micro",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 47.45,
+        "kept_current_due_to_failure": false,
+        "new_cost": 11.68,
+        "resource_id": "staging-postgres",
+        "savings": 35.77,
+        "service": "RDS"
+      }
+    ],
+    "q=0.95, h=1.3": [
+      {
+        "assigned_type": "r5.large",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 140.16,
+        "kept_current_due_to_failure": false,
+        "new_cost": 91.98,
+        "resource_id": "i-fe01442ffcbdd8b17",
+        "savings": 48.17999999999999,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "r5.large",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 140.16,
+        "kept_current_due_to_failure": false,
+        "new_cost": 91.98,
+        "resource_id": "i-322ced9d357a71851",
+        "savings": 48.17999999999999,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "t3.medium",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 62.05,
+        "kept_current_due_to_failure": false,
+        "new_cost": 30.368,
+        "resource_id": "i-62c9b73536b4afb64",
+        "savings": 31.682,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "r5.xlarge",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 91.98,
+        "kept_current_due_to_failure": false,
+        "new_cost": 183.96,
+        "resource_id": "i-9ad0eb8ce137a7aa6",
+        "savings": -91.98,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "t3.medium",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 70.08,
+        "kept_current_due_to_failure": false,
+        "new_cost": 30.368,
+        "resource_id": "i-6fcb9841d7a4596cc",
+        "savings": 39.712,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "t3.small",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 30.368,
+        "kept_current_due_to_failure": false,
+        "new_cost": 15.184,
+        "resource_id": "i-f785f27a24b145b6a",
+        "savings": 15.184,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "t3.medium",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 60.736,
+        "kept_current_due_to_failure": false,
+        "new_cost": 30.368,
+        "resource_id": "i-8a2f2d2dd5bc5cab6",
+        "savings": 30.368,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "c5.4xlarge",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 248.2,
+        "kept_current_due_to_failure": false,
+        "new_cost": 496.4,
+        "resource_id": "i-7f2d2987eea6a58df",
+        "savings": -248.2,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "db.t4g.micro",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 350.4,
+        "kept_current_due_to_failure": false,
+        "new_cost": 23.36,
+        "resource_id": "prod-postgres-primary",
+        "savings": 327.03999999999996,
+        "service": "RDS"
+      },
+      {
+        "assigned_type": "db.t4g.micro",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 47.45,
+        "kept_current_due_to_failure": false,
+        "new_cost": 11.68,
+        "resource_id": "staging-postgres",
+        "savings": 35.77,
+        "service": "RDS"
+      }
+    ],
+    "q=0.95, h=1.5": [
+      {
+        "assigned_type": "t3.xlarge",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 140.16,
+        "kept_current_due_to_failure": false,
+        "new_cost": 121.472,
+        "resource_id": "i-fe01442ffcbdd8b17",
+        "savings": 18.688000000000002,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "t3.xlarge",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 140.16,
+        "kept_current_due_to_failure": false,
+        "new_cost": 121.472,
+        "resource_id": "i-322ced9d357a71851",
+        "savings": 18.688000000000002,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "t3.medium",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 62.05,
+        "kept_current_due_to_failure": false,
+        "new_cost": 30.368,
+        "resource_id": "i-62c9b73536b4afb64",
+        "savings": 31.682,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "r5.xlarge",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 91.98,
+        "kept_current_due_to_failure": false,
+        "new_cost": 183.96,
+        "resource_id": "i-9ad0eb8ce137a7aa6",
+        "savings": -91.98,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "t3.large",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 70.08,
+        "kept_current_due_to_failure": false,
+        "new_cost": 60.736,
+        "resource_id": "i-6fcb9841d7a4596cc",
+        "savings": 9.344000000000001,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "t3.medium",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 30.368,
+        "kept_current_due_to_failure": false,
+        "new_cost": 30.368,
+        "resource_id": "i-f785f27a24b145b6a",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "t3.large",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 60.736,
+        "kept_current_due_to_failure": false,
+        "new_cost": 60.736,
+        "resource_id": "i-8a2f2d2dd5bc5cab6",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "c5.4xlarge",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 248.2,
+        "kept_current_due_to_failure": false,
+        "new_cost": 496.4,
+        "resource_id": "i-7f2d2987eea6a58df",
+        "savings": -248.2,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "db.t4g.micro",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 350.4,
+        "kept_current_due_to_failure": false,
+        "new_cost": 23.36,
+        "resource_id": "prod-postgres-primary",
+        "savings": 327.03999999999996,
+        "service": "RDS"
+      },
+      {
+        "assigned_type": "db.t4g.micro",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 47.45,
+        "kept_current_due_to_failure": false,
+        "new_cost": 11.68,
+        "resource_id": "staging-postgres",
+        "savings": 35.77,
+        "service": "RDS"
+      }
+    ],
+    "q=0.99, h=1.3": [
+      {
+        "assigned_type": "t3.xlarge",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 140.16,
+        "kept_current_due_to_failure": false,
+        "new_cost": 121.472,
+        "resource_id": "i-fe01442ffcbdd8b17",
+        "savings": 18.688000000000002,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "t3.xlarge",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 140.16,
+        "kept_current_due_to_failure": false,
+        "new_cost": 121.472,
+        "resource_id": "i-322ced9d357a71851",
+        "savings": 18.688000000000002,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "t3.medium",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 62.05,
+        "kept_current_due_to_failure": false,
+        "new_cost": 30.368,
+        "resource_id": "i-62c9b73536b4afb64",
+        "savings": 31.682,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "r5.xlarge",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 91.98,
+        "kept_current_due_to_failure": false,
+        "new_cost": 183.96,
+        "resource_id": "i-9ad0eb8ce137a7aa6",
+        "savings": -91.98,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "t3.large",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 70.08,
+        "kept_current_due_to_failure": false,
+        "new_cost": 60.736,
+        "resource_id": "i-6fcb9841d7a4596cc",
+        "savings": 9.344000000000001,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "t3.medium",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 30.368,
+        "kept_current_due_to_failure": false,
+        "new_cost": 30.368,
+        "resource_id": "i-f785f27a24b145b6a",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "t3.large",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 60.736,
+        "kept_current_due_to_failure": false,
+        "new_cost": 60.736,
+        "resource_id": "i-8a2f2d2dd5bc5cab6",
+        "savings": 0.0,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "c5.4xlarge",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 248.2,
+        "kept_current_due_to_failure": false,
+        "new_cost": 496.4,
+        "resource_id": "i-7f2d2987eea6a58df",
+        "savings": -248.2,
+        "service": "EC2"
+      },
+      {
+        "assigned_type": "db.t4g.micro",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 350.4,
+        "kept_current_due_to_failure": false,
+        "new_cost": 23.36,
+        "resource_id": "prod-postgres-primary",
+        "savings": 327.03999999999996,
+        "service": "RDS"
+      },
+      {
+        "assigned_type": "db.t4g.micro",
+        "cpu_exceedance_pct": 0.0,
+        "current_cost": 47.45,
+        "kept_current_due_to_failure": false,
+        "new_cost": 11.68,
+        "resource_id": "staging-postgres",
+        "savings": 35.77,
+        "service": "RDS"
+      }
+    ]
+  },
+  "rule_set_ablations": [
+    {
+      "dimension": "rule set",
+      "level": "MILP right-sizing only",
+      "recommendations": 2,
+      "savings_monthly": 362.81,
+      "status": "computed"
+    },
+    {
+      "dimension": "rule set",
+      "level": "reserved pricing only",
+      "recommendations": 2,
+      "savings_monthly": 125.85,
+      "status": "computed"
+    },
+    {
+      "dimension": "rule set",
+      "level": "waste rules only",
+      "recommendations": 11,
+      "savings_monthly": 19.17,
+      "status": "computed"
+    },
+    {
+      "dimension": "rule set",
+      "level": "all rules, deduplicated",
+      "recommendations": 15,
+      "savings_monthly": 507.83,
+      "status": "computed"
+    }
+  ],
+  "unavailable": [
+    {
+      "experiment": "Bitbrains/Materna percentile baselines and bootstrap CI",
+      "reason": "raw GWA trace CSV files are not present in the workspace; only aggregate results_external.json is available"
+    },
+    {
+      "experiment": "Azure runtime and percentile ablations",
+      "reason": "raw Azure vmtable.csv.gz is not present in the workspace; only aggregate results_azure.json is available"
+    },
+    {
+      "experiment": "direct commercial baselines",
+      "reason": "no direct AWS Compute Optimizer, Azure Advisor, Savings Plans, or third-party recommender output exists in the repository; a labeled paper-side usage-hour RI replay is generated separately"
+    }
+  ]
+}

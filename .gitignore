@@ -61,10 +61,11 @@ backups/
 *.db-shm
 *.db-wal
 *.db.backup-*
+data/cloud_optimizer.release.db
+data/cloud_optimizer.db.pre-sanitize.backup
 
-# Paper manuscript (lives outside repo — see ~/Downloads/paper)
-paper/
+# Internal submission docs (local only — not on public release branch)
+docs/
 
-# Thesis/paper build scratch (intermediate artifacts: extract/assemble scripts,
-# unzipped docx XML, JSON dumps, segment/revision dumps, selftest docx)
-docs-gp/work/
+# University thesis drafts (not part of public artifact)
+docs-gp/

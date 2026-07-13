@@ -1,0 +1,1119 @@
+{
+  "metadata": {
+    "bootstrap_reps": 5000,
+    "bootstrap_seed": 20260709,
+    "implementation_match_original_demo_catalog": {
+      "EC2": {
+        "implementation_assignments": {},
+        "instrumented_assignments": {},
+        "instrumented_status": "Infeasible",
+        "matches": true
+      },
+      "RDS": {
+        "implementation_assignments": {
+          "prod-postgres-primary": "db.t4g.micro",
+          "staging-postgres": "db.t4g.micro"
+        },
+        "instrumented_assignments": {
+          "prod-postgres-primary": "db.t4g.micro",
+          "staging-postgres": "db.t4g.micro"
+        },
+        "instrumented_status": "Optimal",
+        "matches": true
+      }
+    },
+    "missing_snapshot_current_types": [],
+    "notes": [
+      "Synthetic confidence intervals are bootstrap intervals across the 10 compute resources and are descriptive, not population-level inference.",
+      "Direct AWS Compute Optimizer, Azure Advisor, Savings Plans, or commercial FinOps outputs are not included because no direct comparable tool output exists in the repository.",
+      "Partial and failed MILP rows are retained, but their savings fields are null because fallback costs are diagnostics only.",
+      "Original demo-catalog results are preserved under original_demo_* keys; headline synthetic right-sizing rows use the snapshot-repriced EC2 basis."
+    ],
+    "original_demo_raw_candidate_counts": {
+      "EC2": 13,
+      "RDS": 6
+    },
+    "original_demo_valid_candidate_counts": {
+      "EC2": 4,
+      "RDS": 4
+    },
+    "price_basis": "EC2 snapshot on-demand current and candidates; RDS committed demo DB current and candidates",
+    "raw_candidate_counts": {
+      "EC2": 28,
+      "RDS": 6
+    },
+    "resource_counts": {
+      "EC2": 8,
+      "RDS": 2
+    },
+    "resources": 10,
+    "snapshot_date": "2026-06-30",
+    "snapshot_source_url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonEC2/current/us-east-1/index.csv",
+    "user_id": "aws-SYNTHETIC-001",
+    "valid_candidate_counts": {
+      "EC2": 28,
+      "RDS": 4
+    },
+    "valid_candidate_filter": "positive on-demand monthly price and nonmissing vCPU specification; memory constraints require memory_gb when used"
+  },
+  "original_demo_solve_events": [
+    {
+      "budget_cap": null,
+      "candidates": 4,
+      "constraints": 24,
+      "decision_variables": 32,
+      "label": "Mean utilization:EC2",
+      "objective": 735.84,
+      "resources": 8,
+      "solve_seconds": 0.006532,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 4,
+      "constraints": 4,
+      "decision_variables": 8,
+      "label": "Mean utilization:RDS",
+      "objective": 23.36,
+      "resources": 2,
+      "solve_seconds": 0.00609,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 4,
+      "constraints": 24,
+      "decision_variables": 32,
+      "label": "Median utilization:EC2",
+      "objective": 735.84,
+      "resources": 8,
+      "solve_seconds": 0.006527,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 4,
+      "constraints": 4,
+      "decision_variables": 8,
+      "label": "Median utilization:RDS",
+      "objective": 23.36,
+      "resources": 2,
+      "solve_seconds": 0.00492,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 4,
+      "constraints": 24,
+      "decision_variables": 32,
+      "label": "P90 sizing:EC2",
+      "objective": 892.06,
+      "resources": 8,
+      "solve_seconds": 0.006381,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 4,
+      "constraints": 4,
+      "decision_variables": 8,
+      "label": "P90 sizing:RDS",
+      "objective": 23.36,
+      "resources": 2,
+      "solve_seconds": 0.005108,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 4,
+      "constraints": 24,
+      "decision_variables": 32,
+      "label": "P95 sizing:EC2",
+      "objective": 892.06,
+      "resources": 8,
+      "solve_seconds": 0.006544,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 4,
+      "constraints": 4,
+      "decision_variables": 8,
+      "label": "P95 sizing:RDS",
+      "objective": 23.36,
+      "resources": 2,
+      "solve_seconds": 0.004937,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 4,
+      "constraints": 24,
+      "decision_variables": 32,
+      "label": "P95 x 1.3 heuristic:EC2",
+      "objective": 936.37887503,
+      "resources": 8,
+      "solve_seconds": 0.005865,
+      "status": "Infeasible"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 4,
+      "constraints": 4,
+      "decision_variables": 8,
+      "label": "P95 x 1.3 heuristic:RDS",
+      "objective": 23.36,
+      "resources": 2,
+      "solve_seconds": 0.005158,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 4,
+      "constraints": 24,
+      "decision_variables": 32,
+      "label": "P99 sizing:EC2",
+      "objective": 892.06,
+      "resources": 8,
+      "solve_seconds": 0.006279,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 4,
+      "constraints": 4,
+      "decision_variables": 8,
+      "label": "P99 sizing:RDS",
+      "objective": 23.36,
+      "resources": 2,
+      "solve_seconds": 0.005608,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 4,
+      "constraints": 24,
+      "decision_variables": 32,
+      "label": "Max utilization:EC2",
+      "objective": 892.06,
+      "resources": 8,
+      "solve_seconds": 0.006399,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 4,
+      "constraints": 4,
+      "decision_variables": 8,
+      "label": "Max utilization:RDS",
+      "objective": 23.36,
+      "resources": 2,
+      "solve_seconds": 0.005228,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 4,
+      "constraints": 24,
+      "decision_variables": 32,
+      "label": "q=0.75, h=1.3:EC2",
+      "objective": 735.84,
+      "resources": 8,
+      "solve_seconds": 0.00616,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 4,
+      "constraints": 4,
+      "decision_variables": 8,
+      "label": "q=0.75, h=1.3:RDS",
+      "objective": 23.36,
+      "resources": 2,
+      "solve_seconds": 0.006101,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 4,
+      "constraints": 24,
+      "decision_variables": 32,
+      "label": "q=0.90, h=1.3:EC2",
+      "objective": 921.61571714,
+      "resources": 8,
+      "solve_seconds": 0.005306,
+      "status": "Infeasible"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 4,
+      "constraints": 4,
+      "decision_variables": 8,
+      "label": "q=0.90, h=1.3:RDS",
+      "objective": 23.36,
+      "resources": 2,
+      "solve_seconds": 0.006449,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 4,
+      "constraints": 24,
+      "decision_variables": 32,
+      "label": "q=0.95, h=1.3:EC2",
+      "objective": 936.37887503,
+      "resources": 8,
+      "solve_seconds": 0.004937,
+      "status": "Infeasible"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 4,
+      "constraints": 4,
+      "decision_variables": 8,
+      "label": "q=0.95, h=1.3:RDS",
+      "objective": 23.36,
+      "resources": 2,
+      "solve_seconds": 0.005008,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 4,
+      "constraints": 24,
+      "decision_variables": 32,
+      "label": "q=0.99, h=1.3:EC2",
+      "objective": 952.91473216,
+      "resources": 8,
+      "solve_seconds": 0.005467,
+      "status": "Infeasible"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 4,
+      "constraints": 4,
+      "decision_variables": 8,
+      "label": "q=0.99, h=1.3:RDS",
+      "objective": 23.36,
+      "resources": 2,
+      "solve_seconds": 0.005566,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 4,
+      "constraints": 24,
+      "decision_variables": 32,
+      "label": "q=0.95, h=1.0:EC2",
+      "objective": 892.06,
+      "resources": 8,
+      "solve_seconds": 0.00673,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 4,
+      "constraints": 4,
+      "decision_variables": 8,
+      "label": "q=0.95, h=1.0:RDS",
+      "objective": 23.36,
+      "resources": 2,
+      "solve_seconds": 0.00584,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 4,
+      "constraints": 24,
+      "decision_variables": 32,
+      "label": "q=0.95, h=1.1:EC2",
+      "objective": 892.06,
+      "resources": 8,
+      "solve_seconds": 0.006177,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 4,
+      "constraints": 4,
+      "decision_variables": 8,
+      "label": "q=0.95, h=1.1:RDS",
+      "objective": 23.36,
+      "resources": 2,
+      "solve_seconds": 0.005263,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 4,
+      "constraints": 24,
+      "decision_variables": 32,
+      "label": "q=0.95, h=1.3:EC2",
+      "objective": 936.37887503,
+      "resources": 8,
+      "solve_seconds": 0.005462,
+      "status": "Infeasible"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 4,
+      "constraints": 4,
+      "decision_variables": 8,
+      "label": "q=0.95, h=1.3:RDS",
+      "objective": 23.36,
+      "resources": 2,
+      "solve_seconds": 0.006122,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 4,
+      "constraints": 24,
+      "decision_variables": 32,
+      "label": "q=0.95, h=1.5:EC2",
+      "objective": 982.1910096500001,
+      "resources": 8,
+      "solve_seconds": 0.005415,
+      "status": "Infeasible"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 4,
+      "constraints": 4,
+      "decision_variables": 8,
+      "label": "q=0.95, h=1.5:RDS",
+      "objective": 23.36,
+      "resources": 2,
+      "solve_seconds": 0.006162,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 4,
+      "constraints": 16,
+      "decision_variables": 32,
+      "label": "memory off:EC2",
+      "objective": 936.37887503,
+      "resources": 8,
+      "solve_seconds": 0.005372,
+      "status": "Infeasible"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 4,
+      "constraints": 4,
+      "decision_variables": 8,
+      "label": "memory off:RDS",
+      "objective": 23.36,
+      "resources": 2,
+      "solve_seconds": 0.00571,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 4,
+      "constraints": 24,
+      "decision_variables": 32,
+      "label": "memory observed:EC2",
+      "objective": 936.37887503,
+      "resources": 8,
+      "solve_seconds": 0.005541,
+      "status": "Infeasible"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 4,
+      "constraints": 4,
+      "decision_variables": 8,
+      "label": "memory observed:RDS",
+      "objective": 23.36,
+      "resources": 2,
+      "solve_seconds": 0.006024,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 4,
+      "constraints": 24,
+      "decision_variables": 32,
+      "label": "budget none:EC2",
+      "objective": 936.37887503,
+      "resources": 8,
+      "solve_seconds": 0.004859,
+      "status": "Infeasible"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 4,
+      "constraints": 4,
+      "decision_variables": 8,
+      "label": "budget none:RDS",
+      "objective": 23.36,
+      "resources": 2,
+      "solve_seconds": 0.005572,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": 740.02,
+      "candidates": 4,
+      "constraints": 25,
+      "decision_variables": 32,
+      "label": "budget 100% current:EC2",
+      "objective": 936.37887503,
+      "resources": 8,
+      "solve_seconds": 0.005405,
+      "status": "Infeasible"
+    },
+    {
+      "budget_cap": 397.84999999999997,
+      "candidates": 4,
+      "constraints": 5,
+      "decision_variables": 8,
+      "label": "budget 100% current:RDS",
+      "objective": 23.36,
+      "resources": 2,
+      "solve_seconds": 0.006825,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": 666.018,
+      "candidates": 4,
+      "constraints": 25,
+      "decision_variables": 32,
+      "label": "budget 90% current:EC2",
+      "objective": 932.8291351,
+      "resources": 8,
+      "solve_seconds": 0.005263,
+      "status": "Infeasible"
+    },
+    {
+      "budget_cap": 358.065,
+      "candidates": 4,
+      "constraints": 5,
+      "decision_variables": 8,
+      "label": "budget 90% current:RDS",
+      "objective": 23.36,
+      "resources": 2,
+      "solve_seconds": 0.006035,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": 555.015,
+      "candidates": 4,
+      "constraints": 25,
+      "decision_variables": 32,
+      "label": "budget 75% current:EC2",
+      "objective": 932.8291351,
+      "resources": 8,
+      "solve_seconds": 0.004912,
+      "status": "Infeasible"
+    },
+    {
+      "budget_cap": 298.3875,
+      "candidates": 4,
+      "constraints": 5,
+      "decision_variables": 8,
+      "label": "budget 75% current:RDS",
+      "objective": 23.36,
+      "resources": 2,
+      "solve_seconds": 0.007309,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": 7.4002,
+      "candidates": 4,
+      "constraints": 25,
+      "decision_variables": 32,
+      "label": "budget 1% current:EC2",
+      "objective": 380.94913510000003,
+      "resources": 8,
+      "solve_seconds": 0.004909,
+      "status": "Infeasible"
+    },
+    {
+      "budget_cap": 3.9785,
+      "candidates": 4,
+      "constraints": 5,
+      "decision_variables": 8,
+      "label": "budget 1% current:RDS",
+      "objective": 23.36,
+      "resources": 2,
+      "solve_seconds": 0.004425,
+      "status": "Infeasible"
+    }
+  ],
+  "rerun": "venv/bin/python paper/evidence_experiments.py",
+  "runtime": [
+    {
+      "decision_variables": 1624,
+      "experiment": "baseline sweep",
+      "peak_mb": 114.1,
+      "resources": 10,
+      "solve_seconds": 0.117098,
+      "solves": 14,
+      "status": "computed"
+    },
+    {
+      "decision_variables": 3480,
+      "experiment": "ablation sweep",
+      "peak_mb": 118.6,
+      "resources": 10,
+      "solve_seconds": 0.248156,
+      "solves": 30,
+      "status": "computed"
+    },
+    {
+      "decision_variables": 0,
+      "experiment": "rule-set ablation",
+      "peak_mb": 118.6,
+      "resources": 10,
+      "solve_seconds": 0.557258,
+      "solves": 0,
+      "status": "computed"
+    },
+    {
+      "decision_variables": 2800,
+      "experiment": "EC2 MILP stress n=100",
+      "peak_mb": 120.4,
+      "resources": 100,
+      "solve_seconds": 0.070631,
+      "solves": 1,
+      "status": "Optimal",
+      "wall_seconds": 0.070631
+    },
+    {
+      "decision_variables": 14000,
+      "experiment": "EC2 MILP stress n=500",
+      "peak_mb": 141.5,
+      "resources": 500,
+      "solve_seconds": 0.396012,
+      "solves": 1,
+      "status": "Optimal",
+      "wall_seconds": 0.396012
+    },
+    {
+      "decision_variables": 28000,
+      "experiment": "EC2 MILP stress n=1000",
+      "peak_mb": 171.4,
+      "resources": 1000,
+      "solve_seconds": 1.285121,
+      "solves": 1,
+      "status": "Optimal",
+      "wall_seconds": 1.285121
+    },
+    {
+      "decision_variables": 49904,
+      "experiment": "evidence script total",
+      "peak_mb": 171.4,
+      "resources": 10,
+      "solve_seconds": 7.860395,
+      "solves": 47,
+      "status": "computed"
+    }
+  ],
+  "section_seconds": {
+    "ablation_seconds": 1.732298773000366,
+    "baseline_seconds": 1.7235318120074226,
+    "stress_seconds": 4.132315422990359
+  },
+  "solve_events": [
+    {
+      "budget_cap": null,
+      "candidates": 28,
+      "constraints": 24,
+      "decision_variables": 224,
+      "label": "Mean utilization:EC2",
+      "objective": 312.148,
+      "resources": 8,
+      "solve_seconds": 0.010942,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 4,
+      "constraints": 4,
+      "decision_variables": 8,
+      "label": "Mean utilization:RDS",
+      "objective": 23.36,
+      "resources": 2,
+      "solve_seconds": 0.006512,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 28,
+      "constraints": 24,
+      "decision_variables": 224,
+      "label": "Median utilization:EC2",
+      "objective": 296.96400000000006,
+      "resources": 8,
+      "solve_seconds": 0.009801,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 4,
+      "constraints": 4,
+      "decision_variables": 8,
+      "label": "Median utilization:RDS",
+      "objective": 23.36,
+      "resources": 2,
+      "solve_seconds": 0.00605,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 28,
+      "constraints": 24,
+      "decision_variables": 224,
+      "label": "P90 sizing:EC2",
+      "objective": 625.172,
+      "resources": 8,
+      "solve_seconds": 0.011687,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 4,
+      "constraints": 4,
+      "decision_variables": 8,
+      "label": "P90 sizing:RDS",
+      "objective": 23.36,
+      "resources": 2,
+      "solve_seconds": 0.005079,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 28,
+      "constraints": 24,
+      "decision_variables": 224,
+      "label": "P95 sizing:EC2",
+      "objective": 625.172,
+      "resources": 8,
+      "solve_seconds": 0.011038,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 4,
+      "constraints": 4,
+      "decision_variables": 8,
+      "label": "P95 sizing:RDS",
+      "objective": 23.36,
+      "resources": 2,
+      "solve_seconds": 0.006,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 28,
+      "constraints": 24,
+      "decision_variables": 224,
+      "label": "P95 x 1.3 heuristic:EC2",
+      "objective": 970.608,
+      "resources": 8,
+      "solve_seconds": 0.010869,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 4,
+      "constraints": 4,
+      "decision_variables": 8,
+      "label": "P95 x 1.3 heuristic:RDS",
+      "objective": 23.36,
+      "resources": 2,
+      "solve_seconds": 0.005588,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 28,
+      "constraints": 24,
+      "decision_variables": 224,
+      "label": "P99 sizing:EC2",
+      "objective": 625.172,
+      "resources": 8,
+      "solve_seconds": 0.01102,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 4,
+      "constraints": 4,
+      "decision_variables": 8,
+      "label": "P99 sizing:RDS",
+      "objective": 23.36,
+      "resources": 2,
+      "solve_seconds": 0.006137,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 28,
+      "constraints": 24,
+      "decision_variables": 224,
+      "label": "Max utilization:EC2",
+      "objective": 701.092,
+      "resources": 8,
+      "solve_seconds": 0.01039,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 4,
+      "constraints": 4,
+      "decision_variables": 8,
+      "label": "Max utilization:RDS",
+      "objective": 23.36,
+      "resources": 2,
+      "solve_seconds": 0.005985,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 28,
+      "constraints": 24,
+      "decision_variables": 224,
+      "label": "q=0.75, h=1.3:EC2",
+      "objective": 442.964,
+      "resources": 8,
+      "solve_seconds": 0.012123,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 4,
+      "constraints": 4,
+      "decision_variables": 8,
+      "label": "q=0.75, h=1.3:RDS",
+      "objective": 23.36,
+      "resources": 2,
+      "solve_seconds": 0.005881,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 28,
+      "constraints": 24,
+      "decision_variables": 224,
+      "label": "q=0.90, h=1.3:EC2",
+      "objective": 970.608,
+      "resources": 8,
+      "solve_seconds": 0.010814,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 4,
+      "constraints": 4,
+      "decision_variables": 8,
+      "label": "q=0.90, h=1.3:RDS",
+      "objective": 23.36,
+      "resources": 2,
+      "solve_seconds": 0.005571,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 28,
+      "constraints": 24,
+      "decision_variables": 224,
+      "label": "q=0.95, h=1.3:EC2",
+      "objective": 970.608,
+      "resources": 8,
+      "solve_seconds": 0.01167,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 4,
+      "constraints": 4,
+      "decision_variables": 8,
+      "label": "q=0.95, h=1.3:RDS",
+      "objective": 23.36,
+      "resources": 2,
+      "solve_seconds": 0.005878,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 28,
+      "constraints": 24,
+      "decision_variables": 224,
+      "label": "q=0.99, h=1.3:EC2",
+      "objective": 1105.5120000000002,
+      "resources": 8,
+      "solve_seconds": 0.011159,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 4,
+      "constraints": 4,
+      "decision_variables": 8,
+      "label": "q=0.99, h=1.3:RDS",
+      "objective": 23.36,
+      "resources": 2,
+      "solve_seconds": 0.005022,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 28,
+      "constraints": 24,
+      "decision_variables": 224,
+      "label": "q=0.95, h=1.0:EC2",
+      "objective": 625.172,
+      "resources": 8,
+      "solve_seconds": 0.011988,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 4,
+      "constraints": 4,
+      "decision_variables": 8,
+      "label": "q=0.95, h=1.0:RDS",
+      "objective": 23.36,
+      "resources": 2,
+      "solve_seconds": 0.00538,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 28,
+      "constraints": 24,
+      "decision_variables": 224,
+      "label": "q=0.95, h=1.1:EC2",
+      "objective": 625.172,
+      "resources": 8,
+      "solve_seconds": 0.010505,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 4,
+      "constraints": 4,
+      "decision_variables": 8,
+      "label": "q=0.95, h=1.1:RDS",
+      "objective": 23.36,
+      "resources": 2,
+      "solve_seconds": 0.005216,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 28,
+      "constraints": 24,
+      "decision_variables": 224,
+      "label": "q=0.95, h=1.3:EC2",
+      "objective": 970.608,
+      "resources": 8,
+      "solve_seconds": 0.011355,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 4,
+      "constraints": 4,
+      "decision_variables": 8,
+      "label": "q=0.95, h=1.3:RDS",
+      "objective": 23.36,
+      "resources": 2,
+      "solve_seconds": 0.005458,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 28,
+      "constraints": 24,
+      "decision_variables": 224,
+      "label": "q=0.95, h=1.5:EC2",
+      "objective": 1105.5120000000002,
+      "resources": 8,
+      "solve_seconds": 0.011075,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 4,
+      "constraints": 4,
+      "decision_variables": 8,
+      "label": "q=0.95, h=1.5:RDS",
+      "objective": 23.36,
+      "resources": 2,
+      "solve_seconds": 0.005112,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 28,
+      "constraints": 16,
+      "decision_variables": 224,
+      "label": "memory off:EC2",
+      "objective": 549.544,
+      "resources": 8,
+      "solve_seconds": 0.009753,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 4,
+      "constraints": 4,
+      "decision_variables": 8,
+      "label": "memory off:RDS",
+      "objective": 23.36,
+      "resources": 2,
+      "solve_seconds": 0.005057,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 28,
+      "constraints": 24,
+      "decision_variables": 224,
+      "label": "memory observed:EC2",
+      "objective": 970.608,
+      "resources": 8,
+      "solve_seconds": 0.011744,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 4,
+      "constraints": 4,
+      "decision_variables": 8,
+      "label": "memory observed:RDS",
+      "objective": 23.36,
+      "resources": 2,
+      "solve_seconds": 0.005162,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 28,
+      "constraints": 24,
+      "decision_variables": 224,
+      "label": "budget none:EC2",
+      "objective": 970.608,
+      "resources": 8,
+      "solve_seconds": 0.010757,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": null,
+      "candidates": 4,
+      "constraints": 4,
+      "decision_variables": 8,
+      "label": "budget none:RDS",
+      "objective": 23.36,
+      "resources": 2,
+      "solve_seconds": 0.005696,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": 843.7339999999999,
+      "candidates": 28,
+      "constraints": 25,
+      "decision_variables": 224,
+      "label": "budget 100% current:EC2",
+      "objective": 557.3111447273201,
+      "resources": 8,
+      "solve_seconds": 0.010657,
+      "status": "Infeasible"
+    },
+    {
+      "budget_cap": 397.84999999999997,
+      "candidates": 4,
+      "constraints": 5,
+      "decision_variables": 8,
+      "label": "budget 100% current:RDS",
+      "objective": 23.36,
+      "resources": 2,
+      "solve_seconds": 0.005857,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": 759.3606,
+      "candidates": 28,
+      "constraints": 25,
+      "decision_variables": 224,
+      "label": "budget 90% current:EC2",
+      "objective": 557.3111447273201,
+      "resources": 8,
+      "solve_seconds": 0.009993,
+      "status": "Infeasible"
+    },
+    {
+      "budget_cap": 358.065,
+      "candidates": 4,
+      "constraints": 5,
+      "decision_variables": 8,
+      "label": "budget 90% current:RDS",
+      "objective": 23.36,
+      "resources": 2,
+      "solve_seconds": 0.007135,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": 632.8004999999999,
+      "candidates": 28,
+      "constraints": 25,
+      "decision_variables": 224,
+      "label": "budget 75% current:EC2",
+      "objective": 557.3111447273201,
+      "resources": 8,
+      "solve_seconds": 0.011218,
+      "status": "Infeasible"
+    },
+    {
+      "budget_cap": 298.3875,
+      "candidates": 4,
+      "constraints": 5,
+      "decision_variables": 8,
+      "label": "budget 75% current:RDS",
+      "objective": 23.36,
+      "resources": 2,
+      "solve_seconds": 0.005963,
+      "status": "Optimal"
+    },
+    {
+      "budget_cap": 8.437339999999999,
+      "candidates": 28,
+      "constraints": 25,
+      "decision_variables": 224,
+      "label": "budget 1% current:EC2",
+      "objective": 296.04122115616,
+      "resources": 8,
+      "solve_seconds": 0.009333,
+      "status": "Infeasible"
+    },
+    {
+      "budget_cap": 3.9785,
+      "candidates": 4,
+      "constraints": 5,
+      "decision_variables": 8,
+      "label": "budget 1% current:RDS",
+      "objective": 23.36,
+      "resources": 2,
+      "solve_seconds": 0.005624,
+      "status": "Infeasible"
+    }
+  ],
+  "unavailable": [
+    {
+      "experiment": "Bitbrains/Materna percentile baselines and bootstrap CI",
+      "reason": "raw GWA trace CSV files are not present in the workspace; only aggregate results_external.json is available"
+    },
+    {
+      "experiment": "Azure runtime and percentile ablations",
+      "reason": "raw Azure vmtable.csv.gz is not present in the workspace; only aggregate results_azure.json is available"
+    },
+    {
+      "experiment": "direct commercial baselines",
+      "reason": "no direct AWS Compute Optimizer, Azure Advisor, Savings Plans, or third-party recommender output exists in the repository; a labeled paper-side usage-hour RI replay is generated separately"
+    }
+  ]
+}

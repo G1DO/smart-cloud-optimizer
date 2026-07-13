@@ -1,0 +1,304 @@
+{
+  "details": {
+    "30d": [
+      {
+        "coverage": 1.0,
+        "current_monthly": 62.05,
+        "estimated_monthly": 39.42,
+        "instance_type": "c5.large",
+        "lookback_days": 30,
+        "observed_hours": 720,
+        "resource_id": "i-62c9b73536b4afb64",
+        "savings_monthly": 22.63,
+        "savings_pct": 36.471,
+        "status": "recommended"
+      },
+      {
+        "coverage": 1.0,
+        "current_monthly": 91.98,
+        "estimated_monthly": 57.67,
+        "instance_type": "r5.large",
+        "lookback_days": 30,
+        "observed_hours": 720,
+        "resource_id": "i-9ad0eb8ce137a7aa6",
+        "savings_monthly": 34.31,
+        "savings_pct": 37.302,
+        "status": "recommended"
+      },
+      {
+        "coverage": 1.0,
+        "current_monthly": 70.08,
+        "estimated_monthly": 43.8,
+        "instance_type": "m5.large",
+        "lookback_days": 30,
+        "observed_hours": 720,
+        "resource_id": "i-6fcb9841d7a4596cc",
+        "savings_monthly": 26.28,
+        "savings_pct": 37.5,
+        "status": "recommended"
+      },
+      {
+        "coverage": 1.0,
+        "current_monthly": 30.37,
+        "estimated_monthly": 19.05,
+        "instance_type": "t3.medium",
+        "lookback_days": 30,
+        "observed_hours": 720,
+        "resource_id": "i-f785f27a24b145b6a",
+        "savings_monthly": 11.31,
+        "savings_pct": 37.26,
+        "status": "recommended"
+      },
+      {
+        "coverage": 1.0,
+        "current_monthly": 60.74,
+        "estimated_monthly": 38.11,
+        "instance_type": "t3.large",
+        "lookback_days": 30,
+        "observed_hours": 720,
+        "resource_id": "i-8a2f2d2dd5bc5cab6",
+        "savings_monthly": 22.63,
+        "savings_pct": 37.26,
+        "status": "recommended"
+      },
+      {
+        "coverage": 1.0,
+        "current_monthly": 248.2,
+        "estimated_monthly": 156.22,
+        "instance_type": "c5.2xlarge",
+        "lookback_days": 30,
+        "observed_hours": 720,
+        "resource_id": "i-7f2d2987eea6a58df",
+        "savings_monthly": 91.98,
+        "savings_pct": 37.059,
+        "status": "recommended"
+      }
+    ],
+    "60d": [
+      {
+        "coverage": 1.0,
+        "current_monthly": 62.05,
+        "estimated_monthly": 39.42,
+        "instance_type": "c5.large",
+        "lookback_days": 60,
+        "observed_hours": 1440,
+        "resource_id": "i-62c9b73536b4afb64",
+        "savings_monthly": 22.63,
+        "savings_pct": 36.471,
+        "status": "recommended"
+      },
+      {
+        "coverage": 1.0,
+        "current_monthly": 91.98,
+        "estimated_monthly": 57.67,
+        "instance_type": "r5.large",
+        "lookback_days": 60,
+        "observed_hours": 1440,
+        "resource_id": "i-9ad0eb8ce137a7aa6",
+        "savings_monthly": 34.31,
+        "savings_pct": 37.302,
+        "status": "recommended"
+      },
+      {
+        "coverage": 1.0,
+        "current_monthly": 70.08,
+        "estimated_monthly": 43.8,
+        "instance_type": "m5.large",
+        "lookback_days": 60,
+        "observed_hours": 1440,
+        "resource_id": "i-6fcb9841d7a4596cc",
+        "savings_monthly": 26.28,
+        "savings_pct": 37.5,
+        "status": "recommended"
+      },
+      {
+        "coverage": 1.0,
+        "current_monthly": 30.37,
+        "estimated_monthly": 19.05,
+        "instance_type": "t3.medium",
+        "lookback_days": 60,
+        "observed_hours": 1440,
+        "resource_id": "i-f785f27a24b145b6a",
+        "savings_monthly": 11.31,
+        "savings_pct": 37.26,
+        "status": "recommended"
+      },
+      {
+        "coverage": 1.0,
+        "current_monthly": 60.74,
+        "estimated_monthly": 38.11,
+        "instance_type": "t3.large",
+        "lookback_days": 60,
+        "observed_hours": 1440,
+        "resource_id": "i-8a2f2d2dd5bc5cab6",
+        "savings_monthly": 22.63,
+        "savings_pct": 37.26,
+        "status": "recommended"
+      },
+      {
+        "coverage": 1.0,
+        "current_monthly": 248.2,
+        "estimated_monthly": 156.22,
+        "instance_type": "c5.2xlarge",
+        "lookback_days": 60,
+        "observed_hours": 1440,
+        "resource_id": "i-7f2d2987eea6a58df",
+        "savings_monthly": 91.98,
+        "savings_pct": 37.059,
+        "status": "recommended"
+      }
+    ],
+    "7d": [
+      {
+        "coverage": 1.0,
+        "current_monthly": 62.05,
+        "estimated_monthly": 39.42,
+        "instance_type": "c5.large",
+        "lookback_days": 7,
+        "observed_hours": 168,
+        "resource_id": "i-62c9b73536b4afb64",
+        "savings_monthly": 22.63,
+        "savings_pct": 36.471,
+        "status": "recommended"
+      },
+      {
+        "coverage": 1.0,
+        "current_monthly": 91.98,
+        "estimated_monthly": 57.67,
+        "instance_type": "r5.large",
+        "lookback_days": 7,
+        "observed_hours": 168,
+        "resource_id": "i-9ad0eb8ce137a7aa6",
+        "savings_monthly": 34.31,
+        "savings_pct": 37.302,
+        "status": "recommended"
+      },
+      {
+        "coverage": 1.0,
+        "current_monthly": 70.08,
+        "estimated_monthly": 43.8,
+        "instance_type": "m5.large",
+        "lookback_days": 7,
+        "observed_hours": 168,
+        "resource_id": "i-6fcb9841d7a4596cc",
+        "savings_monthly": 26.28,
+        "savings_pct": 37.5,
+        "status": "recommended"
+      },
+      {
+        "coverage": 1.0,
+        "current_monthly": 30.37,
+        "estimated_monthly": 19.05,
+        "instance_type": "t3.medium",
+        "lookback_days": 7,
+        "observed_hours": 168,
+        "resource_id": "i-f785f27a24b145b6a",
+        "savings_monthly": 11.31,
+        "savings_pct": 37.26,
+        "status": "recommended"
+      },
+      {
+        "coverage": 1.0,
+        "current_monthly": 60.74,
+        "estimated_monthly": 38.11,
+        "instance_type": "t3.large",
+        "lookback_days": 7,
+        "observed_hours": 168,
+        "resource_id": "i-8a2f2d2dd5bc5cab6",
+        "savings_monthly": 22.63,
+        "savings_pct": 37.26,
+        "status": "recommended"
+      },
+      {
+        "coverage": 1.0,
+        "current_monthly": 248.2,
+        "estimated_monthly": 156.22,
+        "instance_type": "c5.2xlarge",
+        "lookback_days": 7,
+        "observed_hours": 168,
+        "resource_id": "i-7f2d2987eea6a58df",
+        "savings_monthly": 91.98,
+        "savings_pct": 37.059,
+        "status": "recommended"
+      }
+    ]
+  },
+  "metadata": {
+    "baseline": "usage-hour RI replay surrogate",
+    "canonical_artifact_name": "results_ri_replay.json",
+    "collapse_note": "The synthetic account has full observed metric coverage for the same six eligible on-demand EC2 instances in all replay windows, so the 7-, 30-, and 60-day surrogate recommendations are identical.",
+    "collapsed_table_rows": true,
+    "display_label": "paper-side usage-hour RI replay baseline",
+    "legacy_artifact_name": "results_commercial_like.json",
+    "legacy_artifact_name_deprecated": true,
+    "min_coverage": 0.8,
+    "not_a_commercial_tool": true,
+    "notes": [
+      "This is a paper-side usage-hour RI replay baseline, not AWS Compute Optimizer, Cost Explorer, Azure Advisor, or third-party recommender output.",
+      "It uses observed EC2 metric coverage and snapshot EC2 RI prices for the synthetic account.",
+      "The LaTeX table collapses identical recency-window rows when all reported values match."
+    ],
+    "price_basis": "EC2 snapshot on-demand versus one-year reserved",
+    "snapshot_date": "2026-06-30"
+  },
+  "rerun": "venv/bin/python paper/evidence_experiments.py",
+  "rows": [
+    {
+      "baseline": "usage-hour RI replay surrogate",
+      "current_monthly": 563.42,
+      "eligible_on_demand_instances": 6,
+      "estimated_monthly": 354.27,
+      "lookback_days": 7,
+      "min_coverage": 0.8,
+      "recommendations": 6,
+      "savings_monthly": 209.15,
+      "savings_pct": 37.122,
+      "status": "surrogate; not AWS/Azure/commercial output"
+    },
+    {
+      "baseline": "usage-hour RI replay surrogate",
+      "current_monthly": 563.42,
+      "eligible_on_demand_instances": 6,
+      "estimated_monthly": 354.27,
+      "lookback_days": 30,
+      "min_coverage": 0.8,
+      "recommendations": 6,
+      "savings_monthly": 209.15,
+      "savings_pct": 37.122,
+      "status": "surrogate; not AWS/Azure/commercial output"
+    },
+    {
+      "baseline": "usage-hour RI replay surrogate",
+      "current_monthly": 563.42,
+      "eligible_on_demand_instances": 6,
+      "estimated_monthly": 354.27,
+      "lookback_days": 60,
+      "min_coverage": 0.8,
+      "recommendations": 6,
+      "savings_monthly": 209.15,
+      "savings_pct": 37.122,
+      "status": "surrogate; not AWS/Azure/commercial output"
+    }
+  ],
+  "table_rows": [
+    {
+      "baseline": "usage-hour RI replay surrogate",
+      "collapse_reason": "The synthetic account has full observed metric coverage for the same six eligible on-demand EC2 instances in all replay windows, so the 7-, 30-, and 60-day surrogate recommendations are identical.",
+      "collapsed_from_rows": 3,
+      "current_monthly": 563.42,
+      "eligible_on_demand_instances": 6,
+      "estimated_monthly": 354.27,
+      "lookback_days": "7/30/60",
+      "lookback_windows": [
+        7,
+        30,
+        60
+      ],
+      "min_coverage": 0.8,
+      "recommendations": 6,
+      "savings_monthly": 209.15,
+      "savings_pct": 37.122,
+      "status": "surrogate; 7/30/60 windows identical"
+    }
+  ]
+}
