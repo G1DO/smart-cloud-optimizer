@@ -62,6 +62,9 @@ backups/
 *.db-wal
 *.db.backup-*
 
+# Paper manuscript (lives outside repo — see ~/Downloads/paper)
+paper/
+
 # Thesis/paper build scratch (intermediate artifacts: extract/assemble scripts,
 # unzipped docx XML, JSON dumps, segment/revision dumps, selftest docx)
 docs-gp/work/
