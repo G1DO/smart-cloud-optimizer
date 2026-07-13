@@ -56,7 +56,7 @@ Verify outputs: `python scripts/hash_paper_artifacts.py`
 | Prophet | 1.3.0 |
 | statsmodels | 0.14.6 |
 | pmdarima | 2.1.1 |
-| CBC | optional; `coinor-cbc` if MILP solver not bundled |
+| CBC | optional; install `coinor-cbc` (Debian/Ubuntu: `sudo apt install coinor-cbc`; macOS: `brew install coin-or-tools/coinor/cbc`) |
 
 LaTeX: `pdflatex`, `bibtex` (e.g. TeX Live / TinyTeX).
 
@@ -128,7 +128,7 @@ Checksums and runtimes: `paper/trace_provenance.md`.
 ## Non-reproducible / reviewer-action items
 
 1. **GWA traces** — must be downloaded; script errors if `$TRACE_DIR` is missing.
-2. **CBC solver** — install `coinor-cbc` if MILP solve fails.
+2. **CBC solver** — install `coinor-cbc` before running MILP experiments (see Environment table).
 3. **`make_figures.py --with-sarimax`** — optional and slow; not required for default numbers.
 
 ---

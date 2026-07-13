@@ -641,7 +641,7 @@ def ensure_user(conn: sqlite3.Connection, account_id: str) -> str:
 
     Args:
         conn: Open database connection.
-        account_id: AWS account ID (e.g. ``"131471595343"``).
+        account_id: AWS account ID (e.g. ``"123456789012"``).
 
     Returns:
         The ``user_id`` string (format: ``"aws-{account_id}"``).

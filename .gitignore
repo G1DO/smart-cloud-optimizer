@@ -60,6 +60,7 @@ backups/
 # SQLite temporary/runtime files
 *.db-shm
 *.db-wal
+*.db.backup
 *.db.backup-*
 data/cloud_optimizer.release.db
 data/cloud_optimizer.db.pre-sanitize.backup

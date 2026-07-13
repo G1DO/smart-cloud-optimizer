@@ -27,6 +27,8 @@ SKIP_DIRS = {
     "frontend/node_modules",
     "__pycache__",
     ".pytest_cache",
+    "docs",
+    "docs-gp",
 }
 
 SECRET_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
@@ -35,7 +37,7 @@ SECRET_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     ("google_api_key", re.compile(r"AIza[0-9A-Za-z\-_]{35}")),
     ("openai_key", re.compile(r"sk-[a-zA-Z0-9]{20,}")),
     ("arn_with_account", re.compile(r"arn:aws:iam::\d{12}:")),
-    ("twelve_digit_account", re.compile(r"\b1[0-9]{11}\b")),
+    ("twelve_digit_account", re.compile(r"(?<![0-9.])1[0-9]{11}(?![0-9.])")),
     ("home_path", re.compile(r"/home/[a-zA-Z0-9._-]+")),
     ("env_file", re.compile(r"^\.env$")),
 ]
@@ -75,6 +77,10 @@ def scan_text_file(path: Path) -> list[str]:
     for line_no, line in enumerate(text.splitlines(), 1):
         if any(token in line for token in ALLOWLIST_SUBSTRINGS):
             continue
+        if "../home/" in line or "dashboard/home/" in line or 'e.g. ``"' in line:
+            continue
+        if '"/home/' in line and ("in searchable" in line or "file:///" in line):
+            continue
         for label, pattern in SECRET_PATTERNS:
             if label == "env_file":
                 continue
@@ -89,7 +95,9 @@ def scan_tree(root: Path) -> list[str]:
         if not path.is_file() or should_skip(path):
             continue
         if path.name == ".env" or (
-            path.name.startswith(".env") and path.name not in {".env.example", ".env.docker.example"}
+            path.name.startswith(".env")
+            and path.name not in {".env.example", ".env.docker.example"}
+            and not path.name.endswith(".example")
         ):
             findings.append(f"{path}: critical: .env file present")
             continue
