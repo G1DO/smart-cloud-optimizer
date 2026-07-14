@@ -68,5 +68,8 @@ data/cloud_optimizer.db.pre-sanitize.backup
 # Internal submission docs (local only — not on public release branch)
 docs/
 
+# Manuscript and paper evidence scripts (local only — not on public release)
+paper/
+
 # University thesis drafts (not part of public artifact)
 docs-gp/
