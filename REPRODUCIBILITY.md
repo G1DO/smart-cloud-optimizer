@@ -91,4 +91,4 @@ corresponding author for editorial/review use.
 
 - **Code repository:** `https://github.com/G1DO/smart-cloud-optimizer/tree/release/ccpe-v1.0`
 - **Release tag:** `ccpe-submission-v1.0` (upon public push)
-- **Zenodo DOI:** to be added after institutional archive upload
+- **Zenodo DOI:** https://doi.org/10.5281/zenodo.21358415
