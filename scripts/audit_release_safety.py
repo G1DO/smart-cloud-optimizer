@@ -119,6 +119,42 @@ def scan_tree(root: Path) -> list[str]:
     return findings
 
 
+SYNTHETIC_USER = "aws-SYNTHETIC-001"
+DB_ACCOUNT_RE = re.compile(rb"(?<![0-9])[1-9][0-9]{11}(?![0-9])")
+DB_EMAIL_RE = re.compile(rb"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
+DB_ALLOWED_ACCOUNTS = {
+    b"123456789012",
+    b"111111111111",
+    b"999999999999",
+    b"888888888888",
+}
+
+
+def scan_database_raw(db_path: Path) -> list[str]:
+    """Byte-level scan: catches values in free pages, indexes, and columns
+    the table-level scan does not know about."""
+    findings: list[str] = []
+    data = db_path.read_bytes()
+    accounts = {
+        m.group(0) for m in DB_ACCOUNT_RE.finditer(data)
+    } - DB_ALLOWED_ACCOUNTS
+    for account in sorted(accounts):
+        findings.append(
+            f"{db_path}: critical: possible real 12-digit AWS account id "
+            f"in raw bytes: {account.decode()}"
+        )
+    for match in {m.group(0) for m in DB_EMAIL_RE.finditer(data)}:
+        email = match.decode(errors="replace")
+        # Raw SQLite cells concatenate without separators, so the synthetic
+        # placeholder may appear with adjacent cell bytes glued on.
+        if "@aws.local" in email or "example" in email.lower():
+            continue
+        findings.append(
+            f"{db_path}: critical: non-synthetic email in raw bytes: {email}"
+        )
+    return findings
+
+
 def scan_database(db_path: Path) -> list[str]:
     findings: list[str] = []
     if not db_path.is_file():
@@ -131,6 +167,23 @@ def scan_database(db_path: Path) -> list[str]:
         if "@" in email and not email.endswith("@aws.local"):
             findings.append(
                 f"{db_path}: critical: non-synthetic user email in users: {row['user_id']} {email}"
+            )
+    tables = [
+        row["name"]
+        for row in cur.execute("SELECT name FROM sqlite_master WHERE type='table'")
+    ]
+    for table in tables:
+        columns = {row["name"] for row in cur.execute(f"PRAGMA table_info({table})")}
+        if "user_id" not in columns:
+            continue
+        for row in cur.execute(
+            f"SELECT user_id, COUNT(*) AS n FROM {table} "
+            "WHERE user_id != ? GROUP BY user_id",
+            (SYNTHETIC_USER,),
+        ):
+            findings.append(
+                f"{db_path}: critical: non-synthetic user rows in {table}: "
+                f"{row['user_id']} ({row['n']} rows)"
             )
     try:
         for row in cur.execute(
@@ -156,6 +209,7 @@ def scan_database(db_path: Path) -> list[str]:
     except sqlite3.OperationalError:
         pass
     conn.close()
+    findings.extend(scan_database_raw(db_path))
     return findings
 
 

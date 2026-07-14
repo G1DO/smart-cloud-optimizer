@@ -42,12 +42,40 @@ def sanitize(conn: sqlite3.Connection) -> dict[str, int]:
     except sqlite3.OperationalError:
         stats["connections_removed"] = 0
 
+    # Purge rows belonging to any non-synthetic user from every table that
+    # carries a user_id column (real-account rows can survive in cost and
+    # resource tables even after the users row is gone).
+    tables = [
+        row[0]
+        for row in cur.execute(
+            "SELECT name FROM sqlite_master WHERE type='table'"
+        )
+    ]
+    for table in tables:
+        columns = {row[1] for row in cur.execute(f"PRAGMA table_info({table})")}
+        if "user_id" not in columns:
+            continue
+        cur.execute(
+            f"SELECT COUNT(*) FROM {table} WHERE user_id != ?",
+            (SYNTHETIC_USER,),
+        )
+        n_rows = cur.fetchone()[0]
+        if n_rows:
+            cur.execute(
+                f"DELETE FROM {table} WHERE user_id != ?", (SYNTHETIC_USER,)
+            )
+            stats[f"{table}_rows_removed"] = n_rows
+
     # Scrub synthetic user email to a neutral placeholder if it was personalized.
     cur.execute(
         "UPDATE users SET email = ? WHERE user_id = ?",
         (f"{SYNTHETIC_USER}@aws.local", SYNTHETIC_USER),
     )
     conn.commit()
+    # Rebuild the file so deleted rows do not survive in free pages or
+    # index b-trees; also truncate any WAL into the main file.
+    conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+    conn.execute("VACUUM")
     return stats
 
 
