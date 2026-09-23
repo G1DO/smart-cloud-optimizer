@@ -32,13 +32,12 @@ guidance is linked from [CONTRIBUTING.md](../CONTRIBUTING.md).
 ### Level 3: Deep Dives (as needed)
 
 1. [STORAGE_API.md](STORAGE_API.md) -- Database API reference (auth, connections, data)
-2. [DATA_SCHEMAS.md](DATA_SCHEMAS.md) -- All 30 database tables
+2. [DATA_SCHEMAS.md](DATA_SCHEMAS.md) -- Data model and generated SQLite schema
 3. [CONFIGURATION.md](CONFIGURATION.md) -- Environment variables
-4. [DATA_RESOURCES.md](DATA_RESOURCES.md) -- External data sources
+4. [DATA_RESOURCES.md](DATA_RESOURCES.md) -- Historical research references
 5. [ai_module.md](ai_module.md) -- AI recommendation engine
 6. [optimizer.md](optimizer.md) -- Cost optimization logic
-7. [recommendation.md](recommendation.md) -- Recommendation data model
-8. [forecasting_models.md](forecasting_models.md) -- ML model details
+7. [forecasting_models.md](forecasting_models.md) -- ML model details
 
 ---
 
@@ -52,14 +51,13 @@ guidance is linked from [CONTRIBUTING.md](../CONTRIBUTING.md).
 | ARCHITECTURE | System diagram, module roles | Before coding |
 | MODULES | File-by-file breakdown | When lost |
 | DATA_PIPELINE | Collection + data pipeline flow | Working on data |
-| STORAGE_API | insert_*/get_* + auth functions | Using the DB |
-| DATA_SCHEMAS | 30 table definitions | DB queries |
+| STORAGE_API | Generated signatures, transactions, safe examples | Using the DB |
+| DATA_SCHEMAS | Data model and schema generation | DB queries |
 | CONFIGURATION | Env vars, logging | Deployment |
-| DATA_RESOURCES | External datasets | Research |
+| DATA_RESOURCES | Historical dataset references | Research provenance |
 | ai_module | AI recommendation engine | AI features |
 | optimizer | Cost optimization logic | Optimization |
-| recommendation | Recommendation data model | Recommendation details |
-| forecasting_models | ML model details | Forecasting |
+| forecasting_models | Runtime behavior, evaluation, historical results | Forecasting |
 
 ---
 
@@ -93,3 +91,11 @@ smart-cloud-optimizer/
 ├── dashboard/          # Optional legacy Streamlit UI
 └── tests/              # Unit tests (auth, storage, ML, optimizer, AI)
 ```
+
+## Historical material
+
+[Paper artifacts](../docs-gp/README.md) and the
+[imported integration review](../CODE_REVIEW_PR2.md) preserve earlier work.
+They are not the current backlog, runtime specification, or current validation
+results. Use GitHub for accepted engineering work and the linked Notion project
+for project context and decisions.

@@ -12,17 +12,17 @@ from storage.db import get_connection, get_daily_costs, get_ec2_metrics, get_ec2
 conn = get_connection()
 
 # Cost data
-costs = get_daily_costs(conn, user_id="aws-DEMO-001")
-costs_filtered = get_daily_costs(conn, user_id="aws-DEMO-001",
+costs = get_daily_costs(conn, user_id="aws-SYNTHETIC-001")
+costs_filtered = get_daily_costs(conn, user_id="aws-SYNTHETIC-001",
                                   start_date="2025-01-01", end_date="2025-06-30")
 
 # EC2 metrics
-metrics = get_ec2_metrics(conn, user_id="aws-DEMO-001")
-metrics_single = get_ec2_metrics(conn, user_id="aws-DEMO-001",
+metrics = get_ec2_metrics(conn, user_id="aws-SYNTHETIC-001")
+metrics_single = get_ec2_metrics(conn, user_id="aws-SYNTHETIC-001",
                                   instance_id="i-abcdef1234567890")
 
 # Inventory
-instances = get_ec2_instances(conn, user_id="aws-DEMO-001")
+instances = get_ec2_instances(conn, user_id="aws-SYNTHETIC-001")
 ```
 
 ### Via ml_engine.data_prep (ML-ready DataFrames)
@@ -34,7 +34,7 @@ from ml_engine.data_prep import load_cost_data
 conn = get_connection()
 
 # Load cost data as DataFrame
-cost_df = load_cost_data(conn, user_id="aws-DEMO-001")
+cost_df = load_cost_data(conn, user_id="aws-SYNTHETIC-001")
 # Columns: date, total_cost
 ```
 
@@ -72,7 +72,7 @@ from storage.db import get_connection
 from ml_engine.data_prep import load_cost_data
 
 conn = get_connection()
-df = load_cost_data(conn, user_id="aws-DEMO-001")
+df = load_cost_data(conn, user_id="aws-SYNTHETIC-001")
 
 # df is ready for Prophet, SARIMAX, etc.
 from prophet import Prophet
@@ -82,14 +82,21 @@ model.fit(df.rename(columns={"date": "ds", "total_cost": "y"}))
 
 ## Data Quality
 
-- All numeric values are floats or ints (NULL-safe via `_safe_float`/`_safe_int`)
-- Timestamps are ISO format strings (`YYYY-MM-DD HH:MM:SS` or `YYYY-MM-DD`)
-- Missing values are stored as NULL
-- All tables have indexes on `user_id` and timestamp columns
+- Insert helpers coerce many numeric values through `_safe_float`/`_safe_int`;
+  invalid or missing numeric values can become zero. Missing text/metadata can
+  remain NULL. Inspect the source mapping before interpreting zero as observed usage.
+- Dates/timestamps are stored as strings. Use the [schema reference](../documentation/DATA_SCHEMAS.md)
+  for exact keys/indexes and [Storage API](../documentation/STORAGE_API.md) for filters
+  and connection/transaction ownership.
 
 ## Tips
 
 1. **Time Series**: Use daily_costs or service_costs for forecasting
 2. **Anomaly Detection**: Use ec2_metrics with all numeric columns as features
 3. **Right-sizing**: Combine ec2_instances (inventory) with ec2_metrics (utilization)
-4. **Cost Attribution**: Join service_costs with inventory tables by user_id
+4. **Cost Attribution**: Service totals are not resource-level costs. Joining
+   `service_costs` to inventory by `user_id` alone multiplies rows and does not
+   attribute spend to individual resources.
+
+For the HTTP forecasting contract and offline evaluation, see
+[Forecasting models](../documentation/forecasting_models.md).

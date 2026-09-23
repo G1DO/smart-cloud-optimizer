@@ -46,3 +46,6 @@ data/real
 .env
 .env.*
 !.env.example
+
+# Per-user runtime settings, including temporary and corrupt recovery copies
+backend_api/runtime_settings.json*

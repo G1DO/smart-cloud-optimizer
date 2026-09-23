@@ -295,6 +295,9 @@ Settings page: user profile editing (display name), AWS account connection manag
 
 ## `tests/`
 
+Discover the current inventory with the [Development checks](DEVELOPMENT.md#checks);
+individual test counts and pass/fail results belong in check output.
+
 ### `test_config.py`
 
 Tests for `cloud_optimizer/config.py`: paths exist, constants have correct types, `DB_PATH` is set.
@@ -309,7 +312,7 @@ Tests for `ml_engine/`: data loading, feature engineering, anomaly detection, fo
 
 ### `test_storage.py`
 
-Tests for `storage/db.py`: insert/query API, upsert behavior (`INSERT OR REPLACE`), user isolation, schema creation, 25 tests covering all table categories.
+Tests for `storage/db.py`: insert/query API, upsert behavior (`INSERT OR REPLACE`), user isolation, schema creation across all table categories.
 
 ### `test_synthetic.py`
 
@@ -317,11 +320,11 @@ Tests for `data_generation/synthetic.py`: DB table population, schema validation
 
 ### `test_optimizer.py`
 
-Tests for `optimizer/`: LP solver constraints, rule-based recommendations, orchestrator deduplication, DB write verification. 27 tests (26 passing, 1 failing).
+Tests for `optimizer/`: LP solver constraints, rule-based recommendations, orchestrator deduplication, DB write verification.
 
 ### `test_ai_module.py`
 
-Tests for `ai_module/`: guided questions structure, prompt builder output, recommender API mocking, JSON parsing, error handling. 13 tests.
+Tests for `ai_module/`: guided questions structure, prompt builder output, recommender API mocking, JSON parsing, error handling.
 
 ### `test_auth.py`
 

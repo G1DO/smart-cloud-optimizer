@@ -35,6 +35,9 @@ running. FastAPI generates the current endpoint and model reference at
 http://localhost:8000/docs and http://localhost:8000/openapi.json.
 
 There is currently no repository CI or documentation validation tool configured.
+Use the [schema generator](DATA_SCHEMAS.md) and
+[storage signature lookup](STORAGE_API.md#current-signatures) when changing those
+contracts; the running FastAPI app owns HTTP reference generation.
 Check changed Markdown links and anchors, preview rendering, and verify commands
 against the implementation. Report commands and outcomes in the PR, including
 any baseline failure; keep existing tests and validation intact.
