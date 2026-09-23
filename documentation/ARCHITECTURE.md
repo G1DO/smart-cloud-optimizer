@@ -29,8 +29,7 @@ Most Python components access `data/cloud_optimizer.db` through `storage`.
 The forecast router currently opens SQLite directly; recommendations and
 connections also execute SQL on storage-created connections. The storage facade
 is the preferred shared interface, but it is not an enforced access boundary.
-Per-user runtime settings are stored separately in
-`backend_api/runtime_settings.json`.
+Per-user runtime settings are stored separately; see [Runtime settings](#runtime-settings).
 
 `ensure_schema()` creates missing tables/indexes and adds missing AWS credential
 columns for older databases. `create_schema()` is destructive. See
@@ -67,3 +66,25 @@ plaintext, and the tracked database also contains personal/account metadata.
 The [README security notes](../README.md#known-limitations--security-notes)
 describe these limits and the optional AI endpoint token guard. Keep credentials
 and runtime data out of commits.
+
+## Runtime settings
+
+[backend_api/routers/settings.py](../backend_api/routers/settings.py) stores
+per-user preferences in `backend_api/runtime_settings.json`. The settings API
+validates and saves them, but engines and the collector do not read that file:
+saving a budget, collection interval, retention period, or model preference does
+not change their current behavior. Request parameters and Python configuration
+remain the active inputs.
+
+The file is local runtime state and is excluded from Git and the backend image
+build context, together with temporary/corrupt copies. In Compose only
+`/app/data` is on a named volume; runtime settings live in the backend container's
+writable layer and are lost on container recreation. Database volume retention
+does not preserve them.
+
+Writes replace the file atomically and serialize within one process. A malformed
+JSON file is renamed to `runtime_settings.json.corrupt`, after which reads use
+defaults until new settings are saved. To recover preferences, stop the backend,
+preserve the corrupt copy outside Git, repair or restore valid JSON with the
+same user-to-settings mapping, and restart. Repeated malformed reads can replace
+the previous `.corrupt` copy; preserve it before attempting recovery.

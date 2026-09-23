@@ -1,274 +1,93 @@
 # Storage API Reference
 
-The `storage/` module provides the shared database API. Some HTTP routes also use
-direct SQL; see [Architecture](ARCHITECTURE.md).
+The `storage` package exports the shared SQLite interface from
+[storage/__init__.py](../storage/__init__.py). Implementations, accepted row fields,
+and SQL live in [storage/db.py](../storage/db.py). Some HTTP routes also issue
+SQL directly; see [Architecture](ARCHITECTURE.md).
 
----
+## Current signatures
 
-## Quick Reference
+Generate the public function reference from the checked-out code:
 
-```python
-from storage import get_connection, ensure_schema, insert_daily_costs, get_daily_costs
+```bash
+python - <<'PYTHON'
+import inspect
+import storage
 
-conn = get_connection()
-ensure_schema(conn)
-
-# Write data
-insert_daily_costs(conn, user_id, [{"date": "2024-01-15", "total_cost": 125.50}])
-conn.commit()  # Caller must commit!
-
-# Read data
-costs = get_daily_costs(conn, user_id, start_date="2024-01-01", end_date="2024-01-31")
+for name in storage.__all__:
+    value = getattr(storage, name)
+    if inspect.isfunction(value):
+        print(f"{name}{inspect.signature(value)}")
+PYTHON
 ```
 
----
+For a function's field requirements and behavior, use, for example,
+`python -m pydoc storage.insert_ec2_instances`. Get exact table keys and types
+from the [generated schema](DATA_SCHEMAS.md).
 
-## Transaction Contract
+Filters are function-specific: inventory reads accept only `conn` and `user_id`;
+cost queries use `start_date`/`end_date`; EC2/RDS metrics use `start`/`end`.
+Other metric getters accept a resource filter but no time range.
+ElastiCache uses `cache_cluster_id`, ECS uses `service_name`, and Lambda metrics
+use `date`. Pricing reads accept `service` and `instance_type`, without a user ID.
+Do not assume every getter accepts arbitrary keyword filters.
 
-- `insert_*` / `get_*` functions do **NOT** call `conn.commit()`
-- The caller is responsible for committing after one or more inserts
-- This allows batching multiple inserts into a single transaction
-- Admin functions (`ensure_schema`, `create_schema`, `ensure_user`, `clear_user_data`) commit internally
+## Transaction contract
 
----
+- Data `insert_*` functions return an inserted-row count and do not commit.
+  Data `get_*` functions return lists of dictionaries and do not commit.
+- Commit after batching data inserts; roll back on failure and close the
+  connection when finished. SQLite's connection context manager does not close it.
+- Schema, user, authentication/profile, and AWS connection mutation helpers
+  manage their own commits. These calls are not part of a caller-controlled
+  batch of data inserts.
+- `ensure_schema()` creates missing objects and applies supported additive
+  credential migrations. `create_schema()` drops and recreates all tables;
+  use it only for disposable fixtures.
+- `clear_user_data()` commits deletion of a user's data/results while retaining
+  `users`, `aws_connections`, and global `instance_pricing`.
 
-## Connection & Schema
+`get_connection(db_path=None)` defaults to the configured demo DB, enables WAL
+and foreign keys, and sets a 10-second busy timeout. Many inventory/metric/cost
+inserts use `INSERT OR REPLACE`; result inserts have their own semantics in the
+source. Sync and optimization can delete previous results; see
+[Data pipeline](DATA_PIPELINE.md) and [Optimizer](optimizer.md#usage).
 
-| Function | Description |
-|----------|-------------|
-| `get_connection(db_path=None)` | Open SQLite connection with WAL mode, foreign keys enabled |
-| `ensure_schema(conn)` | Create missing tables/indexes and add missing AWS credential columns (non-destructive, commits internally) |
-| `create_schema(conn)` | Drop + recreate all tables (destructive, tests/dev only) |
-| `ensure_user(conn, account_id)` | Create user if not exists, returns `user_id` |
-| `clear_user_data(conn, user_id)` | Delete all data for a user (keeps user record) |
+## Disposable example
 
----
-
-## Authentication Functions
-
-Password hashing uses PBKDF2-HMAC-SHA256. Parameters and hash encoding are defined
-in [storage/db.py](../storage/db.py); the HTTP API's authorization limitations are
-described in the [README](../README.md#known-limitations--security-notes).
-
-| Function | Description |
-|----------|-------------|
-| `hash_password(password)` | Hash a plaintext password, returns `salt:hash` string |
-| `verify_password(password, stored_hash)` | Verify a password against a stored hash |
-| `register_user(conn, email, password, profile_name)` | Create a new user account, returns `user_id` (`usr-` + 12 hex). Raises `ValueError` on duplicate email. Commits internally. |
-| `authenticate_user(conn, email, password)` | Verify credentials. Returns user dict on success, `None` on failure. Updates `last_login_at`. |
-| `get_user_by_id(conn, user_id)` | Fetch user record by ID. Returns dict or `None`. |
-| `update_user_profile(conn, user_id, profile_name)` | Update display name. Returns `True` on success. Commits internally. |
-
----
-
-## AWS Connection CRUD
-
-Manages per-user AWS account connections with `auth_type='role'` (IAM role ARN)
-or `auth_type='keys'` (access keys and optional session token). Credentials are
-stored in plaintext. Storage results include credential fields; HTTP routes must
-filter them before returning a response.
-
-| Function | Description |
-|----------|-------------|
-| `add_aws_connection(conn, user_id, aws_account_id, iam_role_arn='', ...)` | Add a role or key connection. See the source signature for credential arguments. Returns row ID, commits internally, unique on `(user_id, aws_account_id)`. |
-| `get_aws_connections(conn, user_id)` | Get all connections for a user. Returns list of dicts. |
-| `delete_aws_connection(conn, connection_id, user_id)` | Delete a connection matching the supplied user ID. The caller must authenticate/authorize that ID. Returns `True` on success. |
-| `update_aws_connection_status(conn, connection_id, status, error_message)` | Update sync status (`never`, `success`, `failed`, `in_progress`). Sets `last_sync_at`. |
-
----
-
-## Insert Functions (24)
-
-All insert functions have the signature:
+This example creates a temporary database, inserts cost data, reads it back,
+and closes the connection without touching the tracked database:
 
 ```python
-def insert_*(conn, user_id: str, rows: list[dict]) -> None
+from contextlib import closing
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from storage import (
+    get_connection, ensure_schema, ensure_user,
+    insert_daily_costs, get_daily_costs,
+)
+
+with TemporaryDirectory() as directory:
+    with closing(get_connection(Path(directory) / "example.db")) as conn:
+        ensure_schema(conn)
+        user_id = ensure_user(conn, "EXAMPLE-001")
+        insert_daily_costs(conn, user_id, [
+            {"date": "2024-01-15", "total_cost": 125.50},
+        ])
+        conn.commit()
+        print(get_daily_costs(
+            conn, user_id, start_date="2024-01-01", end_date="2024-01-31",
+        ))
 ```
 
-### Cost Data
+## Identity and credentials
 
-| Function | Table | Key Columns |
-|----------|-------|-------------|
-| `insert_daily_costs` | daily_costs | date, total_cost |
-| `insert_service_costs` | service_costs | date, service, daily_cost |
-| `insert_service_region_costs` | service_region_costs | date, service, region, daily_cost |
+`register_user()` creates a `usr-` identity; `ensure_user()` creates an
+`aws-<account_id>` workspace. Connection rows link an owner to an AWS account.
+`get_aws_connections()` returns stored credentials to Python callers; HTTP
+routes must remove secrets before returning responses. User-scoped queries
+filter the supplied ID but do not authenticate it. See the
+[security notes](../README.md#known-limitations--security-notes).
 
-### Inventory (10 services)
-
-| Function | Table | Primary Key |
-|----------|-------|-------------|
-| `insert_ec2_instances` | ec2_instances | instance_id |
-| `insert_rds_instances` | rds_instances | db_instance_id |
-| `insert_elasticache_nodes` | elasticache_nodes | node_id |
-| `insert_ecs_services` | ecs_services | service_arn |
-| `insert_lambda_functions` | lambda_functions | function_name |
-| `insert_ebs_volumes` | ebs_volumes | volume_id |
-| `insert_s3_buckets` | s3_buckets | bucket_name |
-| `insert_dynamodb_tables` | dynamodb_tables | table_name |
-| `insert_nat_gateways` | nat_gateways | nat_gateway_id |
-| `insert_elb_instances` | elb_instances | elb_arn |
-
-### Metrics (10 services)
-
-| Function | Table | Primary Key |
-|----------|-------|-------------|
-| `insert_ec2_metrics` | ec2_metrics | (timestamp, instance_id) |
-| `insert_rds_metrics` | rds_metrics | (timestamp, db_instance_id) |
-| `insert_elasticache_metrics` | elasticache_metrics | (timestamp, node_id) |
-| `insert_ecs_metrics` | ecs_metrics | (timestamp, service_arn) |
-| `insert_lambda_metrics` | lambda_metrics | (timestamp, function_name) |
-| `insert_ebs_metrics` | ebs_metrics | (timestamp, volume_id) |
-| `insert_s3_metrics` | s3_metrics | (timestamp, bucket_name) |
-| `insert_dynamodb_metrics` | dynamodb_metrics | (timestamp, table_name) |
-| `insert_nat_gateway_metrics` | nat_gateway_metrics | (timestamp, nat_gateway_id) |
-| `insert_elb_metrics` | elb_metrics | (timestamp, elb_arn) |
-
-### Pricing & Analytics
-
-| Function | Table |
-|----------|-------|
-| `insert_instance_pricing` | instance_pricing |
-| `insert_forecasts` | forecasts |
-| `insert_recommendations` | recommendations |
-| `insert_anomalies` | anomalies |
-| `insert_ai_recommendations` | ai_recommendations |
-
----
-
-## Query Functions (24)
-
-All query functions have the signature:
-
-```python
-def get_*(conn, user_id: str, **filters) -> list[dict]
-```
-
-Common filters:
-
-- `start_date`, `end_date` — Filter by date range (YYYY-MM-DD)
-- `instance_id`, `function_name`, etc. — Filter by resource ID
-- `region` — Filter by AWS region
-
-### Cost Data
-
-| Function | Filters |
-|----------|---------|
-| `get_daily_costs` | start_date, end_date |
-| `get_service_costs` | start_date, end_date, service |
-| `get_service_region_costs` | start_date, end_date, service, region |
-
-### Inventory
-
-| Function | Filters |
-|----------|---------|
-| `get_ec2_instances` | instance_id, region |
-| `get_rds_instances` | db_instance_id, region |
-| `get_elasticache_nodes` | node_id, region |
-| `get_ecs_services` | service_arn, region |
-| `get_lambda_functions` | function_name, region |
-| `get_ebs_volumes` | volume_id, region |
-| `get_s3_buckets` | bucket_name |
-| `get_dynamodb_tables` | table_name, region |
-| `get_nat_gateways` | nat_gateway_id, region |
-| `get_elb_instances` | elb_arn, region |
-
-### Metrics
-
-| Function | Filters |
-|----------|---------|
-| `get_ec2_metrics` | start_date, end_date, instance_id |
-| `get_rds_metrics` | start_date, end_date, db_instance_id |
-| `get_elasticache_metrics` | start_date, end_date, node_id |
-| `get_ecs_metrics` | start_date, end_date, service_arn |
-| `get_lambda_metrics` | start_date, end_date, function_name |
-| `get_ebs_metrics` | start_date, end_date, volume_id |
-| `get_s3_metrics` | start_date, end_date, bucket_name |
-| `get_dynamodb_metrics` | start_date, end_date, table_name |
-| `get_nat_gateway_metrics` | start_date, end_date, nat_gateway_id |
-| `get_elb_metrics` | start_date, end_date, elb_arn |
-
-### Pricing & Analytics
-
-| Function | Filters |
-|----------|---------|
-| `get_instance_pricing` | month, service, instance_type, pricing_model |
-| `get_forecasts` | metric_type |
-| `get_recommendations` | — |
-| `get_anomalies` | start_date, end_date |
-| `get_ai_recommendations` | — |
-
----
-
-## Usage Examples
-
-### Batch Insert with Single Commit
-
-```python
-from storage import get_connection, ensure_schema, insert_ec2_instances, insert_ec2_metrics
-
-conn = get_connection()
-ensure_schema(conn)
-user_id = "user-123"
-
-# Insert inventory
-insert_ec2_instances(conn, user_id, [
-    {"instance_id": "i-abc123", "instance_type": "t3.micro", "state": "running", ...}
-])
-
-# Insert metrics
-insert_ec2_metrics(conn, user_id, [
-    {"timestamp": "2024-01-15T12:00:00", "instance_id": "i-abc123", "cpu_utilization": 45.2, ...}
-])
-
-# Single commit for both
-conn.commit()
-```
-
-### Query with Filters
-
-```python
-from storage import get_connection, get_daily_costs, get_ec2_metrics
-
-conn = get_connection()
-
-# Get January costs
-costs = get_daily_costs(conn, user_id, start_date="2024-01-01", end_date="2024-01-31")
-
-# Get metrics for specific instance
-metrics = get_ec2_metrics(conn, user_id, instance_id="i-abc123", start_date="2024-01-01")
-```
-
-### User-Scoped Queries
-
-Account-data queries filter by the supplied `user_id`; instance pricing is global.
-This filtering does not authenticate or authorize callers. The current HTTP API
-trusts client-supplied IDs (see the [security notes](../README.md#known-limitations--security-notes)).
-
-```python
-# User A's data
-costs_a = get_daily_costs(conn, user_id="user-A")
-
-# User B's data (completely separate)
-costs_b = get_daily_costs(conn, user_id="user-B")
-```
-
----
-
-## Constants
-
-Exported from `storage`:
-
-- `INSTANCE_SPECS` — Dict of EC2 instance types with vCPUs, memory, etc.
-- `SERVICE_NAME_MAP` — Maps AWS service names to short DB names
-
----
-
-## Database Location
-
-Default: `data/cloud_optimizer.db` (set by `config.DB_PATH`)
-
-SQLite features enabled:
-
-- WAL mode (Write-Ahead Logging) for concurrent reads
-- Foreign keys enforced
-- `INSERT OR REPLACE` for upsert on primary keys
+`INSTANCE_SPECS` and `SERVICE_NAME_MAP` are also exported by `storage`; their
+canonical definitions are in [cloud_optimizer/config.py](../cloud_optimizer/config.py).

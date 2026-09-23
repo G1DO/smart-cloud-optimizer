@@ -1,6 +1,8 @@
 # Configuration
 
-All settings, environment variables, and operational modes.
+Environment variables, constants, and operational modes. The separate
+[web runtime settings](ARCHITECTURE.md#runtime-settings) are saved preferences;
+they do not currently configure the engines or collector.
 
 ---
 

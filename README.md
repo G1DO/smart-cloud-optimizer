@@ -7,6 +7,9 @@ An AI-powered AWS cost-optimization platform: a **FastAPI** backend wrapping fou
 Technical guides: [documentation index](documentation/INDEX.md),
 [development and checks](documentation/DEVELOPMENT.md),
 [contributing](CONTRIBUTING.md).
+[Notion project context](https://app.notion.com/p/28b0a821b3cc8061adebea034b7da111)
+owns project intent and decisions. Application PRs target `main`; the GitHub
+default `release/ccpe-v1.0` contains the separate paper artifact.
 
 ---
 
@@ -126,7 +129,7 @@ cp .env.docker.example .env
 ```
 
 Notes:
-- The DB lives in a **named volume** `optimizer-data` (not a host bind mount). Reset all runtime data with `docker compose down -v`.
+- The DB lives in a **named volume** `optimizer-data` (not a host bind mount). The destructive `docker compose down -v` removes the database volume; the next start seeds it again from the image. Runtime settings have a separate lifetime described in [Architecture](documentation/ARCHITECTURE.md#runtime-settings).
 - `NEXT_PUBLIC_API_BASE_URL` is a frontend **build** arg (Next.js inlines it into the browser bundle), so it must be host-reachable (`http://localhost:8000`) — never the in-network service name `backend`.
 
 ### Option B — Manual (backend + frontend)
@@ -257,11 +260,11 @@ Templates: `.env.example` (local backend), `.env.docker.example` (Docker), `fron
 
 These are deliberate, documented limitations of the current build. The app is intended for **localhost use with synthetic data**.
 
-- **Auth is trust-based — no tokens or sessions.** Login/sign-up verify a PBKDF2-hashed password but issue **no token or session cookie**. Every data and settings endpoint trusts a `user_id` query parameter with **no server-side authorization check**, so any client could read another user's data by supplying their `user_id`. The login route has only an in-process, per-IP throttle (10 failures / 300s → HTTP 429). This is **not safe for multi-tenant or public deployment** — a real deployment must add token/session auth and derive `user_id` server-side, and flip CORS `allow_credentials` back to `true`.
+- **Auth is trust-based — no tokens or sessions.** Login/sign-up verify a PBKDF2-hashed password but issue **no token or session cookie**. Every data and settings endpoint trusts a `user_id` query parameter with **no server-side authorization check**, so any client could read another user's data by supplying their `user_id`. The login route has only an in-process, per-IP throttle (10 failures / 300s → HTTP 429). This is **not safe for multi-tenant or public deployment** — a real deployment must add token/session auth and derive `user_id` server-side, and configure CORS for the chosen credential transport.
 - **AWS credentials are stored in plaintext.** Connections paste AWS access keys, which are tested via STS and persisted **server-side in the SQLite DB in plaintext** (deliberate for localhost single-user use). Secrets are never returned to the client (the API exposes only the last 4 chars of the access key id) and are never re-sent during sync. Do not point this at a shared or public host with real credentials.
 - **The committed demo DB contains real data.** `data/cloud_optimizer.db` ships with the synthetic demo user **plus** a real personal email (PII) and a real AWS account id / IAM role ARN in plaintext. Do not add more real account data to the committed DB.
 - **AI onboarding guards.** `POST /api/ai-onboarding/generate` rejects prompts longer than 4000 characters (HTTP 400) and returns HTTP 502 when the upstream Gemini call fails (e.g. `GOOGLE_API_KEY` unset). When `ONBOARDING_API_TOKEN` is set, callers must send a matching `X-API-Token` header; it is off by default so the demo works with no token.
-- **Settings are file-backed, not in the DB.** Per-user runtime settings persist to `backend_api/runtime_settings.json`. Reads are always allowed; writes/resets are read-only for demo users and for users without a connected AWS account.
+- **Settings are file-backed, not in the DB.** Per-user runtime settings persist to `backend_api/runtime_settings.json`. Reads are always allowed; writes/resets are read-only for demo users and for users without a connected AWS account. Settings are not wired into the engines or collector, and Compose does not persist this file across container recreation; see [runtime settings](documentation/ARCHITECTURE.md#runtime-settings).
 - **Frontend auth is client-only.** Session identity lives entirely in browser `localStorage` — there is no Next.js middleware or server-side route protection, so any `/dashboard` route is reachable and falls back to the synthetic demo user.
 
 ---

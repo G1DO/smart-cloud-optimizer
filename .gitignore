@@ -65,3 +65,6 @@ backups/
 # Thesis/paper build scratch (intermediate artifacts: extract/assemble scripts,
 # unzipped docx XML, JSON dumps, segment/revision dumps, selftest docx)
 docs-gp/work/
+
+# Per-user runtime settings, including temporary and corrupt recovery copies
+backend_api/runtime_settings.json*

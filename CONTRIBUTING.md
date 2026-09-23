@@ -26,3 +26,4 @@ Use temporary databases and mocked AWS/AI services for verification. Never add
 credentials, personal data, or runtime database changes to a PR. The existing
 demo database has known data and security limitations documented in the
 [README](README.md#known-limitations--security-notes).
+Do not post undisclosed sensitive vulnerability details in public issues or PRs.
