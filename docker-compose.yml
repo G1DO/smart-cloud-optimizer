@@ -81,9 +81,11 @@ services:
     profiles: ["full"]
     image: optimizer-backend
     command:
+      - python
+      - -m
       - streamlit
       - run
-      - app.py
+      - dashboard/app.py
       - --server.port=8501
       - --server.address=0.0.0.0
     ports:

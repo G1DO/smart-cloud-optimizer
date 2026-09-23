@@ -4,9 +4,9 @@ Every file in the project, what it does, and how it connects to the rest.
 
 ---
 
-## Root Files
+## Configuration and Entry Points
 
-### `config.py`
+### `cloud_optimizer/config.py`
 
 Single source of truth for project-wide settings. Contains:
 
@@ -21,7 +21,7 @@ Single source of truth for project-wide settings. Contains:
 
 This file does NOT touch boto3. AWS client setup lives in `aws_collector/config.py`.
 
-### `app.py`
+### `dashboard/app.py`
 
 Streamlit entry point. Runs an **authentication gate** before showing the dashboard: calls `init_session_state()`, checks `is_authenticated()`, renders `render_auth_page()` if not logged in. Once authenticated, shows sidebar navigation with 5 pages (Home, Costs, Forecasts, Recommendations, Settings), an account switcher, and a logout button. Imports page modules from `dashboard/` and dispatches to `render()` functions.
 
@@ -283,7 +283,7 @@ Settings page: user profile editing (display name), AWS account connection manag
 
 ### `test_config.py`
 
-Tests for root `config.py`: paths exist, constants have correct types, `DB_PATH` is set.
+Tests for `cloud_optimizer/config.py`: paths exist, constants have correct types, `DB_PATH` is set.
 
 ### `test_date_utils.py`
 

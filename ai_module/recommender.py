@@ -11,7 +11,7 @@ import logging
 
 from google import genai
 
-import config
+from cloud_optimizer import config
 
 logger = logging.getLogger(__name__)
 

@@ -10,7 +10,7 @@ Displays and manages:
 """
 import streamlit as st
 
-import config
+from cloud_optimizer import config
 from dashboard import components
 from storage.db import (
     add_aws_connection,

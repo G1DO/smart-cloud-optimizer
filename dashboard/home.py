@@ -14,7 +14,7 @@ import json
 
 import streamlit as st
 
-import config
+from cloud_optimizer import config
 import storage.db as storage_db
 from ai_module.guided_questions import get_guided_questions
 from ai_module.prompt_builder import build_prompt
@@ -293,12 +293,14 @@ def render():
 
 def _render_cold_start(user_id: str, data_days: int) -> None:
     """Render cold-start experience: progress bar + questionnaire or stored results."""
-    days_remaining = config.COLD_START_DAYS - data_days
-    st.info(
-        f"Collecting cost data... **{data_days}/{config.COLD_START_DAYS}** days. "
-        f"Full dashboard available in **{days_remaining}** day{'s' if days_remaining != 1 else ''}."
-    )
-    st.progress(data_days / config.COLD_START_DAYS)
+    # Progress bar only shown when some data exists (not on first visit)
+    if data_days > 0:
+        days_remaining = config.COLD_START_DAYS - data_days
+        st.info(
+            f"Collecting cost data... **{data_days}/{config.COLD_START_DAYS}** days. "
+            f"Full dashboard available in **{days_remaining}** day{'s' if days_remaining != 1 else ''}."
+        )
+        st.progress(data_days / config.COLD_START_DAYS)
 
     # Check for existing AI recommendations
     conn = components.get_db_connection()

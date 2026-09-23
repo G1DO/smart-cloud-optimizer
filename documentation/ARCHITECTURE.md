@@ -95,7 +95,7 @@ Both modes read from the same SQLite database through `storage.get_*()`. Downstr
 
 | Module | Purpose | Status |
 | --- | --- | --- |
-| `config.py` | Project-wide constants, paths, env vars | Done |
+| `cloud_optimizer/config.py` | Project-wide constants, paths, env vars | Done |
 | `aws_collector/` | Real AWS data collection pipeline (supports IAM role assumption) | Done |
 | `storage/` | SQLite gateway (30 tables, auth + `insert_*`/`get_*` API) | Done |
 | `ml_engine/` | Data prep, anomaly detection, time-series forecasting, evaluation | Done |
@@ -110,7 +110,7 @@ Both modes read from the same SQLite database through `storage.get_*()`. Downstr
 
 **Authentication in the storage layer** -- User management (registration, login, password hashing) lives in `storage/db.py` alongside the data functions. The `users` table stores credentials (HMAC-SHA256 hashed passwords with random salts) and the `aws_connections` table maps users to their AWS accounts via IAM role ARNs. The dashboard's `auth.py` module handles the Streamlit UI and session state. This keeps auth logic close to the data layer it protects.
 
-**Two config files** -- `config.py` (root) holds project-level settings like paths and ML constants. `aws_collector/config.py` holds boto3 session management with `AWSConfig.from_role()` for cross-account access. They don't overlap -- one is about the project, the other is about AWS.
+**Two config files** -- `cloud_optimizer/config.py` holds project-level settings like paths and ML constants. `aws_collector/config.py` holds boto3 session management with `AWSConfig.from_role()` for cross-account access. They don't overlap -- one is about the project, the other is about AWS.
 
 **Upsert on primary keys** -- `INSERT OR REPLACE` handles deduplication automatically. Re-running the collector won't create duplicate rows. Downstream modules just call `storage.get_*()`.
 

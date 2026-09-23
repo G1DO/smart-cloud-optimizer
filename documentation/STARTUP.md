@@ -28,7 +28,7 @@ export GOOGLE_API_KEY=your-key-here  # For AI recommendations (Gemini)
 ## 3. Launch the dashboard
 
 ```bash
-streamlit run app.py
+python -m streamlit run dashboard/app.py
 ```
 
 Opens at `http://localhost:8501` with a **login screen**:

@@ -1,7 +1,7 @@
 # Smart Cloud Optimizer — Python image.
 # Shared by the FastAPI backend (default CMD) and the legacy Streamlit
 # dashboard (command overridden in docker-compose). WORKDIR is the repo root
-# so bare `import config` / `import storage` resolve (top-level modules).
+# so application packages such as cloud_optimizer and storage resolve.
 FROM python:3.12-slim
 
 # No apt step: the pinned numeric/ML stack (numpy/scipy/pandas/statsmodels/
@@ -21,12 +21,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN python -c "import numpy, scipy, pandas, statsmodels.api, pmdarima, prophet"
 
 # Copy only the runtime code the app needs (honors .dockerignore).
-# Verified against top-level imports in backend_api/ and app.py:
-#   backend_api -> ai_module, ml_engine, optimizer, storage, config
-#   app.py      -> dashboard, ai_module, ml_engine, storage, config
+# Verified against top-level imports in backend_api/ and dashboard/app.py:
+#   backend_api -> ai_module, ml_engine, optimizer, storage, cloud_optimizer
+#   dashboard  -> ai_module, ml_engine, storage, cloud_optimizer
 # aws_collector + data_generation included for the real-collection /
 # synthetic-data code paths the dashboard exposes.
-COPY config.py app.py ./
+COPY cloud_optimizer/ ./cloud_optimizer/
 COPY backend_api/ ./backend_api/
 COPY storage/ ./storage/
 COPY ml_engine/ ./ml_engine/

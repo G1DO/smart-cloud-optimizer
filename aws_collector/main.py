@@ -10,7 +10,7 @@ import logging
 import sys
 import traceback
 
-import config
+from cloud_optimizer import config
 
 from .runner import CollectorRunner
 

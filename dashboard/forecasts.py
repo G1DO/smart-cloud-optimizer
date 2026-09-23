@@ -14,7 +14,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-import config
+from cloud_optimizer import config
 from dashboard import components
 from ml_engine import forecaster, data_prep
 
