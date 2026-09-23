@@ -1,5 +1,5 @@
 """
-config.py — Project-wide configuration for Smart Cloud Optimizer.
+cloud_optimizer/config.py — Project-wide configuration for Smart Cloud Optimizer.
 
 Single source of truth for paths, constants, and environment settings.
 AWS-specific boto3 client configuration lives in aws_collector/config.py.
@@ -14,7 +14,7 @@ from typing import NamedTuple
 from dotenv import load_dotenv
 
 # === Paths ===
-PROJECT_ROOT: Path = Path(__file__).parent
+PROJECT_ROOT: Path = Path(__file__).resolve().parents[1]
 DATA_DIR: Path = PROJECT_ROOT / "data"
 DB_PATH: Path = DATA_DIR / "cloud_optimizer.db"
 
@@ -47,7 +47,7 @@ GOOGLE_MODEL: str = os.getenv("GOOGLE_MODEL", "gemini-2.5-flash")
 # === ML Defaults ===
 FORECAST_HORIZON_DAYS: int = 30
 MIN_TRAINING_DAYS: int = 30
-COLD_START_DAYS: int = 7
+COLD_START_DAYS: int = 30
 SEASONALITY_PERIOD: int = 7
 
 # === Optimization ===

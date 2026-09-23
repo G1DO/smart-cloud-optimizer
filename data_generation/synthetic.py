@@ -277,7 +277,7 @@ def main(argv: list[str] | None = None) -> int:
     """
     import argparse
 
-    import config
+    from cloud_optimizer import config
     import storage
 
     parser = argparse.ArgumentParser(

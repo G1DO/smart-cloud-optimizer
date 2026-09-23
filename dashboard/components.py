@@ -17,7 +17,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
-import config
+from cloud_optimizer import config
 from storage import db
 
 

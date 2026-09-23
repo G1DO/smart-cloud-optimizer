@@ -34,7 +34,7 @@ pip install -r requirements.txt
 The database ships with pre-loaded synthetic data -- no generation step needed.
 
 ```bash
-streamlit run app.py
+python -m streamlit run dashboard/app.py
 ```
 
 On the login screen, click **"Try Demo Mode"**. This logs in with a pre-seeded demo account and gives you access to:
@@ -81,7 +81,7 @@ This collects 12 months of data across all enabled AWS regions.
 ## Run the Dashboard
 
 ```bash
-streamlit run app.py
+python -m streamlit run dashboard/app.py
 ```
 
 Opens at `http://localhost:8501`. You will see a login screen with three options:

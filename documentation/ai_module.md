@@ -129,7 +129,7 @@ Error handling:
   - Empty response → return {"error": "API returned empty response"}
 ```
 
-**Configuration (config.py):**
+**Configuration (cloud_optimizer/config.py):**
 ```python
 GOOGLE_API_KEY: str = os.getenv("GOOGLE_API_KEY", "")
 GOOGLE_MODEL: str = os.getenv("GOOGLE_MODEL", "gemini-2.5-flash")

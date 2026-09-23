@@ -10,7 +10,7 @@ The project has two separate config files with no overlap:
 
 | File | Scope | What it controls |
 | --- | --- | --- |
-| `config.py` (root) | Project-wide | Paths, constants, env vars, ML settings, logging |
+| `cloud_optimizer/config.py` | Project-wide | Paths, constants, env vars, ML settings, logging |
 | `aws_collector/config.py` | AWS only | boto3 session, service clients, region discovery |
 
 ---
@@ -27,7 +27,10 @@ The project has two separate config files with no overlap:
 | `GOOGLE_API_KEY` | (empty) | Google API key for AI recommendations (Gemini) |
 | `GOOGLE_MODEL` | `gemini-2.5-flash` | Google Gemini model for AI module |
 
-Set these in a `.env` file or export them before running.
+Set these in the repository-root `.env` file or export them before running.
+`cloud_optimizer/config.py` resolves that file and the database path relative to
+the repository root, independently of the current working directory. Existing
+environment variables take precedence over `.env` values.
 
 ---
 
@@ -78,7 +81,12 @@ Both modes read from the same SQLite database through `storage.get_*()`. Downstr
 | --- | --- | --- |
 | `FORECAST_HORIZON_DAYS` | `30` | How far ahead to forecast |
 | `MIN_TRAINING_DAYS` | `30` | Minimum data needed for training |
+| `COLD_START_DAYS` | `30` | Days of cost data needed for the legacy Streamlit Home dashboard |
 | `SEASONALITY_PERIOD` | `7` | Weekly seasonality cycle |
+
+The Streamlit Home page shows its questionnaire or saved AI recommendations while
+fewer than 30 days of cost data are available. It shows collection progress after
+the first day of data; accounts with no data do not see an empty progress bar.
 
 ### Optimization
 
@@ -120,7 +128,7 @@ Regional clients are created on-demand via `get_ec2_client(region)`, `get_rds_cl
 
 ## Logging
 
-Configured via `setup_logging()` in root `config.py`:
+Configured via `setup_logging()` in `cloud_optimizer/config.py`:
 
 ```text
 Format: %(asctime)s | %(name)s | %(levelname)s | %(message)s

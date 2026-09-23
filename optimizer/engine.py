@@ -10,7 +10,7 @@ Part of the Smart Cloud Optimizer graduation project.
 import logging
 import sqlite3
 
-import config
+from cloud_optimizer import config
 import storage
 
 from .compute_lp import optimize_ec2, optimize_rds

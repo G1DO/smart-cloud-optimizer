@@ -2,7 +2,7 @@
 config.py — AWS boto3 client configuration and session management.
 
 Creates and manages boto3 clients for all AWS services used by the
-data collection pipeline. Project-level settings live in the root config.py.
+data collection pipeline. Project-level settings live in cloud_optimizer/config.py.
 
 Part of the Smart Cloud Optimizer graduation project.
 """

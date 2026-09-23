@@ -4,7 +4,7 @@ Single data gateway: all modules read/write through this package.
 
 Part of the Smart Cloud Optimizer graduation project.
 """
-from config import INSTANCE_SPECS, SERVICE_NAME_MAP
+from cloud_optimizer.config import INSTANCE_SPECS, SERVICE_NAME_MAP
 from .db import (
     # Connection & schema
     get_connection,

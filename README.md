@@ -149,7 +149,7 @@ cp .env.local.example .env.local
 npm run dev                   # http://localhost:3000
 ```
 
-> Run Python commands from the repo root with the venv active — bare `import config` / `import storage` only resolve from the root.
+> Run Python commands from the repo root with the venv active — `cloud_optimizer` and the other application packages resolve from there.
 
 ---
 
@@ -195,7 +195,7 @@ flowchart TD
 | Backend tests (one file) | `pytest tests/test_optimizer.py` |
 | Frontend lint | `cd frontend && npm run lint` |
 | Frontend build | `cd frontend && npm run build` |
-| Legacy Streamlit dashboard | `streamlit run app.py` → http://localhost:8501 |
+| Legacy Streamlit dashboard | `python -m streamlit run dashboard/app.py` → http://localhost:8501 |
 | Optimizer (CLI) | `python -m optimizer --user-id aws-SYNTHETIC-001` |
 | Seed synthetic demo data | `python -m data_generation.synthetic --days 365 --user-id aws-SYNTHETIC-001` |
 
@@ -221,8 +221,8 @@ smart-cloud-optimizer/
   data_generation/    Deterministic synthetic-data generator + CLI
   data/               Committed demo SQLite database
   tests/              pytest suite
-  config.py           Backend config + env loading (load_dotenv)
-  app.py              Streamlit entry point
+  cloud_optimizer/    Shared config + root .env loading (config.py)
+  dashboard/app.py    Streamlit entry point
   docker-compose.yml  Backend + frontend (+ optional Streamlit) orchestration
   requirements.txt    Python dependencies
 ```
@@ -231,7 +231,7 @@ smart-cloud-optimizer/
 
 ## Configuration
 
-Backend env vars are resolved in `config.py`, which loads a root `.env` at import. The frontend reads a single build-time var.
+Backend env vars are resolved in `cloud_optimizer/config.py`, which loads a root `.env` at import. The frontend reads a single build-time var.
 
 | Variable | Default | Used by | Purpose |
 | --- | --- | --- | --- |

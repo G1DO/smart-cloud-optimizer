@@ -12,7 +12,7 @@ Tests live in `tests/`. Current coverage:
 
 | File | What it tests |
 | --- | --- |
-| `test_config.py` | Root config paths, types, `DB_PATH` |
+| `test_config.py` | Shared config paths, types, `DB_PATH` |
 | `test_date_utils.py` | Month range generation, edge cases |
 | `test_ml_utils.py` | Data loading, feature engineering, anomaly detection, forecasters, evaluation |
 | `test_storage.py` | Insert/query API, upsert behavior, user isolation, schema creation |
@@ -116,7 +116,7 @@ All AWS API calls and file I/O are wrapped in try/except. Failures log a warning
 
 ### Two config files
 
-`config.py` (root) = project settings. `aws_collector/config.py` = boto3 clients. They don't overlap.
+`cloud_optimizer/config.py` = project settings. `aws_collector/config.py` = boto3 clients. They don't overlap.
 
 ### Data artifact
 

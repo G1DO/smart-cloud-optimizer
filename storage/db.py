@@ -22,8 +22,8 @@ from pathlib import Path
 from typing import Callable, Dict, List, Optional
 from uuid import uuid4
 
-import config
-from config import INSTANCE_SPECS, SERVICE_NAME_MAP
+from cloud_optimizer import config
+from cloud_optimizer.config import INSTANCE_SPECS, SERVICE_NAME_MAP
 
 logger = logging.getLogger(__name__)
 
