@@ -6,6 +6,7 @@
 - **How does it work?** See [ARCHITECTURE.md](ARCHITECTURE.md)
 - **Where's the code for X?** See [MODULES.md](MODULES.md)
 - **Contributing?** See [CONTRIBUTING.md](../CONTRIBUTING.md) and [DEVELOPMENT.md](DEVELOPMENT.md)
+- **Graduation paper?** Use the [thesis revision map](../docs-gp/README.md#find-a-thesis-revision)
 
 The application on `main` is Next.js + FastAPI. Its setup lives in the
 [README](../README.md#quick-start). Repository docs describe implemented behavior;
@@ -82,6 +83,8 @@ smart-cloud-optimizer/
 ├── frontend/           # Primary TypeScript/Next.js UI
 ├── backend_api/        # FastAPI HTTP routes
 ├── cloud_optimizer/    # Shared Python configuration
+├── documentation/      # Current technical guides and generated-reference instructions
+├── docs-gp/            # Historical thesis documents and editing records
 ├── data_generation/    # Tracked synthetic generator
 ├── aws_collector/      # AWS data collection (11 service collectors)
 ├── storage/            # SQLite gateway (30 tables, auth + data API)

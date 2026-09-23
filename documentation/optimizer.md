@@ -92,14 +92,14 @@ Example: instance with 4 vCPUs running at P95 CPU = 40%
 
 | # | Function | Service | Trigger condition | Recommendation |
 |---|----------|---------|-------------------|----------------|
-| 1 | `check_ec2_pricing` | EC2 | on-demand + running 60+ days + RI pricing exists | Switch to reserved-1yr |
-| 2 | `check_rds_pricing` | RDS | Same as above for RDS | Switch to reserved-1yr |
+| 1 | `check_ec2_pricing` | EC2 | on-demand + currently running + metric timestamps span 60+ days + cheaper RI pricing | Switch to reserved-1yr |
+| 2 | `check_rds_pricing` | RDS | on-demand + metric timestamps span 60+ days + cheaper RI pricing | Switch to reserved-1yr |
 | 3 | `check_lambda_memory` | Lambda | avg memory < 50% of allocation | Downsize to next lower tier |
 | 4 | `check_ebs_volumes` | EBS | gp2 type, OR unattached, OR idle >90% | Upgrade gp2→gp3, delete unused |
 | 5 | `check_s3_buckets` | S3 | STANDARD class + <100 daily requests | Switch to INTELLIGENT_TIERING |
 | 6 | `check_dynamodb_tables` | DynamoDB | PROVISIONED + both RCU/WCU utilization <50% | Switch to ON_DEMAND |
-| 7 | `check_nat_gateways` | VPC | monthly cost >$30 | Add VPC gateway endpoints |
-| 8 | `check_elb_idle` | ELB | 0 targets AND no traffic | Delete load balancer |
+| 7 | `check_nat_gateways` | VPC | monthly cost ≥$30 | Add VPC gateway endpoints |
+| 8 | `check_elb_idle` | ELB | 0 targets AND traffic check does not establish ≥100 average daily requests (see limits below) | Delete load balancer |
 
 ### Key thresholds and constants
 
@@ -111,13 +111,20 @@ NAT:       $0.045/hr + $0.045/GB processed
 Lambda:    tiers = [128, 256, 512, 1024, 2048, 3008] MB
 ```
 
-### Safety checks
+### Checks and limits
 
-- **Lambda**: won't downsize if `avg + 2×std > new_tier` (prevents OOM on spikes)
-- **EBS idle**: requires 7+ days of hourly metrics before flagging
-- **ELB**: checks BOTH inventory (target_count=0) AND metrics (no traffic) — won't recommend deletion if there IS traffic but no targets (that's a misconfiguration, not waste)
+- **Lambda**: skips downsizing when `avg + 2×std > new_tier`. This is a statistical
+  estimate from observed memory usage, not a guarantee against out-of-memory failures.
+- **EBS idle**: requires at least 168 metric rows (assumed hourly) before flagging;
+  row count alone does not establish continuous coverage.
+- **ELB**: requires zero targets, but checks traffic only with at least 168 metric
+  rows and a `request_count` column. Missing or shorter history leaves the traffic
+  flag false and can still produce a high-confidence deletion recommendation.
+  With sufficient history, the rule skips deletion at ≥100 average daily requests.
+  Independently check workload use and telemetry before acting on a deletion recommendation.
 - **DynamoDB**: requires BOTH read AND write utilization below threshold
-- **EC2/RDS pricing**: requires 60+ days of metrics to prove it's a long-running workload
+- **EC2/RDS pricing**: requires a 60-day span between the earliest and latest metric
+  timestamps; it does not verify uninterrupted operation or future commitment needs.
 
 ## Orchestrator (`engine.py`)
 

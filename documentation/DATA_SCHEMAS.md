@@ -39,9 +39,11 @@ It does not reconcile arbitrary older table definitions.
 | Results | `forecasts`, `recommendations`, `anomalies`, `ai_recommendations` | User-scoped engine output |
 
 User IDs represent both registered identities (`usr-…`) and AWS workspaces
-(`aws-<account_id>`). The connection row belongs to the registered owner;
-collection writes data into the AWS workspace. Demo data uses
-`aws-SYNTHETIC-001`. Filtering these IDs is not HTTP authorization.
+(`aws-<account_id>`). Web connections belong to the AWS workspace; legacy
+Streamlit connections belong to the registered owner. Collection writes data
+into the AWS workspace. See
+[Connection identity and verification](ARCHITECTURE.md#connection-identity-and-verification).
+Demo data uses `aws-SYNTHETIC-001`. Filtering these IDs is not HTTP authorization.
 
 Passwords use PBKDF2-HMAC-SHA256. Connection access keys and session tokens are
 stored in plaintext, and storage reads expose those columns to Python callers.

@@ -145,7 +145,7 @@ direct SQL (see [Architecture](ARCHITECTURE.md)). Contains:
 - **Authentication functions**: `hash_password()`, `verify_password()` (PBKDF2-HMAC-SHA256 with random salt), `register_user()`, `authenticate_user()`, `get_user_by_id()`, `update_user_profile()`
 - **AWS connection CRUD**: `add_aws_connection()`, `get_aws_connections()`, `delete_aws_connection()`, `update_aws_connection_status()` -- manages account links using roles or keys, sync status, and deletion scoped to the supplied user ID. HTTP authorization limitations still apply.
 - **Insert functions**: `insert_daily_costs()`, `insert_ec2_instances()`, `insert_ec2_metrics()`, etc. Most accept `(conn, user_id, rows)`; shared instance pricing has no user ID. Callers batch and commit data inserts. See [Storage API](STORAGE_API.md).
-- **Get functions** (24): One per data table -- `get_daily_costs()`, `get_ec2_instances()`, `get_ec2_metrics()`, etc. Support filtering by date range and resource ID. Return `list[dict]`.
+- **Data getters**: `get_daily_costs()`, `get_ec2_instances()`, `get_ec2_metrics()`, etc. Return `list[dict]`; accepted filters vary by function. Use the [generated signatures](STORAGE_API.md#current-signatures).
 - **Internal helpers**: `_safe_float()`, `_safe_int()`, `_build_tuples()`, `_executemany_insert()`, `_rows_to_dicts()`, `_query_metrics()`
 
 ### `__init__.py`
@@ -178,7 +178,9 @@ Data loading and feature engineering from SQLite:
 
 ### `anomaly.py`
 
-Anomaly detection for cost time series. Run before forecasting to exclude outliers from training:
+Anomaly detection helpers for cost time series. The HTTP forecast router applies
+filtering with a minimum-history fallback; the legacy Streamlit path fits the
+unfiltered series. See [Forecasting models](forecasting_models.md).
 
 - **`detect_zscore(series, window, threshold)`** — Rolling Z-score detection (default: window=30, threshold=3.0)
 - **`detect_iqr(series, multiplier)`** — IQR-based outlier detection (default: multiplier=1.5)
@@ -208,7 +210,8 @@ For **new users with no AWS data**, generates initial architecture recommendatio
 
 ### `guided_questions.py`
 
-Returns 9 structured questions: business_type, expected_users, uptime_requirement, optimization_priority, traffic_pattern, availability_zones, monthly_budget, aws_experience, additional_notes.
+Defines the questionnaire IDs, text, and options. Generate them with
+`get_guided_questions()`; see the [AI Python contract](ai_module.md#python-contract).
 
 ### `prompt_builder.py`
 
@@ -236,15 +239,21 @@ MILP solver for optimal resource allocation:
 
 ### `rules.py`
 
-8 heuristic checks across AWS services: EC2 (RI/Spot), RDS (RI, Multi-AZ), Lambda (memory right-sizing), EBS (unattached volumes), S3 (Intelligent-Tiering), DynamoDB (On-Demand vs provisioned), NAT Gateway (consolidation), ELB (idle elimination).
+Heuristic checks for EC2/RDS reserved pricing, Lambda memory, EBS volumes, S3
+tiering, DynamoDB billing, NAT gateway endpoints, and idle load balancers. See
+the [rule summary and limits](optimizer.md#rule-engine-rulespy).
 
 ### `engine.py`
 
-Orchestrator. Runs LP solver + rules, deduplicates (keeps highest savings per resource), writes all recommendations to database, returns sorted by savings.
+Runs the LP solvers and rules, then replaces stored recommendations. Deduplication
+uses `(resource_id, recommendation_type)`; engine output retains insertion order.
+The HTTP recommendations route sorts its response. See the
+[orchestrator contract](optimizer.md#orchestrator-enginepy).
 
 ### `__main__.py`
 
-CLI entry point: `python -m optimizer --user-id aws-SYNTHETIC-001`
+CLI entry point. Follow [usage on a disposable database copy](optimizer.md#usage)
+because optimization replaces stored results.
 
 ---
 

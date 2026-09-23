@@ -48,11 +48,31 @@ generator creates fixtures for tests and demos; it does not download the researc
 datasets listed in [Data resources](DATA_RESOURCES.md), and it does not reproduce
 the historical committed fixture byte-for-byte.
 
-The Next.js connection form submits access keys to the backend, which validates
-them with STS and stores them in SQLite. The collector supports both key-based
-connections and legacy IAM-role connections. Sync runs in a background thread,
-clears the selected account's previous data, then collects month ranges newest
-first. See [Data pipeline](DATA_PIPELINE.md) for write behavior.
+The Next.js connection form stores access keys in SQLite; see
+[connection identity and verification](#connection-identity-and-verification)
+for the separate test, save, and workspace-selection behavior. The collector
+supports both key-based connections and legacy IAM-role connections. Sync runs
+in a background thread, clears the selected account's previous data, then
+collects month ranges newest first. See [Data pipeline](DATA_PIPELINE.md) for
+write behavior.
+
+## Connection identity and verification
+
+Registration creates a `usr-…` identity. In the primary web flow,
+[the connection router](../backend_api/routers/connections.py) saves a connection
+under `aws-<account_id>`, the same workspace ID used for collected data. After
+save, [the frontend session helper](../frontend/app/lib/session.ts) switches the
+stored active identity to that workspace. Web connections are not attached to
+the registered `usr-…` identity. The legacy
+[Streamlit settings page](../dashboard/settings.py) instead attaches role-based
+connections to its authenticated owner and selects an AWS workspace separately.
+
+**Test connection** calls STS to resolve the supplied keys' account. Testing and
+saving are separate operations: save resolves the account through STS only when
+no account ID is supplied. With a supplied account ID, save validates its format
+and stores the connection without rechecking the keys against that account.
+A saved connection is therefore not proof of verified AWS access or ownership.
+Sync creates an AWS session from the stored credentials and can fail later.
 
 ## Trust and operational limits
 

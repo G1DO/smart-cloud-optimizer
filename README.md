@@ -6,7 +6,8 @@ An AI-powered AWS cost-optimization platform: a **FastAPI** backend wrapping fou
 
 Technical guides: [documentation index](documentation/INDEX.md),
 [development and checks](documentation/DEVELOPMENT.md),
-[contributing](CONTRIBUTING.md).
+[contributing](CONTRIBUTING.md). Graduation documents and their revision records:
+[paper archive](docs-gp/README.md).
 [Notion project context](https://app.notion.com/p/28b0a821b3cc8061adebea034b7da111)
 owns project intent and decisions. Application PRs target `main`; the GitHub
 default `release/ccpe-v1.0` contains the separate paper artifact.
@@ -187,7 +188,7 @@ flowchart TD
 
 *Two data-source paths — the synthetic generator (demo) vs live boto3 collection (real connect) — both write through the storage facade into the same SQLite DB, then flow to engines and the UI.*
 
-**Connecting a real AWS account.** From **Account Settings → Connections**, paste AWS access keys. The backend tests them via STS, stores them server-side, and (on **Sync**) launches a background thread that pulls **12 months** of cost/usage data via `aws_collector` into the DB. Data is keyed as `aws-<account_id>`; the demo user is `aws-SYNTHETIC-001`.
+**Connecting a real AWS account.** From **Account Settings → Connections**, paste AWS access keys. **Test connection** checks access through STS; saving and testing are separate. **Sync** uses stored credentials in a background thread that pulls **12 months** of cost/usage data via `aws_collector`. See [connection identity and verification](documentation/ARCHITECTURE.md#connection-identity-and-verification) for account resolution and workspace ownership. Data is keyed as `aws-<account_id>`; the demo user is `aws-SYNTHETIC-001`.
 
 ---
 
@@ -228,6 +229,8 @@ smart-cloud-optimizer/
   dashboard/          Legacy Streamlit dashboard
   data_generation/    Deterministic synthetic-data generator + CLI
   data/               Committed demo SQLite database
+  documentation/      Current implementation, development, and reference guides
+  docs-gp/            Historical thesis revisions and editing records
   tests/              pytest suite
   cloud_optimizer/    Shared config + root .env loading (config.py)
   dashboard/app.py    Streamlit entry point
@@ -239,20 +242,14 @@ smart-cloud-optimizer/
 
 ## Configuration
 
-Backend env vars are resolved in `cloud_optimizer/config.py`, which loads a root `.env` at import. The frontend reads a single build-time var.
+Use the [configuration reference](documentation/CONFIGURATION.md) for environment
+variables, active inputs, and legacy display-only constants. Backend configuration
+loads the root `.env`; the frontend API URL is embedded at build time. Web runtime
+settings are saved preferences, with the limits described in
+[Architecture](documentation/ARCHITECTURE.md#runtime-settings).
 
-| Variable | Default | Used by | Purpose |
-| --- | --- | --- | --- |
-| `DEMO_MODE` | `true` | legacy Streamlit dashboard | Demo status flag. The FastAPI backend does **not** branch on it — synthetic demo data ships in the committed DB and connecting a real AWS account works regardless |
-| `GOOGLE_API_KEY` | *(empty)* | backend | Gemini key; web onboarding generation returns HTTP 502 if unset |
-| `GOOGLE_MODEL` | `gemini-2.5-flash` | backend | Gemini model id |
-| `AWS_REGION` | `us-east-1` | backend | Default AWS region |
-| `AWS_ACCOUNT_ID` | `SYNTHETIC-001` | backend | Default account id |
-| `ONBOARDING_API_TOKEN` | *(unset)* | backend | If set, `/api/ai-onboarding/generate` requires a matching `X-API-Token` header (off by default) |
-| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_SESSION_TOKEN` / `AWS_DEFAULT_REGION` | *(empty / `us-east-1`)* | boto3 (Docker) | Credentials for CLI collection or legacy role assumption; the primary web form supplies its own keys |
-| `NEXT_PUBLIC_API_BASE_URL` | `http://127.0.0.1:8000` (code) / `http://localhost:8000` (build arg) | frontend | Backend base URL, inlined into the browser bundle at build time |
-
-Templates: `.env.example` (local backend), `.env.docker.example` (Docker), `frontend/.env.local.example` (frontend).
+Templates: [local backend](.env.example), [Docker](.env.docker.example),
+and [frontend](frontend/.env.local.example).
 
 ---
 
@@ -261,7 +258,7 @@ Templates: `.env.example` (local backend), `.env.docker.example` (Docker), `fron
 These are deliberate, documented limitations of the current build. The app is intended for **localhost use with synthetic data**.
 
 - **Auth is trust-based — no tokens or sessions.** Login/sign-up verify a PBKDF2-hashed password but issue **no token or session cookie**. Every data and settings endpoint trusts a `user_id` query parameter with **no server-side authorization check**, so any client could read another user's data by supplying their `user_id`. The login route has only an in-process, per-IP throttle (10 failures / 300s → HTTP 429). This is **not safe for multi-tenant or public deployment** — a real deployment must add token/session auth and derive `user_id` server-side, and configure CORS for the chosen credential transport.
-- **AWS credentials are stored in plaintext.** Connections paste AWS access keys, which are tested via STS and persisted **server-side in the SQLite DB in plaintext** (deliberate for localhost single-user use). Secrets are never returned to the client (the API exposes only the last 4 chars of the access key id) and are never re-sent during sync. Do not point this at a shared or public host with real credentials.
+- **AWS credentials are stored in plaintext.** The connection form sends AWS access keys to the backend, which persists them **in the SQLite DB in plaintext**. Connection responses omit secret fields and expose only the last 4 chars of the access key id; sync reads credentials server-side. Saving does not always verify AWS access; see [connection identity and verification](documentation/ARCHITECTURE.md#connection-identity-and-verification). Do not point this at a shared or public host with real credentials.
 - **The committed demo DB contains real data.** `data/cloud_optimizer.db` ships with the synthetic demo user **plus** a real personal email (PII) and a real AWS account id / IAM role ARN in plaintext. Do not add more real account data to the committed DB.
 - **AI onboarding guards.** `POST /api/ai-onboarding/generate` rejects prompts longer than 4000 characters (HTTP 400) and returns HTTP 502 when the upstream Gemini call fails (e.g. `GOOGLE_API_KEY` unset). When `ONBOARDING_API_TOKEN` is set, callers must send a matching `X-API-Token` header; it is off by default so the demo works with no token.
 - **Settings are file-backed, not in the DB.** Per-user runtime settings persist to `backend_api/runtime_settings.json`. Reads are always allowed; writes/resets are read-only for demo users and for users without a connected AWS account. Settings are not wired into the engines or collector, and Compose does not persist this file across container recreation; see [runtime settings](documentation/ARCHITECTURE.md#runtime-settings).
