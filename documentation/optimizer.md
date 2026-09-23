@@ -4,6 +4,9 @@
 
 The optimizer analyzes AWS resource inventory and metrics to produce cost-saving recommendations. It uses two complementary approaches: a **Linear Programming (LP) solver** for compute right-sizing and a **rule engine** for everything else.
 
+It reads observed metrics and pricing; ML forecasts are not inputs to the current
+optimizer. Recommendation generation writes SQLite and does not apply AWS changes.
+
 ```
                        ┌─────────────────────┐
                        │  engine.optimize()   │   single entry point
@@ -64,7 +67,7 @@ Constraints:
 Example: instance with 4 vCPUs running at P95 CPU = 40%
 - Actual need: 0.40 × 4 = 1.6 vCPUs
 - With 30% headroom: 1.6 × 1.3 = 2.08 vCPUs
-- LP can assign a 2-vCPU instance (cheaper)
+- A candidate must have at least 2.08 vCPUs, so a 2-vCPU instance is insufficient.
 
 ### EC2 vs RDS differences
 
@@ -149,16 +152,26 @@ optimize(conn, user_id)
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `budget_cap` | `config.DEFAULT_BUDGET_CAP` (5000.0) | Max total compute spend for LP |
-| `services` | all 8 services | Filter to run only specific service checks |
+| `budget_cap` | `config.DEFAULT_BUDGET_CAP` (5000.0) | Cap applied separately to each EC2/RDS LP, not one combined account budget |
+| `services` | all 8 services | Select checks; see `ALL_SERVICES` in [engine.py](../optimizer/engine.py) |
+
+Every run deletes **all** previous recommendations for the selected user before
+generating replacements, including when `services` selects only some checks.
+An infeasible LP contributes no sizing recommendations; independent rules can
+still produce results. Rule recommendations are outside the LP budget constraint.
 
 ### Deduplication
 
 If the LP and a rule both produce a recommendation for the same `(resource_id, recommendation_type)`, only the one with higher `monthly_savings` is kept. This prevents duplicate entries in the DB.
 
-## Results (Synthetic Data)
+Different action types for one resource remain separate. Their savings may
+overlap, so the CLI's summed savings are not a validated combined execution plan.
 
-Run against the synthetic mid-size SaaS database (`aws-SYNTHETIC-001`):
+## Historical Results (Synthetic Data)
+
+Previously recorded against the synthetic mid-size SaaS database
+(`aws-SYNTHETIC-001`); these counts are historical observations, not assertions
+about the current fixture or generator:
 
 ```
   Service    | Resource                       | Type                      | Savings
@@ -178,25 +191,31 @@ Run against the synthetic mid-size SaaS database (`aws-SYNTHETIC-001`):
 
 ## Usage
 
-```python
-from pathlib import Path
-import storage
-from optimizer import optimize
+Run from the repository root with dependencies installed. Stop writers to the
+source database before copying it; if it is live, use SQLite's backup API to
+include committed WAL contents. Keep the committed fixture unchanged:
 
-conn = storage.get_connection(Path('data/cloud_optimizer.db'))
-
-# Run all checks
-recs = optimize(conn, 'aws-SYNTHETIC-001')
-
-# Run specific services only
-recs = optimize(conn, 'aws-SYNTHETIC-001', services=['ec2', 'ebs'])
-
-# With budget cap
-recs = optimize(conn, 'aws-SYNTHETIC-001', budget_cap=3000.0)
-
-# Results are also written to the recommendations table
-stored = storage.get_recommendations(conn, 'aws-SYNTHETIC-001')
+```bash
+optimizer_tmp=$(mktemp -d)
+cp data/cloud_optimizer.db "$optimizer_tmp/cloud_optimizer.db"
+python -m optimizer --user-id aws-SYNTHETIC-001 \
+  --db-path "$optimizer_tmp/cloud_optimizer.db"
 ```
+
+The disposable copy receives the recommendations. Inspect it before removing
+the temporary directory. Use `python -m optimizer --help` for service and budget
+arguments. Library callers can pass a connection from
+`storage.get_connection(copy_path)` to `optimizer.optimize()`; close it afterward.
+
+The LP code explicitly uses PuLP's `PULP_CBC_CMD`. Verify that solver in the
+active Python environment:
+
+```bash
+python -c "from pulp import PULP_CBC_CMD; print(PULP_CBC_CMD().available())"
+```
+
+An available executable path is expected. Installing a system `cbc` executable
+alone does not change the solver selected by this code.
 
 ### Each recommendation dict contains
 

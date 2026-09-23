@@ -1,6 +1,7 @@
 # Storage API Reference
 
-The `storage/` module is the single data gateway for the entire project. All modules read and write through this package.
+The `storage/` module provides the shared database API. Some HTTP routes also use
+direct SQL; see [Architecture](ARCHITECTURE.md).
 
 ---
 
@@ -27,7 +28,7 @@ costs = get_daily_costs(conn, user_id, start_date="2024-01-01", end_date="2024-0
 - `insert_*` / `get_*` functions do **NOT** call `conn.commit()`
 - The caller is responsible for committing after one or more inserts
 - This allows batching multiple inserts into a single transaction
-- Admin functions (`create_schema`, `ensure_user`, `clear_user_data`) commit internally
+- Admin functions (`ensure_schema`, `create_schema`, `ensure_user`, `clear_user_data`) commit internally
 
 ---
 
@@ -36,7 +37,7 @@ costs = get_daily_costs(conn, user_id, start_date="2024-01-01", end_date="2024-0
 | Function | Description |
 |----------|-------------|
 | `get_connection(db_path=None)` | Open SQLite connection with WAL mode, foreign keys enabled |
-| `ensure_schema(conn)` | Create tables/indexes if missing (non-destructive) |
+| `ensure_schema(conn)` | Create missing tables/indexes and add missing AWS credential columns (non-destructive, commits internally) |
 | `create_schema(conn)` | Drop + recreate all tables (destructive, tests/dev only) |
 | `ensure_user(conn, account_id)` | Create user if not exists, returns `user_id` |
 | `clear_user_data(conn, user_id)` | Delete all data for a user (keeps user record) |
@@ -45,7 +46,9 @@ costs = get_daily_costs(conn, user_id, start_date="2024-01-01", end_date="2024-0
 
 ## Authentication Functions
 
-Password hashing uses HMAC-SHA256 with a random 32-byte salt.
+Password hashing uses PBKDF2-HMAC-SHA256. Parameters and hash encoding are defined
+in [storage/db.py](../storage/db.py); the HTTP API's authorization limitations are
+described in the [README](../README.md#known-limitations--security-notes).
 
 | Function | Description |
 |----------|-------------|
@@ -60,13 +63,16 @@ Password hashing uses HMAC-SHA256 with a random 32-byte salt.
 
 ## AWS Connection CRUD
 
-Manages per-user AWS account connections. Each connection stores an IAM role ARN for cross-account access.
+Manages per-user AWS account connections with `auth_type='role'` (IAM role ARN)
+or `auth_type='keys'` (access keys and optional session token). Credentials are
+stored in plaintext. Storage results include credential fields; HTTP routes must
+filter them before returning a response.
 
 | Function | Description |
 |----------|-------------|
-| `add_aws_connection(conn, user_id, aws_account_id, iam_role_arn, ...)` | Add a new AWS connection. Optional: `connection_name`, `external_id`, `aws_region`. Returns row ID. Commits internally. Unique constraint on `(user_id, aws_account_id)`. |
+| `add_aws_connection(conn, user_id, aws_account_id, iam_role_arn='', ...)` | Add a role or key connection. See the source signature for credential arguments. Returns row ID, commits internally, unique on `(user_id, aws_account_id)`. |
 | `get_aws_connections(conn, user_id)` | Get all connections for a user. Returns list of dicts. |
-| `delete_aws_connection(conn, connection_id, user_id)` | Delete a connection. Scoped to user (users cannot delete other users' connections). Returns `True` on success. |
+| `delete_aws_connection(conn, connection_id, user_id)` | Delete a connection matching the supplied user ID. The caller must authenticate/authorize that ID. Returns `True` on success. |
 | `update_aws_connection_status(conn, connection_id, status, error_message)` | Update sync status (`never`, `success`, `failed`, `in_progress`). Sets `last_sync_at`. |
 
 ---
@@ -232,9 +238,11 @@ costs = get_daily_costs(conn, user_id, start_date="2024-01-01", end_date="2024-0
 metrics = get_ec2_metrics(conn, user_id, instance_id="i-abc123", start_date="2024-01-01")
 ```
 
-### Multi-User Isolation
+### User-Scoped Queries
 
-Every table has a `user_id` foreign key. Data is automatically isolated:
+Account-data queries filter by the supplied `user_id`; instance pricing is global.
+This filtering does not authenticate or authorize callers. The current HTTP API
+trusts client-supplied IDs (see the [security notes](../README.md#known-limitations--security-notes)).
 
 ```python
 # User A's data

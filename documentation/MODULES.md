@@ -1,10 +1,18 @@
 # Modules
 
-Every file in the project, what it does, and how it connects to the rest.
+Key implementation entry points and how they connect. See
+[Architecture](ARCHITECTURE.md) for runtime and trust boundaries.
 
 ---
 
 ## Configuration and Entry Points
+
+### `frontend/` and `backend_api/`
+
+`frontend/app/` contains the primary Next.js pages and client session helpers;
+`frontend/package.json` defines dev, build, start, and lint commands.
+`backend_api/main.py` assembles FastAPI and its routers. Run the backend and use
+http://localhost:8000/docs for the generated endpoint/model reference.
 
 ### `cloud_optimizer/config.py`
 
@@ -23,11 +31,11 @@ This file does NOT touch boto3. AWS client setup lives in `aws_collector/config.
 
 ### `dashboard/app.py`
 
-Streamlit entry point. Runs an **authentication gate** before showing the dashboard: calls `init_session_state()`, checks `is_authenticated()`, renders `render_auth_page()` if not logged in. Once authenticated, shows sidebar navigation with 5 pages (Home, Costs, Forecasts, Recommendations, Settings), an account switcher, and a logout button. Imports page modules from `dashboard/` and dispatches to `render()` functions.
+Legacy Streamlit entry point. Runs an **authentication gate** before showing the dashboard: calls `init_session_state()`, checks `is_authenticated()`, renders `render_auth_page()` if not logged in. Once authenticated, shows sidebar navigation with 5 pages (Home, Costs, Forecasts, Recommendations, Settings), an account switcher, and a logout button. Imports page modules from `dashboard/` and dispatches to `render()` functions.
 
 ### `pyproject.toml`
 
-Project metadata and dependency specification.
+Pytest and coverage configuration. Python dependencies are in `requirements.txt`.
 
 ---
 
@@ -42,25 +50,29 @@ Exports `CollectorRunner`, `AWSConfig`, `init_config`, `get_config`.
 AWS-specific configuration. Creates and manages boto3 clients.
 
 - **`AWSConfig`** class: Holds `session`, `ce` (Cost Explorer), `ec2`, `cloudwatch`, `pricing`, `s3` clients. Also fetches `account_id` via STS and `regions` via `ec2.describe_regions()`.
-- **`AWSConfig.from_role(role_arn, external_id, region)`**: Class method that creates an `AWSConfig` by assuming an IAM role via STS. Used for multi-account support -- each `aws_connections` row stores a role ARN.
+- **`AWSConfig.from_role(role_arn, external_id, region)`**: Class method that creates an `AWSConfig` by assuming an IAM role via STS for role-based connections.
+- **`AWSConfig.from_keys(...)`**: Creates a session using access keys and an optional session token; used by the primary web connection flow.
 - **`get_config()`**: Singleton accessor -- returns existing `AWSConfig` or creates one.
 - **`init_config(session)`**: Initializes the singleton with a specific boto3 session.
 - Regional clients created on-demand via `get_ec2_client(region)`, `get_rds_client(region)`, `get_lambda_client(region)`, `get_cloudwatch_client(region)`, `get_elasticache_client(region)`, `get_ecs_client(region)`, `get_dynamodb_client(region)`.
 
 ### `runner.py`
 
-Thin orchestrator (~187 lines). Initializes all service collectors and runs them month-by-month:
+Initializes service collectors, clears the account's previous data, and runs
+month-by-month, newest first:
 
 ```python
 class CollectorRunner:
     def run(self, months: int = 12):
-        for start, end in get_last_n_months(months):
+        for start, end in reversed(get_last_n_months(months)):
             self.cost.collect(start, end)
             self.ec2.collect(start, end)
             # ... each collector handles its own inventory + metrics
 ```
 
-Also provides `CollectorRunner.from_connection(connection, user_id, conn)` -- a class method that creates a runner from an `aws_connections` database row. Assumes the IAM role stored in the connection, enabling per-user data collection from the dashboard.
+Also provides `CollectorRunner.from_connection(connection, user_id, conn)`, which
+selects access keys or IAM role assumption from a stored connection. See
+[Data pipeline](DATA_PIPELINE.md) for write and failure behavior.
 
 ### `metrics.py`
 
@@ -124,14 +136,15 @@ class ServiceCollector(BaseCollector):
 
 ### `db.py`
 
-Single data gateway for the entire project. Contains:
+Shared data API used by the engines and most routes. Some API routes also use
+direct SQL (see [Architecture](ARCHITECTURE.md)). Contains:
 
 - **Schema DDL**: 30 `CREATE TABLE` statements (inline, not a separate SQL file). Includes `users` and `aws_connections` tables for authentication and multi-account support.
 - **Connection management**: `get_connection(db_path)` -- opens SQLite with WAL mode, foreign keys enabled
 - **Schema lifecycle**: `ensure_schema(conn)` (create tables/indexes if missing, non-destructive), `create_schema(conn)` (drop + recreate, destructive; tests/dev only), `ensure_user(conn, account_id)`, `clear_user_data(conn, user_id)`
-- **Authentication functions**: `hash_password()`, `verify_password()` (HMAC-SHA256 with random salt), `register_user()`, `authenticate_user()`, `get_user_by_id()`, `update_user_profile()`
-- **AWS connection CRUD**: `add_aws_connection()`, `get_aws_connections()`, `delete_aws_connection()`, `update_aws_connection_status()` -- manages per-user AWS account links with IAM role ARNs, sync status, and scoped deletion (users can only delete their own connections)
-- **Insert functions** (24): One per data table -- `insert_daily_costs()`, `insert_ec2_instances()`, `insert_ec2_metrics()`, etc. All accept `(conn, user_id, rows: list[dict])`. Do not commit -- caller batches and commits.
+- **Authentication functions**: `hash_password()`, `verify_password()` (PBKDF2-HMAC-SHA256 with random salt), `register_user()`, `authenticate_user()`, `get_user_by_id()`, `update_user_profile()`
+- **AWS connection CRUD**: `add_aws_connection()`, `get_aws_connections()`, `delete_aws_connection()`, `update_aws_connection_status()` -- manages account links using roles or keys, sync status, and deletion scoped to the supplied user ID. HTTP authorization limitations still apply.
+- **Insert functions**: `insert_daily_costs()`, `insert_ec2_instances()`, `insert_ec2_metrics()`, etc. Most accept `(conn, user_id, rows)`; shared instance pricing has no user ID. Callers batch and commit data inserts. See [Storage API](STORAGE_API.md).
 - **Get functions** (24): One per data table -- `get_daily_costs()`, `get_ec2_instances()`, `get_ec2_metrics()`, etc. Support filtering by date range and resource ID. Return `list[dict]`.
 - **Internal helpers**: `_safe_float()`, `_safe_int()`, `_build_tuples()`, `_executemany_insert()`, `_rows_to_dicts()`, `_query_metrics()`
 
@@ -141,11 +154,12 @@ Exports all 70+ public functions (including auth and AWS connection CRUD), plus 
 
 ---
 
-## `data_generation/` -- Sample Data Generation (removed from repo)
+## `data_generation/` — Synthetic Data Generation
 
-**Note:** This module was removed from the git repository (commit `3a77b1b`). The synthetic data it generated is pre-loaded in `data/cloud_optimizer.db` and available via Demo Mode. The files may still exist locally but are not tracked.
-
-When it existed, `synthetic.py` generated sample AWS data based on open-source datasets (Bitbrains, NAB, Kaggle) supplemented with generated data for full 10-service coverage. Wrote directly to SQLite via `storage.insert_*()`.
+The tracked `synthetic.py` provides fixtures for tests and a database seeding CLI.
+It generates data in code and maps it into `storage.insert_*()` records. It does
+not download research datasets. See [Data pipeline](DATA_PIPELINE.md#synthetic-data)
+for reproducibility and write behavior.
 
 ---
 

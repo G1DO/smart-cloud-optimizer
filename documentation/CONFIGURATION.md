@@ -19,18 +19,25 @@ The project has two separate config files with no overlap:
 
 | Variable | Default | Description |
 | --- | --- | --- |
-| `DEMO_MODE` | `true` | `true` = use sample data, `false` = connect to real AWS |
+| `DEMO_MODE` | `true` | Legacy Streamlit status label; does not select data or control collection |
 | `AWS_REGION` | `us-east-1` | Default AWS region |
 | `AWS_ACCOUNT_ID` | `SYNTHETIC-001` | Account ID (overridden automatically in real mode) |
 | `OPENAI_API_KEY` | (empty) | OpenAI API key (legacy, unused) |
 | `OPENAI_MODEL` | `gpt-4o-mini` | OpenAI model (legacy, unused) |
 | `GOOGLE_API_KEY` | (empty) | Google API key for AI recommendations (Gemini) |
 | `GOOGLE_MODEL` | `gemini-2.5-flash` | Google Gemini model for AI module |
+| `ONBOARDING_API_TOKEN` | (empty) | Optional `X-API-Token` gate on `POST /api/ai-onboarding/generate` |
+| `NEXT_PUBLIC_API_BASE_URL` | `http://127.0.0.1:8000` | Frontend backend URL, embedded at build time |
 
-Set these in the repository-root `.env` file or export them before running.
+Set backend variables in the repository-root `.env` file or export them before running.
 `cloud_optimizer/config.py` resolves that file and the database path relative to
 the repository root, independently of the current working directory. Existing
 environment variables take precedence over `.env` values.
+
+The frontend uses `frontend/.env.local`; Docker uses build arguments for its
+public API URL. See the [README configuration table](../README.md#configuration)
+and the checked-in environment templates. The Next.js UI currently sends no
+`X-API-Token`; enabling the optional onboarding gate requires clients to supply it.
 
 ---
 
@@ -40,18 +47,24 @@ environment variables take precedence over `.env` values.
 
 - No AWS credentials needed
 - Database ships with pre-loaded synthetic data
-- Logs in as a pre-seeded demo user (`demo@cis.asu.edu.eg`)
-- All modules (ML, AI, optimizer, dashboard) work identically
+- The TypeScript UI selects the `aws-SYNTHETIC-001` workspace
+- Gemini-backed features still require a valid API key
 
 ### Real Mode (register + connect AWS account in Settings)
 
-- User registers an account, then adds AWS connections via IAM role ARN
-- Collector assumes the IAM role via STS and collects data
+- The Next.js form accepts access keys (and an optional session token). The
+  backend verifies them through STS, stores them server-side, and syncs using
+  `AWSConfig.from_keys()`.
+- Legacy Streamlit connections use IAM role ARNs. The collector also supports
+  these stored connections through `AWSConfig.from_role()`.
 - Needs IAM permissions: `ce:GetCostAndUsage`, `ce:GetAnomalies`, `cloudwatch:GetMetricStatistics`, `ec2:Describe*`, `pricing:GetProducts`, `rds:Describe*`, `lambda:ListFunctions`, `s3:ListBuckets`, `sts:GetCallerIdentity`, `elasticloadbalancing:Describe*`
 
 ### How mode switching works
 
-Both modes read from the same SQLite database through `storage.get_*()`. Downstream modules don't care which source produced the data. The dashboard auth gate controls access -- demo mode uses pre-loaded data, real mode uses data collected from connected AWS accounts.
+Demo and connected-account data share SQLite. The web UI selects a workspace;
+`DEMO_MODE=false` is not required to connect AWS through FastAPI. HTTP endpoints
+trust the supplied user ID, so the client login screen does not enforce data
+authorization. See the [security notes](../README.md#known-limitations--security-notes).
 
 ---
 
@@ -92,17 +105,14 @@ the first day of data; accounts with no data do not see an empty progress bar.
 
 | Constant | Value | Description |
 | --- | --- | --- |
-| `DEFAULT_BUDGET_CAP` | `5000.0` | Monthly budget constraint (USD) |
+| `DEFAULT_BUDGET_CAP` | `5000.0` | Monthly LP budget, applied separately to EC2 and RDS; see [optimizer](optimizer.md) |
 | `SPOT_RELIABILITY` | `False` | Whether to trust Spot instances for critical workloads |
 
 ### Supported Services
 
-```python
-SUPPORTED_SERVICES = [
-    "ec2", "rds", "lambda", "s3", "ebs",
-    "nat_gateway", "alb", "nlb",
-]
-```
+See the current constants in [cloud_optimizer/config.py](../cloud_optimizer/config.py).
+The optimizer's own service-filter names are defined by `ALL_SERVICES` in
+[optimizer/engine.py](../optimizer/engine.py).
 
 ---
 
@@ -135,4 +145,5 @@ Format: %(asctime)s | %(name)s | %(levelname)s | %(message)s
 Example: 2025-06-15 14:30:00 | aws_collector.cost_collector | INFO | Fetched daily costs for 2025-05
 ```
 
-Every module uses `logger = logging.getLogger(__name__)`. No `print()` calls anywhere.
+Modules generally use `logger = logging.getLogger(__name__)`; CLI entry points
+also print summaries directly.

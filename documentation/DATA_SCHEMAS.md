@@ -1,6 +1,9 @@
 # Data Schemas
 
-All data is stored in a single SQLite database (`data/cloud_optimizer.db`) managed by `storage/db.py`. Every table is keyed by `user_id` for multi-tenant isolation (except `instance_pricing` which is global reference data).
+This reference covers SQLite tables in `data/cloud_optimizer.db`. Account data
+is keyed by `user_id`; instance pricing is shared. Filtering by user ID does not
+enforce HTTP authorization. Runtime settings use a separate JSON file; see
+[Architecture](ARCHITECTURE.md) for access and persistence boundaries.
 
 Insert/query functions follow the pattern `storage.insert_<table>(conn, user_id, rows)` / `storage.get_<table>(conn, user_id, ...)`. Functions do not commit — the caller commits after batching inserts.
 
@@ -32,14 +35,21 @@ UNIQUE constraint on `(user_id, aws_account_id)`.
 | `user_id` | TEXT FK->users | User reference |
 | `connection_name` | TEXT | Display name (e.g., "Production") |
 | `aws_account_id` | TEXT NOT NULL | AWS account ID |
-| `iam_role_arn` | TEXT NOT NULL | IAM role ARN for cross-account access |
+| `iam_role_arn` | TEXT NOT NULL | Role ARN; empty string for key-based connections |
 | `external_id` | TEXT | STS external ID |
 | `aws_region` | TEXT | Default region (default `us-east-1`) |
+| `aws_access_key_id` | TEXT | Access key ID for key-based connections |
+| `aws_secret_access_key` | TEXT | Secret access key, stored in plaintext |
+| `aws_session_token` | TEXT | Optional session token, stored in plaintext |
+| `auth_type` | TEXT NOT NULL | `role` (default) or `keys` |
 | `access_verified` | INTEGER | 0/1 flag (default 0) |
 | `last_sync_at` | TEXT | Last successful data sync |
 | `sync_status` | TEXT | `never`, `success`, `failed`, `in_progress` |
 | `error_message` | TEXT | Last error message |
 | `connected_at` | TEXT | Connection timestamp (auto-set) |
+
+`ensure_schema()` adds missing credential columns to older databases. The
+authoritative schema and additive migration live in [storage/db.py](../storage/db.py).
 
 ---
 
