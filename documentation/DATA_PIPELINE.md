@@ -2,8 +2,10 @@
 
 ## Live AWS collection
 
-The Next.js **Account Settings → Connections** flow validates supplied access
-keys through the backend's STS call. Sync starts a background
+The Next.js **Account Settings → Connections** flow saves access keys; testing
+and account resolution are described in
+[Connection identity and verification](ARCHITECTURE.md#connection-identity-and-verification).
+Sync starts a background
 `CollectorRunner.from_connection()`, using stored keys or legacy role
 credentials. The standalone `python -m aws_collector.main` entry point uses
 boto3's configured credentials.

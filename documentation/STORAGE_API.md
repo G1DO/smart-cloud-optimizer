@@ -83,7 +83,9 @@ with TemporaryDirectory() as directory:
 ## Identity and credentials
 
 `register_user()` creates a `usr-` identity; `ensure_user()` creates an
-`aws-<account_id>` workspace. Connection rows link an owner to an AWS account.
+`aws-<account_id>` workspace. Connection rows link the caller-supplied owner to
+an AWS account; the web and Streamlit flows choose different owners. See
+[Connection identity and verification](ARCHITECTURE.md#connection-identity-and-verification).
 `get_aws_connections()` returns stored credentials to Python callers; HTTP
 routes must remove secrets before returning responses. User-scoped queries
 filter the supplied ID but do not authenticate it. See the

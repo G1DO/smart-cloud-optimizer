@@ -12,4 +12,28 @@ durable project decisions belong in
 [Notion](https://app.notion.com/p/28b0a821b3cc8061adebea034b7da111); accepted
 engineering work and review belong in GitHub. The separate
 [`release/ccpe-v1.0` branch](https://github.com/G1DO/smart-cloud-optimizer/tree/release/ccpe-v1.0)
-contains the paper artifact. These historical files are retained unchanged.
+contains the separate reproducibility software artifact. Its
+[README](https://github.com/G1DO/smart-cloud-optimizer/blob/release/ccpe-v1.0/README.md)
+explicitly excludes the manuscript. Thesis references to `paper/results.json`,
+`paper/cv_results.csv`, or `paper/main.tex` are historical; those files are absent
+from both current `main` and `release/ccpe-v1.0`.
+
+## Find a thesis revision
+
+| Revision | Document | Editing record | Questions recorded after that pass |
+| --- | --- | --- | --- |
+| Original | [AWS Cost Intelligence System.docx](<AWS Cost Intelligence System.docx>) | Baseline preserved for comparison | — |
+| Round 1: prose polish | [POLISHED.docx](<AWS Cost Intelligence System.POLISHED.docx>) | [Changelog](CHANGELOG.md), [preservation report](PRESERVATION_REPORT.md) | [Round 1 questions](OPEN_QUESTIONS.md) |
+| Round 2: factual corrections | [CORRECTED.docx](<AWS Cost Intelligence System.CORRECTED.docx>) | [Changelog](CHANGELOG_ROUND2.md), [preservation report](PRESERVATION_REPORT_ROUND2.md) | [Round 2 questions](OPEN_QUESTIONS_ROUND2.md) |
+
+`CORRECTED.docx` is the latest recorded editing output, not a declaration that
+the thesis is ready for submission. Start with the Round 2 questions for the
+remaining review recorded at that time; some Round 1 questions were addressed
+by Round 2. Keep the documents and their revision records together when using
+or comparing them.
+
+The preservation reports record earlier checks. Their referenced `work/` guard
+scripts and machine output are not tracked here, so those complete editing runs
+cannot be reproduced from this directory alone. Preserve the reports as history
+rather than treating their pass counts as current validation. Current test
+commands live in the [development guide](../documentation/DEVELOPMENT.md).

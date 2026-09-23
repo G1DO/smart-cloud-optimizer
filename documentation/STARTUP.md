@@ -21,13 +21,16 @@ pip install -r requirements.txt
 
 The project runs in **demo mode** by default (pre-loaded synthetic data, no AWS credentials needed).
 
-To configure for real AWS data, export these before running:
+For real collection, configure boto3 credentials for the principal that assumes
+the connection's role; see [Configuration](CONFIGURATION.md#environment-variables).
+Set the default boto3 region before running:
 
 ```bash
-# Required only for real AWS data collection
-export AWS_REGION=us-east-1
-export GOOGLE_API_KEY=your-key-here  # For AI recommendations (Gemini)
+export AWS_DEFAULT_REGION=us-east-1
 ```
+
+For AI recommendations, separately set `GOOGLE_API_KEY` in the environment or
+root `.env`. Gemini requires this key even when using synthetic data.
 
 ## 3. Launch the dashboard
 
