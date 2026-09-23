@@ -27,7 +27,7 @@ def main():
 
     print("⚠️  ML Engine CLI not yet implemented")
     print(f"    User: {args.user_id}")
-    print("    Use dashboard Forecasts page to run forecasts interactively")
+    print("    Use the Python library example in REPRODUCIBILITY.md")
     return 1
 
 

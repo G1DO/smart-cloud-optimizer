@@ -2,7 +2,8 @@
 config.py — Project-wide configuration for Smart Cloud Optimizer.
 
 Single source of truth for paths, constants, and environment settings.
-AWS-specific boto3 client configuration lives in aws_collector/config.py.
+Legacy platform settings remain for compatibility; live AWS collection tooling
+is not included in this artifact. See REPRODUCIBILITY.md for the shipped scope.
 
 Part of the Smart Cloud Optimizer graduation project.
 """

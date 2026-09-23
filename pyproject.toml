@@ -1,9 +1,10 @@
 [tool.pytest.ini_options]
+# The public artifact ships no tests; retain these settings for tests added here.
 testpaths = ["tests"]
 addopts = "-v --tb=short --basetemp=.pytest_tmp"
 
 [tool.coverage.run]
-source = ["aws_collector", "storage", "data_generation", "ml_engine", "optimizer", "ai_module", "config"]
+source = ["storage", "ml_engine", "optimizer", "config"]
 omit = ["tests/*"]
 
 [tool.coverage.report]
