@@ -1,4 +1,8 @@
-# Startup Guide
+# Legacy Streamlit Startup
+
+The primary TypeScript/FastAPI application starts with the
+[README quick start](../README.md#quick-start). This guide covers the optional
+legacy Python UI in `dashboard/`.
 
 ## Prerequisites
 
@@ -34,7 +38,7 @@ python -m streamlit run dashboard/app.py
 Opens at `http://localhost:8501` with a **login screen**:
 
 - **Login** -- Sign in with email and password
-- **Register** -- Create a new account (password hashed with HMAC-SHA256)
+- **Register** -- Create a new account (password hashed with PBKDF2-HMAC-SHA256)
 - **Try Demo Mode** -- Explore with pre-loaded synthetic data (no account required)
 
 After authentication, the sidebar shows 5 pages: Home, Costs, Forecasts, Recommendations, Settings. An **account switcher** in the sidebar lets you select which AWS account to view.
@@ -47,24 +51,22 @@ After registering, go to **Settings** and use the "Add AWS Account" form:
 2. Click "Test Connection" to verify access
 3. Click "Add Account" to save
 
-The role must allow the permissions listed in the README (Cost Explorer, CloudWatch, EC2, etc.).
+The caller needs `sts:AssumeRole`, and the role needs permissions for the AWS
+services being collected. This form tests role access with STS. The primary
+Next.js UI instead accepts access keys; see [Configuration](CONFIGURATION.md).
 
 ## 5. CLI tools
 
-**Run optimizer** (generates cost-saving recommendations):
+Use the [optimizer example](optimizer.md#usage) to generate recommendations in a
+disposable database copy. Optimization replaces existing recommendations.
 
-```bash
-python -m optimizer --user-id aws-SYNTHETIC-001
-```
-
-**Run ML forecasting** (placeholder -- use the dashboard Forecasts page instead):
-
-```bash
-python -m ml_engine --user-id aws-SYNTHETIC-001
-```
+Run forecasting from the Forecasts page. The ML CLI is a placeholder that prints
+a notice and exits with status 1 when a user ID is supplied.
 
 ## 6. Run tests
 
 ```bash
-pytest
+python -m pytest tests/ -v
 ```
+
+See [Development](DEVELOPMENT.md) for the full application checks.

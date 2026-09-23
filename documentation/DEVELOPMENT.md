@@ -1,128 +1,64 @@
 # Development Guide
 
-Code style, testing conventions, and project patterns.
+Use the [README](../README.md#quick-start) for setup and
+[CONTRIBUTING](../CONTRIBUTING.md) for PR scope and canonical workflow links.
+Run Python commands from the repository root with the virtual environment active.
 
-For setup and running instructions, see [QUICKSTART.md](QUICKSTART.md).
+## Checks
 
----
-
-## Testing
-
-Tests live in `tests/`. Current coverage:
-
-| File | What it tests |
-| --- | --- |
-| `test_config.py` | Shared config paths, types, `DB_PATH` |
-| `test_date_utils.py` | Month range generation, edge cases |
-| `test_ml_utils.py` | Data loading, feature engineering, anomaly detection, forecasters, evaluation |
-| `test_storage.py` | Insert/query API, upsert behavior, user isolation, schema creation |
-| `test_synthetic.py` | DB table population, schema validation, row counts, determinism, value ranges |
-
-All tests run without AWS credentials or external services.
-
-### Writing new tests
-
-- Put test files in `tests/` named `test_*.py`
-- Use pytest fixtures for shared setup
-- Mock AWS calls with `unittest.mock` — never hit real APIs in tests
-- Test determinism: same seed must produce identical output
-
----
-
-## Code Style
-
-### Module docstrings
-
-Every `.py` file starts with:
-
-```python
-"""
-module_name.py — One-line description.
-
-Part of the Smart Cloud Optimizer graduation project.
-"""
+```bash
+python -m pip check
+python -m pytest tests/ -v
+python -m compileall -q backend_api cloud_optimizer aws_collector storage \
+  data_generation ml_engine optimizer ai_module dashboard
+git diff --check
 ```
 
-### Imports
+The pytest suite covers storage/authentication, AWS configuration and connections,
+synthetic generation, forecasting, optimization, AI helpers, legacy dashboard
+behavior, and frontend/backend contracts. Discover the current test inventory
+with `python -m pytest --collect-only -q`. Tests use local fixtures and mocked
+services; they require no live AWS or AI credentials.
 
-PEP 8 order, alphabetical within groups:
+For the TypeScript frontend, use the committed lockfile:
 
-```python
-# stdlib
-import logging
-import os
-from pathlib import Path
-
-# third-party
-import pandas as pd
-import numpy as np
-
-# local
-from storage import get_connection, get_daily_costs
+```bash
+cd frontend
+npm ci
+npm run lint
+npm run build
 ```
 
-No inline imports inside functions.
+The scripts are defined in [package.json](../frontend/package.json). For changes
+to request/response behavior, also exercise the affected page with the backend
+running. FastAPI generates the current endpoint and model reference at
+http://localhost:8000/docs and http://localhost:8000/openapi.json.
 
-### Type hints
+There is currently no repository CI or documentation validation tool configured.
+Check changed Markdown links and anchors, preview rendering, and verify commands
+against the implementation. Report commands and outcomes in the PR, including
+any baseline failure; keep existing tests and validation intact.
 
-All function signatures have type annotations:
+## Project patterns
 
-```python
-def fetch_daily_cost(self, start: str, end: str) -> pd.DataFrame:
-```
+- Follow the surrounding Python or TypeScript style. Python uses type hints and
+  module loggers; lazy imports also occur for optional or expensive integrations.
+- Shared paths, `.env` loading, and constants live in
+  [cloud_optimizer/config.py](../cloud_optimizer/config.py). AWS session/client
+  construction lives in [aws_collector/config.py](../aws_collector/config.py).
+- Prefer the `storage` facade for database access. Some API routes currently use
+  SQL directly; see [Architecture](ARCHITECTURE.md). Data keyed by `user_id`
+  does not provide server-side authorization.
+- Use `ensure_schema()` for additive initialization. `create_schema()` drops and
+  recreates tables and belongs only in disposable fixtures. See the
+  [storage contract](STORAGE_API.md#transaction-contract) for commit ownership.
+- Keep tests independent of external services. Use pytest temporary paths for
+  writes and mocks for AWS/AI calls. Do not regenerate the tracked database as
+  part of routine testing.
+- Read [optimizer usage](optimizer.md#usage) before running a write operation;
+  both optimization and collection can replace existing stored results.
 
-### Docstrings
-
-Google style on all public functions:
-
-```python
-def get_last_n_months(n: int) -> list[tuple[str, str]]:
-    """Return date ranges for the last N months.
-
-    Args:
-        n: Number of months to look back.
-
-    Returns:
-        List of (start_date, end_date) string tuples in YYYY-MM-DD format.
-    """
-```
-
-### Logging
-
-- Use `logging` module everywhere. No `print()`.
-- Each module: `logger = logging.getLogger(__name__)`
-- Levels: `info` for progress, `warning` for recoverable errors, `error` for failures
-
-### Constants
-
-- Extract magic numbers to named constants at module top
-- Use UPPER_SNAKE_CASE
-
-### Strings
-
-- f-strings everywhere. No `%` formatting or `.format()`.
-
----
-
-## Project Conventions
-
-### Data storage
-
-All data is stored in SQLite via `storage/db.py`. The database lives at `data/cloud_optimizer.db`. All tables use `INSERT OR REPLACE` for upsert on primary keys. Every table is keyed by `user_id` for multi-tenant isolation.
-
-### Error handling
-
-All AWS API calls and file I/O are wrapped in try/except. Failures log a warning and skip — one failed metric doesn't stop the rest.
-
-### Two config files
-
-`cloud_optimizer/config.py` = project settings. `aws_collector/config.py` = boto3 clients. They don't overlap.
-
-### Data artifact
-
-```text
-data/
-  cloud_optimizer.db   ← single SQLite database (all data)
-```
-
-Both the data generator and AWS collector write to the same DB. Downstream modules read via `storage.get_*()` and don't know which source produced the data.
+Python dependencies live in [requirements.txt](../requirements.txt);
+[pyproject.toml](../pyproject.toml) configures pytest and coverage. Update the
+numeric/ML pins together when changing that stack, then verify imports and the
+relevant forecasting tests.

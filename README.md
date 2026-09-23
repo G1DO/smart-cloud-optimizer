@@ -3,12 +3,16 @@
 An AI-powered AWS cost-optimization platform: a **FastAPI** backend wrapping four engines (cost optimizer, ML forecaster, AI advisor, AWS collector) behind a **Next.js** dashboard. It collects real AWS cost/usage data (or ships synthetic demo data), forecasts spend, detects anomalies, and recommends right-sizing and pricing changes.
 
 > **Demo Mode (default).** The app ships with a pre-loaded synthetic AWS dataset (committed in the demo DB) — no AWS credentials needed. Sign in, or click **Try Demo Mode**, to explore costs, forecasts, anomalies, and recommendations immediately. Real user accounts start with empty dashboards until an AWS account is connected from **Account Settings**.
-V
+
+Technical guides: [documentation index](documentation/INDEX.md),
+[development and checks](documentation/DEVELOPMENT.md),
+[contributing](CONTRIBUTING.md).
+
 ---
 
 ## How it works
 
-Three tiers: a browser-side **Next.js UI (:3000)** talks over HTTP/JSON to the **FastAPI backend (:8000)**. The backend's four engines and the AWS collector all read and write the SQLite database **only** through the `storage` facade.
+Three tiers: a browser-side **Next.js UI (:3000)** talks over HTTP/JSON to the **FastAPI backend (:8000)**. Engines and the AWS collector use the `storage` facade. Some API routes also access SQLite directly; see [Architecture](documentation/ARCHITECTURE.md).
 
 ```mermaid
 flowchart LR
@@ -17,7 +21,7 @@ flowchart LR
 
   subgraph BE["FastAPI backend (port 8000)"]
     API["FastAPI routers<br/>(trust-based user_id)"]
-    Storage["storage facade<br/>(only path to DB)"]
+    Storage["storage facade<br/>(shared data API)"]
     Optimizer["optimizer<br/>(PuLP right-sizing + rules)"]
     ML["ml_engine<br/>(forecasts / anomalies)"]
     AImod["ai_module<br/>(Gemini advisor)"]
@@ -41,6 +45,7 @@ flowchart LR
   AImod --> Storage
   Collector --> Storage
   Storage --> DB
+  API -->|"route-specific SQL"| DB
 
   Collector -. "real mode" .-> AWS
   AImod -. "AI calls" .-> Gemini
@@ -50,9 +55,9 @@ flowchart LR
   class AWS,Gemini,Synthetic ext;
 ```
 
-*Browser to Next.js UI (3000) to FastAPI backend (8000), whose four engines plus aws_collector all read/write SQLite through the storage facade; AWS and Gemini are dashed optional integrations and the synthetic generator seeds the DB for demo mode.*
+*Next.js calls FastAPI, whose routes call the engines and query SQLite. AWS and Gemini are optional external integrations; the synthetic generator provides demo fixtures.*
 
-**Legend.** Solid arrows are in-process calls; dashed boxes/edges are optional external integrations (real AWS, Gemini, the demo seeder). The `storage` facade is the **only** component that touches the SQLite file.
+**Legend.** Solid arrows show calls and data access; dashed edges show optional AWS, Gemini, and demo-seeding paths. Runtime settings also persist separately in `backend_api/runtime_settings.json`.
 
 When the UI opens a dashboard page, it fetches a single JSON endpoint keyed by a plain `user_id` query param (no token — see [Security Notes](#known-limitations--security-notes)):
 
@@ -88,7 +93,7 @@ sequenceDiagram
 | Frontend | Next.js 16 (App Router), React 19, TypeScript, Plotly, Three.js |
 | Packaging | pip + `requirements.txt` (backend) · npm (frontend) · Docker Compose |
 
-**Prerequisites:** Git, Python 3.12+, Node.js 20+, npm. *Optional:* AWS access keys for real collection; a Google Gemini API key for AI recommendations.
+**Prerequisites:** Git, Python 3.12+, Node.js 20.9+, npm. *Optional:* AWS access keys for real collection; a Google Gemini API key for AI recommendations.
 
 ---
 
@@ -144,7 +149,7 @@ Backend health: http://127.0.0.1:8000/health · API docs: http://127.0.0.1:8000/
 
 ```bash
 cd frontend
-npm install
+npm ci
 cp .env.local.example .env.local
 npm run dev                   # http://localhost:3000
 ```
@@ -196,12 +201,12 @@ flowchart TD
 | Frontend lint | `cd frontend && npm run lint` |
 | Frontend build | `cd frontend && npm run build` |
 | Legacy Streamlit dashboard | `python -m streamlit run dashboard/app.py` → http://localhost:8501 |
-| Optimizer (CLI) | `python -m optimizer --user-id aws-SYNTHETIC-001` |
-| Seed synthetic demo data | `python -m data_generation.synthetic --days 365 --user-id aws-SYNTHETIC-001` |
+| Optimizer (CLI) | [Run on a disposable DB copy](documentation/optimizer.md#usage) |
+| Seed synthetic demo data | [Generator and write behavior](documentation/DATA_PIPELINE.md#synthetic-data) |
 
 Notes:
-- **Forecasting has no CLI.** `python -m ml_engine` is a non-functional stub (prints a notice, exits 1). Run forecasts via the dashboard Forecasts page or `GET /api/forecast`.
-- The synthetic seeder is non-destructive: it overwrites the target user's rows by primary key (it never deletes other users' rows). Intended for a fresh/empty DB.
+- **Forecasting has no working CLI.** With `--user-id`, `python -m ml_engine` prints a placeholder notice and exits 1. Run forecasts via the dashboard Forecasts page or `GET /api/forecast`.
+- The synthetic seeder updates matching target-user rows and global pricing. It leaves unmatched rows in place; use a disposable database for experiments.
 
 ---
 
@@ -212,7 +217,7 @@ smart-cloud-optimizer/
   backend_api/        FastAPI app + 8 routers (auth, connections, costs,
                       dashboard, forecast, recommendations, settings, ai-onboarding)
   frontend/           Next.js 16 app (App Router, Plotly charts, Three.js globe)
-  storage/            SQLite facade — the only path to the DB (schema + data access)
+  storage/            Shared SQLite schema and data API
   aws_collector/      boto3 collection pipeline (CollectorRunner + per-service collectors)
   ml_engine/          Forecasting (Prophet/SARIMAX/ETS/Naive) + anomaly detection
   optimizer/          Cost engine: PuLP right-sizing LP + rule-based heuristics
@@ -236,12 +241,12 @@ Backend env vars are resolved in `cloud_optimizer/config.py`, which loads a root
 | Variable | Default | Used by | Purpose |
 | --- | --- | --- | --- |
 | `DEMO_MODE` | `true` | legacy Streamlit dashboard | Demo status flag. The FastAPI backend does **not** branch on it — synthetic demo data ships in the committed DB and connecting a real AWS account works regardless |
-| `GOOGLE_API_KEY` | *(empty)* | backend | Gemini key; AI recommendations error in-band if unset |
+| `GOOGLE_API_KEY` | *(empty)* | backend | Gemini key; web onboarding generation returns HTTP 502 if unset |
 | `GOOGLE_MODEL` | `gemini-2.5-flash` | backend | Gemini model id |
 | `AWS_REGION` | `us-east-1` | backend | Default AWS region |
 | `AWS_ACCOUNT_ID` | `SYNTHETIC-001` | backend | Default account id |
 | `ONBOARDING_API_TOKEN` | *(unset)* | backend | If set, `/api/ai-onboarding/generate` requires a matching `X-API-Token` header (off by default) |
-| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_SESSION_TOKEN` / `AWS_DEFAULT_REGION` | *(empty / `us-east-1`)* | backend (Docker) | Backend principal for `sts:AssumeRole` on real AWS connect; see `.env.docker.example` |
+| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_SESSION_TOKEN` / `AWS_DEFAULT_REGION` | *(empty / `us-east-1`)* | boto3 (Docker) | Credentials for CLI collection or legacy role assumption; the primary web form supplies its own keys |
 | `NEXT_PUBLIC_API_BASE_URL` | `http://127.0.0.1:8000` (code) / `http://localhost:8000` (build arg) | frontend | Backend base URL, inlined into the browser bundle at build time |
 
 Templates: `.env.example` (local backend), `.env.docker.example` (Docker), `frontend/.env.local.example` (frontend).
