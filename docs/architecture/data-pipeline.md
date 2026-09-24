@@ -4,7 +4,7 @@
 
 The Next.js **Account Settings → Connections** flow saves access keys; testing
 and account resolution are described in
-[Connection identity and verification](ARCHITECTURE.md#connection-identity-and-verification).
+[Connection identity and verification](README.md#connection-identity-and-verification).
 Sync starts a background
 `CollectorRunner.from_connection()`, using stored keys or legacy role
 credentials. The standalone `python -m aws_collector.main` entry point uses
@@ -15,21 +15,22 @@ The runner clears previous data for the selected account before collecting
 costs, service inventory/metrics, and pricing, with incremental commits. A
 failure can leave partial data; sync is not an atomic replacement.
 
-Per-service collectors live in [aws_collector/collectors/](../aws_collector/collectors/).
+Per-service collectors live in [aws_collector/collectors/](../../aws_collector/collectors).
 Their writes use `storage.insert_*()`. Many data tables use
 `INSERT OR REPLACE` on composite primary keys to update matching observations.
 Global instance pricing has no `user_id`; account data is keyed by user.
-See [Storage API](STORAGE_API.md) for transaction ownership and
-[Data schemas](DATA_SCHEMAS.md) for keys.
+See [Storage API](../api/storage.md) for transaction ownership and
+[Data schemas](data-model.md) for keys.
 
 Collectors log individual API failures where they can continue. Consult sync
-status and backend logs if data is incomplete. Runtime AWS credentials and
+status and backend logs if data is incomplete. See [local recovery](../operations/local-runtime.md#interrupted-sync-recovery)
+for interrupted workers and partial collection. Runtime AWS credentials and
 account data must stay out of commits; see the
-[security notes](../README.md#known-limitations--security-notes).
+[security notes](../security/README.md).
 
 ## Synthetic data
 
-[data_generation/synthetic.py](../data_generation/synthetic.py) is tracked and
+[data_generation/synthetic.py](../../data_generation/synthetic.py) is tracked and
 used by tests and the demo seeder. Its functions generate inventory, metrics,
 costs, and pricing; the CLI maps generator columns into storage records and
 commits the results. Current fixtures are generated in code without downloading
@@ -48,16 +49,16 @@ checkout/database for experiments.
 Dates are relative to the execution date. The same seed and day count reproduce
 random values for that date; a later execution shifts timestamps. The committed
 historical demo fixture is not a byte-for-byte output contract for this generator.
-[Data resources](DATA_RESOURCES.md) records research sources separately.
+[Data resources](../../docs-gp/data-resources.md) records research sources separately.
 
 ## Consumers
 
 The TypeScript UI reads JSON from FastAPI. The API routes call storage helpers
 and engines; some routes also use direct SQL as described in
-[Architecture](ARCHITECTURE.md). The legacy Streamlit UI calls Python modules
+[Architecture](README.md). The legacy Streamlit UI calls Python modules
 directly.
 
 Forecasting reads historical series. Optimization reads inventory, observed
 metrics, and prices and replaces stored recommendations. Its write and budget
-semantics are documented in [Optimizer](optimizer.md#usage). These consumers
+semantics are documented in [Optimizer](engines/optimizer.md#usage). These consumers
 share the same database schema regardless of how observations were collected.

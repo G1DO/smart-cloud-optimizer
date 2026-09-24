@@ -27,8 +27,7 @@ frontend/out
 # Docs, paper, and thesis build scratch
 docs-gp
 paper
-documentation
-CODE_REVIEW_PR2.md
+docs
 
 # Scratch / temp
 scratchpad

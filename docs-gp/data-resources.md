@@ -6,7 +6,7 @@ fixture's provenance. The current generator creates fixtures in Python; it does
 not download these datasets or read the previously described CSV pipeline.
 
 Current collection, seeding, and write behavior live in
-[Data pipeline](DATA_PIPELINE.md). Live pricing collection uses boto3 in
+[Data pipeline](../docs/architecture/data-pipeline.md). Live pricing collection uses boto3 in
 [collectors/pricing.py](../aws_collector/collectors/pricing.py); it does not import
 a downloaded AWS pricing CSV. Project research conclusions and future dataset
 choices belong in [Notion project context](https://app.notion.com/p/28b0a821b3cc8061adebea034b7da111).

@@ -1,7 +1,7 @@
 # Legacy Streamlit Startup
 
 The primary TypeScript/FastAPI application starts with the
-[README quick start](../README.md#quick-start). This guide covers the optional
+[README quick start](../../README.md#quick-start). This guide covers the optional
 legacy Python UI in `dashboard/`.
 
 ## Prerequisites
@@ -22,7 +22,7 @@ pip install -r requirements.txt
 The project runs in **demo mode** by default (pre-loaded synthetic data, no AWS credentials needed).
 
 For real collection, configure boto3 credentials for the principal that assumes
-the connection's role; see [Configuration](CONFIGURATION.md#environment-variables).
+the connection's role; see [Configuration](../reference/configuration.md#environment-variables).
 Set the default boto3 region before running:
 
 ```bash
@@ -35,7 +35,7 @@ root `.env`. Gemini requires this key even when using synthetic data.
 ## 3. Launch the dashboard
 
 ```bash
-python -m streamlit run dashboard/app.py
+python -m streamlit run dashboard/app.py --server.address=127.0.0.1
 ```
 
 Opens at `http://localhost:8501` with a **login screen**:
@@ -56,11 +56,11 @@ After registering, go to **Settings** and use the "Add AWS Account" form:
 
 The caller needs `sts:AssumeRole`, and the role needs permissions for the AWS
 services being collected. This form tests role access with STS. The primary
-Next.js UI instead accepts access keys; see [Configuration](CONFIGURATION.md).
+Next.js UI instead accepts access keys; see [Configuration](../reference/configuration.md).
 
 ## 5. CLI tools
 
-Use the [optimizer example](optimizer.md#usage) to generate recommendations in a
+Use the [optimizer example](../architecture/engines/optimizer.md#usage) to generate recommendations in a
 disposable database copy. Optimization replaces existing recommendations.
 
 Run forecasting from the Forecasts page. The ML CLI is a placeholder that prints
@@ -72,4 +72,4 @@ a notice and exits with status 1 when a user ID is supplied.
 python -m pytest tests/ -v
 ```
 
-See [Development](DEVELOPMENT.md) for the full application checks.
+See [Development](README.md) for the full application checks.

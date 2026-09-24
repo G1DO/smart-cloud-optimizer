@@ -1,4 +1,6 @@
 # Smart Cloud Optimizer — local stack.
+# Published ports bind to host loopback; container listeners remain reachable
+# inside optimizer-net. See docs/operations/local-runtime.md.
 #   Core:     docker compose up --build           (backend + frontend)
 #   Full:     docker compose --profile full up --build   (adds Streamlit)
 #
@@ -19,7 +21,7 @@ services:
       dockerfile: Dockerfile
     image: optimizer-backend
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     volumes:
       - optimizer-data:/app/data
     # env_file loads .env wholesale; the `environment:` keys below override it
@@ -34,8 +36,8 @@ services:
       AWS_REGION: "${AWS_REGION:-us-east-1}"
       AWS_ACCOUNT_ID: "${AWS_ACCOUNT_ID:-SYNTHETIC-001}"
       ONBOARDING_API_TOKEN: "${ONBOARDING_API_TOKEN:-}"
-      # Base AWS creds for the backend principal that does sts:AssumeRole when a
-      # real AWS account is connected from the UI. Empty for demo/synthetic.
+      # Base credentials for CLI/legacy IAM-role collection. Primary web
+      # connections use the access keys stored in SQLite. Empty for demo.
       AWS_ACCESS_KEY_ID: "${AWS_ACCESS_KEY_ID:-}"
       AWS_SECRET_ACCESS_KEY: "${AWS_SECRET_ACCESS_KEY:-}"
       AWS_SESSION_TOKEN: "${AWS_SESSION_TOKEN:-}"
@@ -60,7 +62,7 @@ services:
         NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
     image: optimizer-frontend
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     depends_on:
       backend:
         condition: service_healthy
@@ -89,7 +91,7 @@ services:
       - --server.port=8501
       - --server.address=0.0.0.0
     ports:
-      - "8501:8501"
+      - "127.0.0.1:8501:8501"
     volumes:
       - optimizer-data:/app/data
     env_file:
@@ -102,8 +104,8 @@ services:
       AWS_REGION: "${AWS_REGION:-us-east-1}"
       AWS_ACCOUNT_ID: "${AWS_ACCOUNT_ID:-SYNTHETIC-001}"
       ONBOARDING_API_TOKEN: "${ONBOARDING_API_TOKEN:-}"
-      # Base AWS creds for the backend principal that does sts:AssumeRole when a
-      # real AWS account is connected from the UI. Empty for demo/synthetic.
+      # Base credentials for CLI/legacy IAM-role collection. Primary web
+      # connections use the access keys stored in SQLite. Empty for demo.
       AWS_ACCESS_KEY_ID: "${AWS_ACCESS_KEY_ID:-}"
       AWS_SECRET_ACCESS_KEY: "${AWS_SECRET_ACCESS_KEY:-}"
       AWS_SESSION_TOKEN: "${AWS_SESSION_TOKEN:-}"
