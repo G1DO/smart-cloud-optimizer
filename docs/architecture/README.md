@@ -84,9 +84,9 @@ user. Forecasting and Gemini recommendations are separate computations. See
 ## Data sources
 
 The demo workspace uses existing synthetic data in SQLite. The current tracked
-generator creates fixtures for tests and demos; it does not download the
-historical [research datasets](../../docs-gp/data-resources.md), and it does not reproduce
-the historical committed fixture byte-for-byte.
+generator creates fixtures for tests and demos without downloading external
+research datasets. It does not reproduce the historical committed fixture
+byte-for-byte.
 
 The Next.js connection form stores access keys in SQLite; see
 [connection identity and verification](#connection-identity-and-verification)

@@ -1,8 +1,14 @@
 # Development Guide
 
-Use the [README](../../README.md#quick-start) for setup and
-[CONTRIBUTING](../../CONTRIBUTING.md) for PR scope and canonical workflow links.
-Run Python commands from the repository root with the virtual environment active.
+Use the [README](../../README.md#quick-start) for setup. Run Python commands from
+the repository root with the virtual environment active.
+
+Application PRs target **`main`**; the default `release/ccpe-v1.0` branch contains
+the separate paper artifact. Keep changes focused, update affected technical
+documentation, and describe what changed, why, and the verification actually run.
+Report pre-existing failures separately from regressions and respect any target
+branch checks or review requirements. Use [SECURITY.md](../../SECURITY.md) for
+vulnerability reporting.
 
 ## Checks
 

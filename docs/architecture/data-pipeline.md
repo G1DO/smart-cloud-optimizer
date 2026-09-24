@@ -49,7 +49,6 @@ checkout/database for experiments.
 Dates are relative to the execution date. The same seed and day count reproduce
 random values for that date; a later execution shifts timestamps. The committed
 historical demo fixture is not a byte-for-byte output contract for this generator.
-[Data resources](../../docs-gp/data-resources.md) records research sources separately.
 
 ## Consumers
 

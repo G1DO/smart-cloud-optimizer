@@ -46,5 +46,3 @@ influence a fold's training set.
 ```bash
 python -m pytest tests/test_ml_utils.py tests/test_frontend_backend_contract.py -v
 ```
-
-Earlier evaluation tables are preserved in the [research archive](../../../docs-gp/research-notes.md#forecasting-observations).
