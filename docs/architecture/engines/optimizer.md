@@ -74,7 +74,7 @@ Example: instance with 4 vCPUs running at P95 CPU = 40%
 | | EC2 | RDS |
 |---|---|---|
 | CPU constraint | P95 from metrics | P95 from metrics |
-| Memory constraint | P95 when available | Skipped (CloudWatch reports raw FreeableMemory bytes, not %) |
+| Memory constraint | P95 when available | Skipped (the implemented RDS collector does not fetch memory) |
 | Multi-AZ | N/A | Doubles candidate cost |
 | Pricing source | `instance_pricing` table (service=EC2) | `instance_pricing` table (service=RDS) |
 
@@ -160,7 +160,7 @@ optimize(conn, user_id)
 | Parameter | Default | Description |
 |-----------|---------|-------------|
 | `budget_cap` | `config.DEFAULT_BUDGET_CAP` (5000.0) | Cap applied separately to each EC2/RDS LP, not one combined account budget |
-| `services` | all 8 services | Select checks; see `ALL_SERVICES` in [engine.py](../optimizer/engine.py) |
+| `services` | all 8 services | Select checks; see `ALL_SERVICES` in [engine.py](../../../optimizer/engine.py) |
 
 Every run deletes **all** previous recommendations for the selected user before
 generating replacements, including when `services` selects only some checks.
@@ -173,28 +173,6 @@ If the LP and a rule both produce a recommendation for the same `(resource_id, r
 
 Different action types for one resource remain separate. Their savings may
 overlap, so the CLI's summed savings are not a validated combined execution plan.
-
-## Historical Results (Synthetic Data)
-
-Previously recorded against the synthetic mid-size SaaS database
-(`aws-SYNTHETIC-001`); these counts are historical observations, not assertions
-about the current fixture or generator:
-
-```
-  Service    | Resource                       | Type                      | Savings
-  ─────────────────────────────────────────────────────────────────────────────────────
-  RDS        | prod-postgres-primary          | rightsize                 | $327.04/mo
-  RDS        | staging-postgres               | rightsize                 |  $35.77/mo
-  EC2 (×6)   | 6 on-demand instances          | pricing_plan_switch       | $208.42/mo
-  EBS (×6)   | gp2 volumes + orphan + idle    | volume_type_upgrade/del   |  $12.60/mo
-  Lambda     | webhook-handler                | memory_resize             |   $0.11/mo
-  S3         | app-backups                    | storage_class_switch      |   $0.79/mo
-  VPC (×2)   | 2 NAT gateways                | replace_with_endpoint     |   $5.67/mo
-  ─────────────────────────────────────────────────────────────────────────────────────
-  Total: 19 recommendations                                               $590.40/mo
-```
-
-**Note**: EC2 LP returned infeasible for `batch-processor` (c5.2xlarge at ~90% CPU — needs ~10.4 vCPUs with headroom but max candidate in catalog is 8 vCPUs). This is correct behavior.
 
 ## Usage
 
@@ -242,7 +220,7 @@ alone does not change the solver selected by this code.
 }
 ```
 
-## Design Decisions
+## Design rationale
 
 | Decision | Choice | Why |
 |----------|--------|-----|
@@ -250,9 +228,7 @@ alone does not change the solver selected by this code.
 | P95 metric (not avg or max) | P95 | Avg hides spikes. Max is one-off outliers. P95 balances real workload. |
 | 1.3x headroom | Default | 30% buffer for unexpected traffic. Configurable per call. |
 | Clear + replace recs | DELETE before INSERT | Fresh results each run. No stale recs from previous configs. |
-| RDS: CPU only | No memory constraint | CloudWatch `FreeableMemory` is raw bytes, not utilization %. Can't reliably convert. |
-| Confidence levels | high/medium/low | high: >20% savings or >180 days data. medium: moderate. low: estimates (NAT). |
+| RDS: CPU only | No memory constraint | Original rationale: `FreeableMemory` is bytes, not utilization %. The current collector does not fetch this metric. |
+| Confidence levels | high/medium/low | Rule-specific heuristic labels; see [`compute_lp.py`](../../../optimizer/compute_lp.py) and [`rules.py`](../../../optimizer/rules.py). They are not calibrated probabilities or proof an action is safe. |
 
----
-
-*Generated from Milestone 6: Optimizer Module. Tested against synthetic mid-size SaaS data (30 days, seed 42).*
+Historical synthetic results are preserved in the [research archive](../../../docs-gp/research-notes.md#optimizer-observations).

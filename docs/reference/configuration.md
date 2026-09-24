@@ -1,7 +1,7 @@
 # Configuration
 
 Environment variables, constants, and operational modes. The separate
-[web runtime settings](ARCHITECTURE.md#runtime-settings) are saved preferences;
+[web runtime settings](../architecture/README.md#runtime-settings) are saved preferences;
 they do not currently configure the engines or collector.
 
 ---
@@ -40,10 +40,10 @@ environment variables take precedence over `.env` values.
 
 The frontend uses `frontend/.env.local`; Compose builds it with
 `NEXT_PUBLIC_API_BASE_URL=http://localhost:8000` in
-[docker-compose.yml](../docker-compose.yml). This URL must be reachable from the
+[docker-compose.yml](../../docker-compose.yml). This URL must be reachable from the
 browser, and changing it requires rebuilding the frontend. Templates:
-[local backend](../.env.example), [Docker](../.env.docker.example), and
-[frontend](../frontend/.env.local.example). The Next.js UI currently sends no
+[local backend](../../.env.example), [Docker](../../.env.docker.example), and
+[frontend](../../frontend/.env.local.example). The Next.js UI currently sends no
 `X-API-Token`; enabling the optional onboarding gate requires clients to supply it.
 
 ---
@@ -62,12 +62,12 @@ browser, and changing it requires rebuilding the frontend. Templates:
 - The Next.js form accepts access keys (and an optional session token). The
   backend stores them server-side and syncs using `AWSConfig.from_keys()`.
   Testing is separate from saving; see
-  [Connection identity and verification](ARCHITECTURE.md#connection-identity-and-verification).
+  [Connection identity and verification](../architecture/README.md#connection-identity-and-verification).
 - Legacy Streamlit connections use IAM role ARNs. The collector also supports
   these stored connections through `AWSConfig.from_role()`.
 - STS identity resolution alone does not establish permission to collect data.
-  The service reads are defined by [AWSConfig](../aws_collector/config.py) and
-  the [collectors](../aws_collector/collectors/); the repository does not ship a
+  The service reads are defined by [AWSConfig](../../aws_collector/config.py) and
+  the [collectors](../../aws_collector/collectors); the repository does not ship a
   complete IAM policy. Check backend logs for denied collection calls.
 
 ### How mode switching works
@@ -75,7 +75,7 @@ browser, and changing it requires rebuilding the frontend. Templates:
 Demo and connected-account data share SQLite. The web UI selects a workspace;
 `DEMO_MODE=false` is not required to connect AWS through FastAPI. HTTP endpoints
 trust the supplied user ID, so the client login screen does not enforce data
-authorization. See the [security notes](../README.md#known-limitations--security-notes).
+authorization. See the [security notes](../security/README.md).
 
 ---
 
@@ -120,14 +120,14 @@ the first day of data; accounts with no data do not see an empty progress bar.
 
 | Constant | Value | Description |
 | --- | --- | --- |
-| `DEFAULT_BUDGET_CAP` | `5000.0` | Monthly LP budget, applied separately to EC2 and RDS; see [optimizer](optimizer.md) |
+| `DEFAULT_BUDGET_CAP` | `5000.0` | Monthly LP budget, applied separately to EC2 and RDS; see [optimizer](../architecture/engines/optimizer.md) |
 | `SPOT_RELIABILITY` | `False` | Displayed in legacy Settings; not consumed by the optimizer |
 
 ### Supported Services
 
-See the current constants in [cloud_optimizer/config.py](../cloud_optimizer/config.py).
+See the current constants in [cloud_optimizer/config.py](../../cloud_optimizer/config.py).
 The optimizer's own service-filter names are defined by `ALL_SERVICES` in
-[optimizer/engine.py](../optimizer/engine.py).
+[optimizer/engine.py](../../optimizer/engine.py).
 
 ---
 

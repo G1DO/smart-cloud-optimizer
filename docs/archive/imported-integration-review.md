@@ -4,8 +4,8 @@
 > Its PR numbering, test counts, and follow-up checklist refer to that earlier
 > revision, not the current GitHub PR #2 or current implementation. For example,
 > AWS connections now validate via STS and persist server-side. Use the
-> [current architecture](documentation/ARCHITECTURE.md) and
-> [security notes](README.md#known-limitations--security-notes) for current behavior.
+> [current architecture](../architecture/README.md) and
+> [security notes](../security/README.md) for current behavior.
 
 > Multi-agent review (32 agents, every finding adversarially verified against the
 > real code) of the `final-react` branch, merged to `main` as `545c383`.

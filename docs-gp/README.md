@@ -7,7 +7,7 @@ they are not the current application specification or an active engineering
 backlog. References to `work/` describe ignored editing scratch files.
 
 For current application behavior, use the
-[technical documentation index](../documentation/INDEX.md). Product context and
+[technical documentation index](../docs/README.md). Product context and
 durable project decisions belong in
 [Notion](https://app.notion.com/p/28b0a821b3cc8061adebea034b7da111); accepted
 engineering work and review belong in GitHub. The separate
@@ -36,4 +36,12 @@ The preservation reports record earlier checks. Their referenced `work/` guard
 scripts and machine output are not tracked here, so those complete editing runs
 cannot be reproduced from this directory alone. Preserve the reports as history
 rather than treating their pass counts as current validation. Current test
-commands live in the [development guide](../documentation/DEVELOPMENT.md).
+commands live in the [development guide](../docs/development/README.md).
+
+## Research history
+
+[Dataset references](data-resources.md) and [recorded model/optimizer observations](research-notes.md)
+were moved here from the application guides to keep research history separate
+from current technical contracts. Their original limitations and numerical tables
+are preserved; they are not current reproducible evidence. Use the linked Notion
+project for new research conclusions and decisions.

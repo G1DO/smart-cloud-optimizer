@@ -1,9 +1,9 @@
 # Storage API Reference
 
 The `storage` package exports the shared SQLite interface from
-[storage/__init__.py](../storage/__init__.py). Implementations, accepted row fields,
-and SQL live in [storage/db.py](../storage/db.py). Some HTTP routes also issue
-SQL directly; see [Architecture](ARCHITECTURE.md).
+[storage/__init__.py](../../storage/__init__.py). Implementations, accepted row fields,
+and SQL live in [storage/db.py](../../storage/db.py). Some HTTP routes also issue
+SQL directly; see [Architecture](../architecture/README.md).
 
 ## Current signatures
 
@@ -23,7 +23,7 @@ PYTHON
 
 For a function's field requirements and behavior, use, for example,
 `python -m pydoc storage.insert_ec2_instances`. Get exact table keys and types
-from the [generated schema](DATA_SCHEMAS.md).
+from the [generated schema](../architecture/data-model.md).
 
 Filters are function-specific: inventory reads accept only `conn` and `user_id`;
 cost queries use `start_date`/`end_date`; EC2/RDS metrics use `start`/`end`.
@@ -51,7 +51,7 @@ Do not assume every getter accepts arbitrary keyword filters.
 and foreign keys, and sets a 10-second busy timeout. Many inventory/metric/cost
 inserts use `INSERT OR REPLACE`; result inserts have their own semantics in the
 source. Sync and optimization can delete previous results; see
-[Data pipeline](DATA_PIPELINE.md) and [Optimizer](optimizer.md#usage).
+[Data pipeline](../architecture/data-pipeline.md) and [Optimizer](../architecture/engines/optimizer.md#usage).
 
 ## Disposable example
 
@@ -85,11 +85,41 @@ with TemporaryDirectory() as directory:
 `register_user()` creates a `usr-` identity; `ensure_user()` creates an
 `aws-<account_id>` workspace. Connection rows link the caller-supplied owner to
 an AWS account; the web and Streamlit flows choose different owners. See
-[Connection identity and verification](ARCHITECTURE.md#connection-identity-and-verification).
+[Connection identity and verification](../architecture/README.md#connection-identity-and-verification).
 `get_aws_connections()` returns stored credentials to Python callers; HTTP
 routes must remove secrets before returning responses. User-scoped queries
 filter the supplied ID but do not authenticate it. See the
-[security notes](../README.md#known-limitations--security-notes).
+[security notes](../security/README.md).
 
 `INSTANCE_SPECS` and `SERVICE_NAME_MAP` are also exported by `storage`; their
-canonical definitions are in [cloud_optimizer/config.py](../cloud_optimizer/config.py).
+canonical definitions are in [cloud_optimizer/config.py](../../cloud_optimizer/config.py).
+
+## Loading data for analysis
+
+[`ml_engine.data_prep`](../../ml_engine/data_prep.py) converts storage results into
+DataFrames. For example, read cost data without running schema initialization or
+writing the committed fixture:
+
+```python
+import sqlite3
+from contextlib import closing
+from pathlib import Path
+from ml_engine.data_prep import load_cost_data
+
+path = Path("data/cloud_optimizer.db").resolve()
+with closing(sqlite3.connect(path.as_uri() + "?mode=ro", uri=True)) as conn:
+    conn.row_factory = sqlite3.Row
+    frame = load_cost_data(conn, user_id="aws-SYNTHETIC-001")
+print(frame[["date", "total_cost"]].head())
+```
+
+A schema column does not prove a metric was observed. Check the
+[collectors](../../aws_collector/collectors/) and mappings: the current EC2 and RDS
+collectors do not fetch memory utilization. Numeric coercion may turn missing or
+invalid inputs into zero; other fields remain NULL. Interpret availability before
+using these values for sizing or model training.
+
+Service totals are not resource-level costs. Joining `service_costs` to inventory
+by `user_id` alone multiplies rows and does not attribute spend to resources.
+See [forecasting evaluation](../architecture/engines/forecasting.md#reproducible-evaluation)
+for training/evaluation boundaries.
