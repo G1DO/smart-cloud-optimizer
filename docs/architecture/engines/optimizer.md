@@ -230,5 +230,3 @@ alone does not change the solver selected by this code.
 | Clear + replace recs | DELETE before INSERT | Fresh results each run. No stale recs from previous configs. |
 | RDS: CPU only | No memory constraint | Original rationale: `FreeableMemory` is bytes, not utilization %. The current collector does not fetch this metric. |
 | Confidence levels | high/medium/low | Rule-specific heuristic labels; see [`compute_lp.py`](../../../optimizer/compute_lp.py) and [`rules.py`](../../../optimizer/rules.py). They are not calibrated probabilities or proof an action is safe. |
-
-Historical synthetic results are preserved in the [research archive](../../../docs-gp/research-notes.md#optimizer-observations).

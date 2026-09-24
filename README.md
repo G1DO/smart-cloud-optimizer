@@ -16,10 +16,8 @@ git clone --branch main https://github.com/G1DO/smart-cloud-optimizer.git
 cd smart-cloud-optimizer
 ```
 
-[Notion project context](https://app.notion.com/p/28b0a821b3cc8061adebea034b7da111)
-owns project intent and decisions. Start with the
-[technical documentation](docs/README.md), [contribution guide](CONTRIBUTING.md),
-or [historical thesis archive](docs-gp/README.md).
+Start with the [technical documentation](docs/README.md),
+[development guide](docs/development/README.md), or [project report (PDF)](docs/project-report.pdf).
 
 ## Prerequisites
 
