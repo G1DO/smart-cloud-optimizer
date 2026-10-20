@@ -1,0 +1,53 @@
+flowchart TB
+  subgraph API["FastAPI app backend_api/main.py<br/>lifespan: ensure_schema + ensure_user SYNTHETIC-001<br/>CORS localhost:3000 + 127.0.0.1:3000, allow_credentials False<br/>GET /health liveness, GET /ready DB check"]
+    Auth["auth router<br/>/api/auth login signup demo logout<br/>PBKDF2 verify, no token issued<br/>Per-IP throttle 10 per 300s"]
+    Conn["connections router<br/>/api/connections test save list delete sync<br/>STS resolve, _SYNCING guard<br/>Thread + CollectorRunner.from_connection"]
+    Costs["costs router<br/>/api/costs preset range<br/>get_daily_costs + get_service_costs"]
+    Dash["dashboard router<br/>/api/dashboard/home<br/>daily + service + recs + anomalies<br/>30-day rollup"]
+    Forecast["forecast router<br/>/api/forecast + /compare<br/>Direct SQLite + ml_engine<br/>forecaster, data_prep, evaluator"]
+    Recs["recommendations router<br/>/api/recommendations GET + POST generate<br/>Direct SQL read, optimizer.engine.optimize"]
+    Settings["settings router<br/>/api/settings GET PUT POST reset<br/>runtime_settings.json file<br/>Engines do not read file"]
+    Onboard["ai-onboarding router<br/>/api/ai-onboarding questions<br/>build-prompt generate<br/>4000-char guard, 502 on Gemini fail<br/>X-API-Token when set"]
+  end
+
+  subgraph Store["storage facade storage/db.py<br/>Preferred shared interface, not enforced"]
+    ConnMgmt["Connection helpers<br/>get_connection WAL + busy_timeout<br/>ensure_schema additive only<br/>create_schema destructive fixtures only<br/>register authenticate get_user<br/>add get delete connections<br/>update status + clear_user_data"]
+    Writes["Write API insert_*<br/>daily service region costs<br/>ec2 rds elasticache ecs lambda<br/>ebs s3 dynamodb nat elb metrics<br/>instance_pricing ai_recs forecasts<br/>recommendations anomalies<br/>No commit inside, caller commits"]
+    Reads["Read API get_*<br/>daily service costs<br/>metrics by user resource time<br/>recommendations forecasts anomalies<br/>_query_metrics ORDER BY time"]
+  end
+
+  subgraph Engines["Compute engines"]
+    Opt["optimizer/engine.py<br/>Inventory + metrics + pricing<br/>LP + rules, replaces user recs"]
+    MLEng["ml_engine<br/>forecaster data_prep anomaly evaluator<br/>Reads history via storage or SQL"]
+    AIMod["ai_module/recommender.py<br/>Questionnaire to Gemini prompt<br/>Writes ai_recommendations"]
+    Coll["aws_collector<br/>CollectorRunner 12 months newest-first<br/>Per-service collectors<br/>clear_user_data then incremental commit"]
+  end
+
+  DB[("SQLite data/cloud_optimizer.db<br/>users aws_connections<br/>costs inventory metrics pricing results")]
+
+  Auth --> ConnMgmt
+  Conn --> ConnMgmt
+  Conn --> Coll
+  Costs --> Reads
+  Dash --> Reads
+  Forecast --> Reads
+  Forecast -.->|"Direct SQL on storage connection"| DB
+  Recs --> Reads
+  Recs --> Opt
+  Recs -.->|"Direct SQL read"| DB
+  Conn -.->|"Inline UPDATE access_verified<br/>Direct SELECT by id in sync thread"| DB
+  Settings -.->|"File only<br/>backend_api/runtime_settings.json"| Settings
+  Onboard --> AIMod
+  Opt --> Writes
+  Opt --> Reads
+  MLEng --> Reads
+  MLEng --> Writes
+  AIMod --> Writes
+  Coll --> Writes
+  Coll --> ConnMgmt
+  ConnMgmt --> DB
+  Writes --> DB
+  Reads --> DB
+
+  classDef ext stroke-dasharray:5 5,stroke:#888,color:#444;
+  class Settings ext;

@@ -1,0 +1,29 @@
+flowchart TB
+  Dev["Developer laptop<br/>Docker Compose<br/>smart-cloud-optimizer project"]
+  Browser["Browser<br/>http://localhost:3000<br/>http://127.0.0.1:3000"]
+
+  subgraph Net["Bridge network optimizer-net<br/>In-network DNS: backend, frontend"]
+    subgraph BackendC["backend service<br/>image optimizer-backend<br/>python:3.12-slim + uvicorn :8000"]
+      BE["FastAPI backend_api.main:app<br/>--host 0.0.0.0 --port 8000<br/>lifespan ensure_schema<br/>Health GET /health"]
+    end
+    subgraph FrontendC["frontend service<br/>image optimizer-frontend<br/>Next.js :3000"]
+      FE["Next.js UI<br/>NEXT_PUBLIC_API_BASE_URL build arg<br/>http://localhost:8000 host-reachable<br/>depends_on backend healthy"]
+    end
+    subgraph StreamlitC["streamlit service<br/>profile full only<br/>Reuses optimizer-backend image"]
+      ST["Streamlit dashboard/app.py :8501<br/>--server.address 0.0.0.0<br/>depends_on backend healthy"]
+    end
+  end
+
+  Vol[("Named volume optimizer-data<br/>Mounted at /app/data<br/>Seeded from image, appuser uid 10001<br/>SQLite WAL writable<br/>down -v resets demo DB")]
+  EnvFile[".env optional<br/>DEMO_MODE GOOGLE_API_KEY MODEL<br/>AWS_REGION ACCOUNT_ID<br/>ONBOARDING_API_TOKEN<br/>Base AWS keys for CLI role path"]
+  SettingsNote["runtime_settings.json<br/>Not in image, not in volume<br/>Lost on container recreate"]
+
+  Browser -->|"127.0.0.1:3000 loopback"| FE
+  Browser -->|"127.0.0.1:8000 loopback<br/>Docs /docs, health /health"| BE
+  Browser -->|"127.0.0.1:8501 loopback<br/>full profile only"| ST
+  FE -.->|"Browser-side fetch only<br/>Never backend service name"| BE
+  BE -->|"Read write<br/>data/cloud_optimizer.db"| Vol
+  ST -->|"Shares same DB file"| Vol
+  EnvFile -.->|"env_file + environment override"| BE
+  EnvFile -.->|"env_file + environment override"| ST
+  BE -.->|"Writes, excluded from Git + image"| SettingsNote

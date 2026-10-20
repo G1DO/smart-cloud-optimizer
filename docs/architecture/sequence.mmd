@@ -1,0 +1,39 @@
+flowchart TB
+  Browser["Browser<br/>localStorage user_id<br/>Defaults to aws-SYNTHETIC-001"]
+  Next["Next.js :3000<br/>Account Settings, dashboard<br/>recommendations, forecast pages"]
+  API["FastAPI :8000<br/>Routers validate + scope by user_id<br/>Trust-based, no server auth"]
+  Storage["storage facade<br/>get_connection ensure_schema<br/>insert_* get_* no-commit"]
+  Collector["CollectorRunner thread<br/>from_connection keys or role<br/>12 months newest-first"]
+  DB[("SQLite<br/>data/cloud_optimizer.db")]
+  AWS["AWS via boto3<br/>STS Cost Explorer CloudWatch"]
+  Gemini["Gemini<br/>Advisor completions"]
+
+  Browser -->|"1 HTTP GET with user_id<br/>Page load or refresh"| Next
+  Next -->|"2 HTTP JSON user_id query<br/>NEXT_PUBLIC_API_BASE_URL"| API
+  API -->|"3 ensure_schema<br/>Open WAL connection"| Storage
+  Storage -->|"4 SELECT scoped by user_id"| DB
+  DB -->|"5 Rows"| Storage
+  Storage -->|"6 Dicts"| API
+  API -->|"7 JSON costs recs forecast"| Next
+  Next -->|"8 Render Plotly + tables"| Browser
+
+  Browser -->|"A Save keys in Account Settings"| Next
+  Next -->|"B POST /api/connections<br/>Keys + region + optional account_id"| API
+  API -->|"C Validate AKIA-ASIA + format<br/>STS resolve when account missing<br/>ensure_user + add_aws_connection"| Storage
+  Storage -->|"D INSERT aws_connections<br/>Plaintext keys, UNIQUE user account"| DB
+
+  Browser -->|"E POST sync"| Next
+  Next -->|"F POST /api/connections/id/sync"| API
+  API -->|"G 409 when _SYNCING or in_progress<br/>Else mark in_progress + 202<br/>Spawn daemon thread"| Collector
+  Collector -->|"H Fresh thread connection<br/>clear_user_data + collectors<br/>Costs EC2 RDS Lambda S3 DynamoDB<br/>ElastiCache ECS NAT ELB pricing<br/>Commit per month"| Storage
+  Storage -->|"I INSERT OR REPLACE<br/>Partial data when failure"| DB
+  Collector -->|"J success or failed + message<br/>last_sync_at now"| DB
+  Collector -.->|"K Live read when real mode"| AWS
+  Next -->|"L Poll GET /api/connections<br/>sync_status badge"| API
+
+  Browser -->|"M Build advisor prompt"| Next
+  Next -->|"N POST /api/ai-onboarding/generate<br/>4000-char guard"| API
+  API -->|"O Prompt to Gemini<br/>502 when key missing or fail"| Gemini
+  Gemini -->|"P Recommendation text"| API
+  API -->|"Q INSERT ai_recommendations"| Storage
+  Storage -->|"R Commit"| DB
