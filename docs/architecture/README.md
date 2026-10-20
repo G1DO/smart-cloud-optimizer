@@ -3,6 +3,27 @@
 The application on `main` uses a TypeScript/Next.js browser UI and a Python
 FastAPI backend. The optional Streamlit UI calls the Python engines directly.
 
+## Diagram sources (versioned `.mmd` files)
+
+Change diagrams and text together: every behavior change in the same commit
+must update the affected diagram file(s) below plus this index.
+
+| Level | Source file | Renders |
+| --- | --- | --- |
+| C1 system context | [c1-system-context.mmd](c1-system-context.mmd) | Users, the optimizer system, AWS, Gemini |
+| C2 containers | [c2-containers.mmd](c2-containers.mmd) | Next.js (:3000), FastAPI (:8000), Streamlit (:8501), SQLite, externals |
+| C3 components | [c3-components.mmd](c3-components.mmd) | FastAPI routers, engines, storage facade, SQLite |
+| Sequence | [sequence.mmd](sequence.mmd) | Connection save/sync, forecast request |
+| State | [state.mmd](state.mmd) | Connection/sync and recommendation lifecycle |
+| Deployment | [deployment.mmd](deployment.mmd) | Compose services, network, named volume, ports |
+| Data model | [data-model.md](data-model.md) | How to regenerate the authoritative DDL from `storage/db.py` |
+| ER | [er-diagram.mmd](er-diagram.mmd) | 30 tables, keys + notable columns (DDL is authority; inventory↔metrics links are logical) |
+
+Cross-cutting choices: [decisions](../decisions/README.md) (currently N/A with
+reason; add dated notes there for new hard-to-reverse decisions).
+
+## Overview
+
 ```mermaid
 flowchart LR
   Browser["Browser"]

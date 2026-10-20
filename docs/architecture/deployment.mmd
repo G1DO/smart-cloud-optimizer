@@ -1,0 +1,28 @@
+%% Deployment — local Compose stack on main.
+%% Sources: docker-compose.yml, Dockerfile, .dockerignore,
+%% docs/operations/local-runtime.md, docs/architecture/README.md
+flowchart TB
+  subgraph host["Host (loopback only)"]
+    b1["http://localhost:3000<br/>(frontend)"]
+    b2["http://localhost:8000<br/>(backend)"]
+    b3["http://localhost:8501<br/>(streamlit, profile full)"]
+  end
+
+  subgraph net["Compose network: optimizer-net (bridge)"]
+    fe["frontend service<br/>(optimizer-frontend, :3000)"]
+    be["backend service<br/>(optimizer-backend, :8000, appuser uid 10001)"]
+    st["streamlit service<br/>(same image, profile full, :8501)"]
+  end
+
+  vol[("named volume optimizer-data<br/>(seeded from image /app/data<br/>persists cloud_optimizer.db + WAL)")]
+
+  b1 --> fe
+  b2 --> be
+  b3 --> st
+  fe -->|"depends_on healthy backend<br/>NEXT_PUBLIC_API_BASE_URL=http://localhost:8000"| be
+  st -->|"depends_on healthy backend"| be
+  be --> vol
+  st --> vol
+
+  note["Notes: ports bind 127.0.0.1 on host. backend + streamlit share the image.<br/>runtime_settings.json is NOT persisted (recreated on container rebuild).<br/>No host bind mount on /app/data (keeps appuser-writable ownership)."]
+  be --- note

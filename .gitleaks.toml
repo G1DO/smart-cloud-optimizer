@@ -1,0 +1,17 @@
+# Gitleaks config — Smart Cloud Optimizer (main).
+# Full-history secrets scan runs in CI (verify.yml → secrets-history).
+# Synthetic demo placeholders (SYNTHETIC-001 family) are not secrets and are
+# allowlisted here so the history scan stays green without weakening rules.
+# Fail-closed: no allowlisted real-key patterns, no generic skips.
+
+title = "smart-cloud-optimizer"
+
+[allowlist]
+description = "Synthetic demo placeholders — never real credentials"
+regexTarget = "match"
+regexes = [
+  '''(?i)SYNTHETIC-001''',
+  '''(?i)synthetic-001''',
+  '''aws-SYNTHETIC-001''',
+  '''SYNTHETIC-001''',
+]

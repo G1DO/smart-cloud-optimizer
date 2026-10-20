@@ -1,0 +1,25 @@
+%% State — connection/sync and recommendation lifecycle on main.
+%% Sources: backend_api/routers/connections.py, aws_collector/runner.py,
+%% optimizer/engine.py, docs/architecture/README.md,
+%% docs/architecture/data-pipeline.md, docs/architecture/engines/optimizer.md
+stateDiagram-v2
+  [*] --> Unsaved: user opens Account Settings
+  Unsaved --> Tested: POST /connections/test (STS resolves account)
+  Tested --> Unsaved: keys rejected
+  Unsaved --> Saved: POST /connections (stored under aws-account_id)
+  Tested --> Saved: POST /connections (save after test)
+  Saved --> Syncing: POST /connections/{id}/sync (background thread)
+  Syncing --> Ready: collect newest-first completes (incremental commits)
+  Syncing --> Partial: collector or API failure mid-run
+  Partial --> Syncing: re-run sync (clears account data, retries)
+  Ready --> Syncing: re-run sync (full replacement per account)
+  Ready --> Stale: new months accrue / settings change (no auto re-collect)
+
+  state Recommendations {
+    [*] --> Empty: optimize() deletes user rows first
+    Empty --> Generated: LP right-sizing + rule checks run
+    Generated --> Stored: INSERT into recommendations + COMMIT
+    Stored --> Empty: next optimize() run deletes again
+  }
+
+  Ready --> Empty: run optimizer for workspace user

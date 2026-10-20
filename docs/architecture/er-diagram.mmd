@@ -1,0 +1,256 @@
+erDiagram
+  %% SQLite schema on main (trimmed to keys + notable columns).
+  %% Authority is the DDL in storage/db.py (_SCHEMA_DDL); full column lists,
+  %% CHECKs, and indexes live there — generate them from ensure_schema()
+  %% instead of copying SQL here. See docs/architecture/data-model.md.
+  %% Only the users FKs below are enforced; inventory<..>metrics links are
+  %% logical (shared resource id + user_id, no declared FK).
+  %% instance_pricing is standalone (shared catalog, no user_id).
+  users ||--o{ aws_connections : "owns"
+  users ||--o{ daily_costs : "scopes"
+  users ||--o{ service_costs : "scopes"
+  users ||--o{ service_region_costs : "scopes"
+  users ||--o{ ec2_instances : "scopes"
+  users ||--o{ ec2_metrics : "scopes"
+  users ||--o{ rds_instances : "scopes"
+  users ||--o{ rds_metrics : "scopes"
+  users ||--o{ elasticache_nodes : "scopes"
+  users ||--o{ elasticache_metrics : "scopes"
+  users ||--o{ ecs_services : "scopes"
+  users ||--o{ ecs_metrics : "scopes"
+  users ||--o{ lambda_functions : "scopes"
+  users ||--o{ lambda_metrics : "scopes"
+  users ||--o{ ebs_volumes : "scopes"
+  users ||--o{ ebs_metrics : "scopes"
+  users ||--o{ s3_buckets : "scopes"
+  users ||--o{ s3_metrics : "scopes"
+  users ||--o{ dynamodb_tables : "scopes"
+  users ||--o{ dynamodb_metrics : "scopes"
+  users ||--o{ nat_gateways : "scopes"
+  users ||--o{ nat_gateway_metrics : "scopes"
+  users ||--o{ elb_instances : "scopes"
+  users ||--o{ elb_metrics : "scopes"
+  users ||--o{ ai_recommendations : "scopes"
+  users ||--o{ forecasts : "scopes"
+  users ||--o{ recommendations : "scopes"
+  users ||--o{ anomalies : "scopes"
+
+  ec2_instances |o..o{ ec2_metrics : "observed as (logical)"
+  rds_instances |o..o{ rds_metrics : "observed as (logical)"
+  elasticache_nodes |o..o{ elasticache_metrics : "observed as (logical)"
+  ecs_services |o..o{ ecs_metrics : "observed as (logical)"
+  lambda_functions |o..o{ lambda_metrics : "observed as (logical)"
+  ebs_volumes |o..o{ ebs_metrics : "observed as (logical)"
+  s3_buckets |o..o{ s3_metrics : "observed as (logical)"
+  dynamodb_tables |o..o{ dynamodb_metrics : "observed as (logical)"
+  nat_gateways |o..o{ nat_gateway_metrics : "observed as (logical)"
+  elb_instances |o..o{ elb_metrics : "observed as (logical)"
+
+  users {
+    TEXT user_id PK
+    TEXT email
+    TEXT password_hash
+    TEXT user_type
+    TEXT created_at
+  }
+  aws_connections {
+    INTEGER id PK
+    TEXT user_id FK
+    TEXT connection_name
+    TEXT aws_account_id
+    TEXT auth_type
+    INTEGER access_verified
+    TEXT sync_status
+    TEXT last_sync_at
+  }
+  daily_costs {
+    TEXT date PK
+    TEXT user_id PK
+    REAL total_cost
+  }
+  service_costs {
+    TEXT date PK
+    TEXT user_id PK
+    TEXT service PK
+    REAL daily_cost
+  }
+  service_region_costs {
+    TEXT date PK
+    TEXT user_id PK
+    TEXT service PK
+    TEXT region PK
+    REAL daily_cost
+  }
+  ec2_instances {
+    TEXT instance_id PK
+    TEXT user_id PK
+    TEXT instance_type
+    TEXT state
+    TEXT pricing_model
+    REAL monthly_cost
+  }
+  ec2_metrics {
+    TEXT timestamp PK
+    TEXT user_id PK
+    TEXT instance_id PK
+    REAL cpu_utilization
+  }
+  rds_instances {
+    TEXT db_instance_id PK
+    TEXT user_id PK
+    TEXT db_instance_class
+    TEXT engine
+    TEXT pricing_model
+    REAL monthly_cost
+  }
+  rds_metrics {
+    TEXT timestamp PK
+    TEXT user_id PK
+    TEXT db_instance_id PK
+    REAL cpu_utilization
+  }
+  elasticache_nodes {
+    TEXT cache_cluster_id PK
+    TEXT user_id PK
+    TEXT cache_node_type
+    TEXT engine
+    REAL monthly_cost
+  }
+  elasticache_metrics {
+    TEXT timestamp PK
+    TEXT user_id PK
+    TEXT cache_cluster_id PK
+    REAL cpu_utilization
+  }
+  ecs_services {
+    TEXT service_name PK
+    TEXT user_id PK
+    TEXT cluster_name
+    TEXT launch_type
+    REAL monthly_cost
+  }
+  ecs_metrics {
+    TEXT timestamp PK
+    TEXT user_id PK
+    TEXT service_name PK
+    REAL cpu_utilization
+  }
+  lambda_functions {
+    TEXT function_name PK
+    TEXT user_id PK
+    TEXT runtime
+    INTEGER memory_mb
+    REAL monthly_cost
+  }
+  lambda_metrics {
+    TEXT date PK
+    TEXT user_id PK
+    TEXT function_name PK
+    INTEGER invocations
+    REAL avg_memory_used_mb
+  }
+  ebs_volumes {
+    TEXT volume_id PK
+    TEXT user_id PK
+    TEXT volume_type
+    INTEGER size_gb
+    TEXT state
+    REAL monthly_cost
+  }
+  ebs_metrics {
+    TEXT timestamp PK
+    TEXT user_id PK
+    TEXT volume_id PK
+    REAL read_ops
+    REAL write_ops
+  }
+  s3_buckets {
+    TEXT bucket_name PK
+    TEXT user_id PK
+    TEXT storage_class
+    REAL monthly_cost
+  }
+  s3_metrics {
+    TEXT timestamp PK
+    TEXT user_id PK
+    TEXT bucket_name PK
+    REAL bucket_size_bytes
+  }
+  dynamodb_tables {
+    TEXT table_name PK
+    TEXT user_id PK
+    TEXT capacity_mode
+    REAL monthly_cost
+  }
+  dynamodb_metrics {
+    TEXT timestamp PK
+    TEXT user_id PK
+    TEXT table_name PK
+    REAL consumed_read_units
+    REAL consumed_write_units
+  }
+  nat_gateways {
+    TEXT nat_gateway_id PK
+    TEXT user_id PK
+    TEXT vpc_id
+    REAL monthly_cost
+  }
+  nat_gateway_metrics {
+    TEXT timestamp PK
+    TEXT user_id PK
+    TEXT nat_gateway_id PK
+    REAL bytes_in
+    REAL bytes_out
+  }
+  elb_instances {
+    TEXT elb_arn PK
+    TEXT user_id PK
+    TEXT elb_name
+    TEXT elb_type
+    INTEGER target_count
+    REAL monthly_cost
+  }
+  elb_metrics {
+    TEXT timestamp PK
+    TEXT user_id PK
+    TEXT elb_arn PK
+    INTEGER request_count
+  }
+  instance_pricing {
+    INTEGER id PK
+    TEXT service
+    TEXT instance_type
+    REAL on_demand_monthly
+  }
+  ai_recommendations {
+    INTEGER id PK
+    TEXT user_id FK
+    TEXT app_type
+    REAL estimated_cost
+    TEXT llm_model
+  }
+  forecasts {
+    INTEGER id PK
+    TEXT user_id FK
+    TEXT service
+    TEXT forecast_date
+    REAL predicted_cost
+    TEXT model_type
+  }
+  recommendations {
+    INTEGER id PK
+    TEXT user_id FK
+    TEXT service
+    TEXT resource_id
+    TEXT recommendation_type
+    REAL monthly_savings
+    TEXT confidence
+  }
+  anomalies {
+    INTEGER id PK
+    TEXT user_id FK
+    TEXT service
+    TEXT anomaly_date
+    REAL deviation_percent
+    TEXT severity
+  }

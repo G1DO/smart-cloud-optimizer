@@ -1,0 +1,12 @@
+%% C1 — System context (Smart Cloud Optimizer on main).
+%% Actors and external systems only; no internal containers.
+%% Sources: docs/architecture/README.md, docker-compose.yml, backend_api/main.py
+flowchart LR
+  user["User<br/>(browser)"]
+  system["Smart Cloud Optimizer<br/>(Next.js UI + FastAPI backend + SQLite)"]
+  aws["AWS<br/>(Cost Explorer / CloudWatch / service APIs via boto3)"]
+  gemini["Google Gemini<br/>(AI recommendations via GOOGLE_MODEL)"]
+
+  user -->|"uses (HTTP, Next.js :3000 / FastAPI :8000)"| system
+  system -->|"collects costs / inventory / metrics<br/>(live sync, stored keys or role creds)"| aws
+  system -->|"questionnaire prompt -> advice JSON<br/>(requires GOOGLE_API_KEY)"| gemini

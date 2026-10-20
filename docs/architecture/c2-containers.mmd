@@ -1,0 +1,30 @@
+%% C2 — Containers (deployable units on main).
+%% Sources: docs/architecture/README.md, docker-compose.yml, Dockerfile,
+%% backend_api/main.py, dashboard/app.py, storage/db.py
+flowchart LR
+  browser["Browser<br/>(user agent)"]
+
+  subgraph frontend["Frontend container (:3000)"]
+    nextui["Next.js UI<br/>(routes, Plotly charts, session helper)"]
+  end
+
+  subgraph backend["Backend container (:8000)"]
+    fastapi["FastAPI app<br/>(routers + engines + storage facade)"]
+  end
+
+  subgraph legacy["Legacy container (:8501, profile full, optional)"]
+    streamlit["Streamlit UI<br/>(dashboard/app.py, direct Python calls)"]
+  end
+
+  db[("SQLite DB<br/>(data/cloud_optimizer.db<br/>named volume optimizer-data)")]
+  aws["AWS<br/>(Cost Explorer / CloudWatch via boto3)"]
+  gemini["Google Gemini<br/>(AI recommendations)"]
+
+  browser -->|"HTTP (pages + API calls)"| nextui
+  nextui -->|"HTTP / JSON<br/>(NEXT_PUBLIC_API_BASE_URL=http://localhost:8000)"| fastapi
+  browser -->|"HTTP (optional legacy UI)"| streamlit
+  fastapi -->|"SQL via storage facade<br/>(some routes use direct SQL)"| db
+  streamlit -->|"direct Python calls + storage"| db
+  fastapi -->|"sync via CollectorRunner<br/>(background thread)"| aws
+  aws -->|"inventory / metrics / costs"| fastapi
+  fastapi -->|"prompt -> JSON"| gemini

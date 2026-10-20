@@ -104,7 +104,7 @@ command-line experiment on a disposable database copy.
 ## Develop and maintain
 
 - [Development checks](docs/development/README.md): Python tests, frontend lint/build, and contract verification.
-- [Architecture](docs/architecture/README.md): components, identity, persistence, and engine boundaries.
+- [Architecture](docs/architecture/README.md): components, identity, persistence, and engine boundaries — versioned `.mmd` diagrams (C1/C2/C3, sequence, state, deployment, ER) are indexed there.
 - [API contracts](docs/api/http.md) and [configuration](docs/reference/configuration.md): generated reference and active inputs.
 - [Local operations](docs/operations/local-runtime.md): diagnostics, data preservation, and recovery.
 - [Security](docs/security/README.md) and [vulnerability reporting](SECURITY.md): current trust limits and reporting route.
