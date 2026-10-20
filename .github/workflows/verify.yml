@@ -1,5 +1,5 @@
 # verify — sole CI gate for `main` (Starter §CI Gate job).
-# Local parity: `python -m poe verify` runs test → migrate → build →
+# Local parity: `poe verify` runs test → migrate → build →
 # check:hygiene → diagrams (see pyproject.toml [tool.poe.tasks.verify]).
 # CI mirrors the same task verbs; `gate` is the single aggregating check
 # required in branch protection. No `|| true`, no `continue-on-error`.
@@ -73,7 +73,7 @@ jobs:
       - name: Run verify (test → migrate → build → check:hygiene → diagrams)
         run: |
           set -eu
-          python -m poe verify
+          poe verify
 
   # Full-history secrets scan (gitleaks). Uses .gitleaks.toml allowlist for
   # synthetic SYNTHETIC-001 placeholders only; real leaks fail closed.
