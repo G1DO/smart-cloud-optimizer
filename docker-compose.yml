@@ -1,6 +1,6 @@
 # Smart Cloud Optimizer — local stack.
 # Published ports bind to host loopback; container listeners remain reachable
-# inside optimizer-net. See docs/operations/local-runtime.md.
+# inside optimizer-net. See README.md Operations.
 #   Core:     docker compose up --build           (backend + frontend)
 #   Full:     docker compose --profile full up --build   (adds Streamlit)
 #
