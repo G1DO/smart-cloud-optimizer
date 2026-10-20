@@ -50,10 +50,7 @@ Connections: Test and Save are separate — save with supplied account ID does n
 python3 -m pip check
 python3 -m pytest tests/ -v
 git diff --check
-python3 scripts/check_secrets.py
-python3 scripts/verify_schema_restore.py
-python3 scripts/check_no_placeholders.py
-python3 scripts/check_no_pasted_diagrams.py
+gitleaks detect --source . --config .gitleaks.toml --verbose
 cd frontend && npm ci && npm run lint && npm run build
 ```
 
@@ -71,6 +68,47 @@ Same checks run in CI `verify` job, required for merge. Verbs: `pyproject.toml [
 
 ## Architecture
 
+```mermaid
+flowchart LR
+  Browser["Browser"]
+  NextUI["Next.js UI<br/>(port 3000)"]
+
+  subgraph BE["FastAPI backend (port 8000)"]
+    API["FastAPI routers<br/>(trust-based user_id)"]
+    Storage["storage facade<br/>(shared data API)"]
+    Optimizer["optimizer<br/>(PuLP right-sizing + rules)"]
+    ML["ml_engine<br/>(forecasts / anomalies)"]
+    AImod["ai_module<br/>(Gemini advisor)"]
+    Collector["aws_collector<br/>(boto3 pipeline)"]
+  end
+
+  DB[("SQLite DB<br/>data/cloud_optimizer.db")]
+  Synthetic["data_generation.synthetic<br/>(demo seed)"]
+  AWS["AWS<br/>(Cost Explorer / CloudWatch via boto3)"]
+  Gemini["Google Gemini<br/>(AI recommendations)"]
+
+  Browser --> NextUI
+  NextUI -->|"HTTP / JSON"| API
+  API --> Storage
+  API --> Optimizer
+  API --> ML
+  API --> AImod
+  API --> Collector
+  Optimizer --> Storage
+  ML --> Storage
+  AImod --> Storage
+  Collector --> Storage
+  Storage --> DB
+  API -->|"route-specific SQL"| DB
+
+  Collector -. "real mode" .-> AWS
+  AImod -. "AI calls" .-> Gemini
+  Synthetic -. "demo mode" .-> Storage
+
+  classDef ext stroke-dasharray:5 5,stroke:#888,color:#444;
+  class AWS,Gemini,Synthetic ext;
+```
+
 Code is canonical. Diagrams: Mermaid `.mmd` validated with mermaid-cli, Excalidraw never canonical.
 
 | View | Source |
@@ -81,7 +119,7 @@ Code is canonical. Diagrams: Mermaid `.mmd` validated with mermaid-cli, Excalidr
 | Sequence | `docs/architecture/sequence.mmd` |
 | State | `docs/architecture/state.mmd` |
 | Deployment | `docs/architecture/deployment.mmd` |
-| Data model | `docs/architecture/data-model.md` — generator from `storage/db.py`, additive `ensure_schema`, compat proof via `scripts/verify_schema_restore.py` |
+| Data model | `docs/architecture/data-model.md` — generator from `storage/db.py`, additive `ensure_schema` |
 
 `storage/` is preferred facade but forecast/recommendation/connection routes also issue direct SQL. Identity: `usr-…` on register, web save switches to `aws-<account_id>`; legacy Streamlit stays on `usr-…`.
 
