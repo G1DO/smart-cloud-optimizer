@@ -24,46 +24,10 @@ reason; add dated notes there for new hard-to-reverse decisions).
 
 ## Overview
 
-```mermaid
-flowchart LR
-  Browser["Browser"]
-  NextUI["Next.js UI<br/>(port 3000)"]
-
-  subgraph BE["FastAPI backend (port 8000)"]
-    API["FastAPI routers<br/>(trust-based user_id)"]
-    Storage["storage facade<br/>(shared data API)"]
-    Optimizer["optimizer<br/>(PuLP right-sizing + rules)"]
-    ML["ml_engine<br/>(forecasts / anomalies)"]
-    AImod["ai_module<br/>(Gemini advisor)"]
-    Collector["aws_collector<br/>(boto3 pipeline)"]
-  end
-
-  DB[("SQLite DB<br/>data/cloud_optimizer.db")]
-  Synthetic["data_generation.synthetic<br/>(demo seed)"]
-  AWS["AWS<br/>(Cost Explorer / CloudWatch via boto3)"]
-  Gemini["Google Gemini<br/>(AI recommendations)"]
-
-  Browser --> NextUI
-  NextUI -->|"HTTP / JSON"| API
-  API --> Storage
-  API --> Optimizer
-  API --> ML
-  API --> AImod
-  API --> Collector
-  Optimizer --> Storage
-  ML --> Storage
-  AImod --> Storage
-  Collector --> Storage
-  Storage --> DB
-  API -->|"route-specific SQL"| DB
-
-  Collector -. "real mode" .-> AWS
-  AImod -. "AI calls" .-> Gemini
-  Synthetic -. "demo mode" .-> Storage
-
-  classDef ext stroke-dasharray:5 5,stroke:#888,color:#444;
-  class AWS,Gemini,Synthetic ext;
-```
+Render the versioned sources above with `poe diagrams` (CI validates every
+`.mmd` with `mmdc`). Pasted `mermaid` blocks are not used — the canonical
+diagrams are the `.mmd` files indexed above (C1/C2/C3, sequence, state,
+deployment, ER).
 
 ## Boundaries
 
