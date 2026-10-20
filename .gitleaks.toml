@@ -1,0 +1,32 @@
+# Gitleaks config — Smart Cloud Optimizer (main).
+# Full-history + working-tree secrets scan runs via scripts/check_secrets.py
+# (poe check:secrets) and .github/workflows/secrets.yml.
+# Fail-closed: extends default rules; allowlists cover only synthetic demo
+# placeholders and AWS documentation example keys, plus build-artifact paths.
+# Real leaks fail the scan. Do not add real-key patterns here.
+
+title = "smart-cloud-optimizer"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Synthetic demo placeholders and AWS docs example keys — never real credentials"
+regexTarget = "match"
+regexes = [
+  '''(?i)SYNTHETIC-001''',
+  '''aws-SYNTHETIC-001''',
+  '''SYNTHETIC-001''',
+  '''AKIAIOSFODNN7EXAMPLE''',
+  '''wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY''',
+]
+paths = [
+  '''frontend/\.next/.*''',
+  '''\.next/.*''',
+  '''frontend/node_modules/.*''',
+  '''frontend/out/.*''',
+  '''\.pytest_cache/.*''',
+  '''\.pytest_tmp/.*''',
+  '''htmlcov/.*''',
+  '''.*\.pyc$''',
+]

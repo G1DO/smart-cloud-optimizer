@@ -1,0 +1,7 @@
+#!/bin/sh
+# Pre-push hook — push protection for secrets (local side of check:secrets).
+# Install once per clone: git config core.hooksPath .githooks
+# Blocks the push when the working-tree + history scan fails.
+set -eu
+echo "pre-push: running check:secrets (working tree + history)…"
+python3 scripts/check_secrets.py

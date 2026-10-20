@@ -9,3 +9,57 @@ omit = ["tests/*"]
 [tool.coverage.report]
 show_missing = true
 fail_under = 0
+
+# Task verbs (Starter §Task verbs, §CI Same checks locally).
+# Short shell steps calling standard tools directly, no glue scripts.
+# Omitted suites stay omitted with reason, never stubbed/skipped;
+# a missing tool fails closed (exit 2 with install message), never passes.
+# Prototype note: test + verify are the only required gates for
+# prototype-stage changes; the other verbs run on demand or in review.
+[tool.poe.tasks.dev]
+help = "Backend dev server (uvicorn, loopback only)"
+shell = """python -c "import uvicorn" 2>/dev/null || { echo "dev: missing tool uvicorn (pip install -r requirements.txt)"; exit 2; }; python -m uvicorn backend_api.main:app --reload --host 127.0.0.1 --port 8000"""
+
+[tool.poe.tasks.test]
+help = "Backend suite (pytest; missing tool fails closed)"
+shell = """python -c "import pytest" 2>/dev/null || { echo "test: missing tool pytest (pip install -r requirements.txt)"; exit 2; }; python -m pytest tests/ -v"""
+
+[tool.poe.tasks.migrate]
+help = "Schema compat gate: ensure_schema on disposable DB (real DB migrates on backend startup)"
+shell = "python -c \"import sqlite3; from storage import ensure_schema; c=sqlite3.connect(':memory:'); ensure_schema(c); c.close(); print('migrate ok')\""
+
+[tool.poe.tasks.build]
+help = "Backend compileall + frontend production build (missing npm fails closed)"
+shell = """command -v npm >/dev/null 2>&1 || { echo "build: missing tool npm (install Node 22+)"; exit 2; }; python -m compileall -q backend_api cloud_optimizer aws_collector storage data_generation ml_engine optimizer ai_module dashboard && npm --prefix frontend run build"""
+
+[tool.poe.tasks."test:contract"]
+help = "Frontend/backend contract tests (pytest; omitted with reason if suite absent)"
+shell = """test -f tests/test_frontend_backend_contract.py || { echo "test:contract omitted: no contract suite in tree"; exit 0; }; python -c "import pytest" 2>/dev/null || { echo "test:contract: missing tool pytest (pip install -r requirements.txt)"; exit 2; }; python -m pytest tests/test_frontend_backend_contract.py -v"""
+
+[tool.poe.tasks."check:sast"]
+help = "SAST on trust boundary (bandit backend_api+storage; missing tool fails closed)"
+shell = """python -c "import bandit" 2>/dev/null || { echo "check:sast: missing tool bandit (pip install bandit)"; exit 2; }; python -m bandit -r backend_api storage -q"""
+
+[tool.poe.tasks."check:secrets"]
+help = "Secrets scan: working tree + full history + gitleaks (fail-closed)"
+shell = "python scripts/check_secrets.py"
+
+[tool.poe.tasks."check:audit"]
+help = "Dependency audit: pip check authoritative, pip-audit when installed"
+shell = """python -m pip check || exit 1; if command -v pip-audit >/dev/null 2>&1; then pip-audit; else echo "check:audit note: pip-audit not installed — pip check passed (omitted with reason)"; fi"""
+
+[tool.poe.tasks."check:hygiene"]
+help = "Hygiene: git diff --check + the only two custom checks (no stubs, no pasted diagrams)"
+shell = """command -v git >/dev/null 2>&1 || { echo "check:hygiene: missing tool git"; exit 2; }; git diff --check && python scripts/check_no_placeholders.py && python scripts/check_no_pasted_diagrams.py"""
+
+[tool.poe.tasks."check:schema"]
+help = "Schema compat + backup/restore proof on temp copies (does not touch the tracked DB)"
+shell = "python scripts/verify_schema_restore.py"
+
+[tool.poe.tasks.diagrams]
+help = "Render .mmd sources with mermaid-cli (omitted with reason when no .mmd exists)"
+shell = """files=$(find . -name '*.mmd' -not -path './node_modules/*' -not -path './frontend/node_modules/*' -not -path './frontend/.next/*' -not -path './.git/*' -print); if [ -z "$files" ]; then echo "diagrams omitted: no .mmd sources in tree (add docs/<area>/<name>.mmd to enable)"; exit 0; fi; command -v mmdc >/dev/null 2>&1 || { echo "diagrams: missing tool mermaid-cli (npm i -g @mermaid-js/mermaid-cli)"; exit 2; }; for f in $files; do mmdc -i "$f" -o "${f%.mmd}.svg"; done"""
+
+[tool.poe.tasks.verify]
+help = "Required local gate, same checks as CI verify (prototype: test + verify only)"
+shell = """python -c "import pytest" 2>/dev/null || { echo "verify: missing tool pytest (pip install -r requirements.txt)"; exit 2; }; command -v npm >/dev/null 2>&1 || { echo "verify: missing tool npm (install Node 22+)"; exit 2; }; command -v git >/dev/null 2>&1 || { echo "verify: missing tool git"; exit 2; }; python -m pytest tests/ -v && git diff --check && python scripts/check_no_placeholders.py && python scripts/check_no_pasted_diagrams.py && python scripts/check_secrets.py && python scripts/verify_schema_restore.py && npm --prefix frontend run lint && npm --prefix frontend run build"""

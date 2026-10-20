@@ -1,0 +1,110 @@
+# verify — required verification gate for `main` (Starter §CI).
+# Local parity: `poe verify` / `make verify` run the same checks.
+# Triggers: PRs and pushes targeting `main` only, plus manual.
+# No `|| true`, no `continue-on-error`. Does not touch release/ccpe-v1.0.
+name: verify
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout (full history for history-aware scan)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install Python deps
+        run: |
+          set -eu
+          python -m pip install -r requirements.txt
+
+      - name: Backend suite (pytest)
+        run: |
+          set -eu
+          python -m pytest tests/ -v
+
+      - name: Whitespace hygiene (git diff --check)
+        run: |
+          set -eu
+          git diff --check
+
+      - name: Hygiene custom checks (no stubs, no pasted diagrams)
+        run: |
+          set -eu
+          python scripts/check_no_placeholders.py
+          python scripts/check_no_pasted_diagrams.py
+
+      - name: Secrets scan (working tree + full history)
+        run: |
+          set -eu
+          python scripts/check_secrets.py
+
+      - name: Install gitleaks (pinned)
+        run: |
+          set -eu
+          GITLEAKS_VERSION="8.30.1"
+          curl -sSL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" -o /tmp/gitleaks.tar.gz
+          tar -xzf /tmp/gitleaks.tar.gz -C /tmp
+          sudo mv /tmp/gitleaks /usr/local/bin/gitleaks
+          gitleaks version
+
+      - name: Gitleaks history scan (extends default rules + allowlist)
+        run: |
+          set -eu
+          gitleaks detect --source . --config .gitleaks.toml --verbose
+
+      - name: Gitleaks working-tree scan
+        run: |
+          set -eu
+          gitleaks detect --source . --config .gitleaks.toml --no-git --verbose
+
+      - name: Schema compat + backup/restore proof (temp copies only)
+        run: |
+          set -eu
+          python scripts/verify_schema_restore.py
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend deps (committed lockfile)
+        working-directory: frontend
+        run: |
+          set -eu
+          npm ci
+
+      - name: Frontend lint
+        working-directory: frontend
+        run: |
+          set -eu
+          npm run lint
+
+      - name: Frontend build
+        working-directory: frontend
+        run: |
+          set -eu
+          npm run build
