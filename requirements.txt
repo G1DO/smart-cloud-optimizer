@@ -13,7 +13,10 @@ statsmodels==0.14.6
 pmdarima==2.1.1
 
 # Optimization
-pulp>=2.7.0
+# Pinned <4: PuLP 4.x removes LpVariable(...) construction and PULP_CBC_CMD
+# (variables must come from prob.add_variable*; CBC via COIN_CMD). The
+# optimizer still uses the 2.x/3.x API, so allow 3.x patches but block 4.x.
+pulp>=2.7,<4
 
 # AI
 openai>=1.10.0
