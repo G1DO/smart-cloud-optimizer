@@ -1,0 +1,18 @@
+flowchart TB
+  User["Person<br/>Single local user<br/>Browser operator"]
+  Browser["Browser<br/>localStorage holds user_id<br/>No server session"]
+
+  subgraph System["Smart Cloud Optimizer<br/>Local single-user system"]
+    App["Next.js UI + FastAPI API + SQLite<br/>Demo data: aws-SYNTHETIC-001"]
+  end
+
+  AWS["AWS<br/>Cost Explorer + CloudWatch<br/>via boto3"]
+  Gemini["Google Gemini<br/>AI recommendations<br/>gemini-2.5-flash"]
+
+  User -->|"Uses<br/>localhost:3000"| Browser
+  Browser -->|"HTTP JSON, trust-based user_id<br/>CORS: 127.0.0.1:3000, localhost:3000"| App
+  App -.->|"Real mode: STS + collectors<br/>Stored plaintext keys"| AWS
+  App -.->|"Advisor prompts<br/>GOOGLE_API_KEY, 4000-char limit"| Gemini
+
+  classDef ext stroke-dasharray:5 5,stroke:#888,color:#444;
+  class AWS,Gemini ext;

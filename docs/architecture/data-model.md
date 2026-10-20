@@ -41,15 +41,28 @@ It does not reconcile arbitrary older table definitions.
 User IDs represent both registered identities (`usr-…`) and AWS workspaces
 (`aws-<account_id>`). Web connections belong to the AWS workspace; legacy
 Streamlit connections belong to the registered owner. Collection writes data
-into the AWS workspace. See
-[Connection identity and verification](README.md#connection-identity-and-verification).
-Demo data uses `aws-SYNTHETIC-001`. Filtering these IDs is not HTTP authorization.
+into the AWS workspace. Demo data uses `aws-SYNTHETIC-001`. Filtering these IDs is not HTTP authorization.
 
 Passwords use PBKDF2-HMAC-SHA256. Connection access keys and session tokens are
 stored in plaintext, and storage reads expose those columns to Python callers.
-See the [security limitations](../security/README.md).
+See `docs/security/threat-model.md`.
 
-For insert/query behavior and commit ownership, see [Storage API](../api/storage.md).
-For data replacement during sync or seeding, see [Data pipeline](data-pipeline.md).
-Runtime settings are a separate JSON file, described in
-[Architecture](README.md#runtime-settings).
+## Schema compatibility check
+
+`ensure_schema()` is additive only: it creates missing tables/indexes and adds
+the supported AWS credential columns
+(`aws_access_key_id`, `aws_secret_access_key`, `aws_session_token`,
+`auth_type`) to older databases. It never drops data or reconciles arbitrary
+older table definitions. `create_schema()` drops and recreates all tables and
+belongs only in disposable fixtures.
+
+Recorded proof (2026-10-20, `main`):
+fresh `:memory:` init holds 30 tables; migration adds the 4 supported
+credential columns and preserves both users; temp-copy backup/restore
+round-trip `integrity_check` ok. Re-run `poe check:schema` / CI `verify`
+after any schema change.
+
+Re-run the script after any schema or migration change.
+
+For insert/query behavior see `storage/db.py` and `storage/__init__.py`.
+Runtime settings are a separate JSON file `backend_api/runtime_settings.json`, lost on container recreation.

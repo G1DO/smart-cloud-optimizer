@@ -1,0 +1,31 @@
+flowchart LR
+  subgraph SyncStatus["aws_connections.sync_status<br/>CHECK never success failed in_progress<br/>Default never"]
+    Never["never<br/>Saved, not yet synced<br/>Fresh row default"]
+    InProg["in_progress<br/>Thread live<br/>_SYNCING holds id"]
+    Success["success<br/>12-month run committed<br/>last_sync_at set"]
+    Failed["failed<br/>Exception truncated 500 chars<br/>error_message set, partial data kept"]
+    Never -->|"POST sync<br/>202 + thread start"| InProg
+    Success -->|"POST sync again<br/>Full clear + re-collect"| InProg
+    Failed -->|"POST sync retry<br/>Full clear + re-collect"| InProg
+    InProg -->|"Runner completes"| Success
+    InProg -->|"Exception in thread"| Failed
+    InProg -.->|"Second POST sync<br/>409 sync already in progress"| InProg
+  end
+
+  subgraph ConnLife["Connection row lifecycle<br/>user_id aws-account_id UNIQUE"]
+    Test["Test keys<br/>POST /test STS GetCallerIdentity<br/>ok True sets access_verified 1<br/>ok False returns 200 reason"]
+    Save["Save<br/>POST / save, format checks<br/>STS resolve when account missing<br/>409 on duplicate account"]
+    List["List<br/>GET user_id scoped<br/>Secrets omitted, key last4 only"]
+    Delete["Delete<br/>DELETE id + user_id<br/>404 when not owned"]
+    Test --> Save
+    Save --> List
+    List --> Delete
+    Save --> Never
+    List --> Never
+  end
+
+  subgraph Identity["Identity workspace switch"]
+    Reg["usr identity<br/>POST /api/auth/signup<br/>PBKDF2 stored, no token"]
+    Ws["aws-account workspace<br/>ensure_user aws-account_id<br/>Web save switches to it<br/>Collector writes into it"]
+    Reg -->|"Save connection<br/>Owner becomes aws-account"| Ws
+  end

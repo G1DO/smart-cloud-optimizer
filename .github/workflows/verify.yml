@@ -1,0 +1,131 @@
+# verify — required verification gate for `main`.
+# Local parity: `poe verify` / `make verify` run the same standard checks.
+# Triggers: PRs and pushes targeting `main` only, plus manual.
+# No `|| true`, no `continue-on-error`. Does not touch release/ccpe-v1.0.
+# Standard tools only: pytest, git, grep, gitleaks, python stdlib, npm.
+name: verify
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout (full history for history-aware scan)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install Python deps
+        run: |
+          set -eu
+          python -m pip install -r requirements.txt
+
+      - name: Backend suite (pytest)
+        run: |
+          set -eu
+          python -m pytest tests/ -v
+
+      - name: Whitespace hygiene (git diff --check)
+        run: |
+          set -eu
+          git diff --check
+
+      - name: Stub hygiene (grep, no placeholders)
+        run: |
+          set -eu
+          # Fail on bare stubs; scoped TODO(ref) passes, binaries skipped.
+          if git grep -I -n -E -e 'TODO[^\(]|FIXME|XXX|HACK|lorem|NotImplementedError' --and --not -e 'TODO\[' -- . ':!frontend/node_modules' ':!paper' ':!frontend/package-lock.json'; then
+            echo "stub hygiene FAIL — remove bare stubs above"
+            exit 1
+          fi
+          echo "stub hygiene ok"
+
+      - name: Install gitleaks (pinned)
+        run: |
+          set -eu
+          GITLEAKS_VERSION="8.30.1"
+          curl -sSL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" -o /tmp/gitleaks.tar.gz
+          tar -xzf /tmp/gitleaks.tar.gz -C /tmp
+          sudo mv /tmp/gitleaks /usr/local/bin/gitleaks
+          gitleaks version
+
+      - name: Gitleaks history scan
+        run: |
+          set -eu
+          gitleaks detect --source . --config .gitleaks.toml --verbose
+
+      - name: Gitleaks working-tree scan
+        run: |
+          set -eu
+          gitleaks detect --source . --config .gitleaks.toml --no-git --verbose
+
+      - name: Schema compat + restore proof (stdlib only, temp copies)
+        run: |
+          set -eu
+          python3 - <<'PY'
+          import sqlite3, tempfile
+          from contextlib import closing
+          from pathlib import Path
+          from storage import ensure_schema
+          with closing(sqlite3.connect(":memory:")) as c:
+              ensure_schema(c)
+              tables = [r[0] for r in c.execute("SELECT name FROM sqlite_master WHERE type='table'")]
+              assert "aws_connections" in tables, "missing aws_connections"
+              print(f"fresh schema ok: {len(tables)} tables")
+          with tempfile.TemporaryDirectory() as d:
+              src = Path("data/cloud_optimizer.db")
+              dst = Path(d) / "restore.db"
+              if src.exists():
+                  with closing(sqlite3.connect(f"{src.as_posix()}?mode=ro", uri=True)) as s:
+                      with closing(sqlite3.connect(dst.as_posix())) as t:
+                          s.backup(t)
+                          assert t.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
+                          print("restore round-trip ok")
+              else:
+                  print("restore skipped: no tracked demo DB")
+          PY
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend deps (committed lockfile)
+        working-directory: frontend
+        run: |
+          set -eu
+          npm ci
+
+      - name: Frontend lint
+        working-directory: frontend
+        run: |
+          set -eu
+          npm run lint
+
+      - name: Frontend build
+        working-directory: frontend
+        run: |
+          set -eu
+          npm run build

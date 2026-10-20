@@ -1,0 +1,8 @@
+# CODEOWNERS — application PRs target `main`; `release/ccpe-v1.0` untouched.
+# Fallback first: everything needs the owner when no scoped rule matches.
+
+* @G1DO
+/backend_api/ @G1DO
+/frontend/ @G1DO
+/storage/ @G1DO
+/docs/ @G1DO

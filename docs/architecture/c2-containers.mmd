@@ -1,0 +1,45 @@
+flowchart LR
+  Browser["Browser<br/>localStorage user_id<br/>No Next.js middleware guard"]
+
+  subgraph FE["Frontend container<br/>optimizer-frontend :3000"]
+    NextUI["Next.js UI<br/>Routes, Plotly charts<br/>NEXT_PUBLIC_API_BASE_URL<br/>http://localhost:8000 build-time"]
+  end
+
+  subgraph BE["Backend container<br/>optimizer-backend :8000<br/>uvicorn backend_api.main:app"]
+    API["FastAPI routers<br/>trust-based user_id query param<br/>traceparent + X-Request-ID"]
+    Storage["storage facade<br/>shared data API<br/>get_connection + ensure_schema"]
+    Optimizer["optimizer<br/>PuLP right-sizing + rules<br/>Replaces recommendations"]
+    ML["ml_engine<br/>forecaster + data_prep<br/>anomaly + evaluator"]
+    AImod["ai_module<br/>Gemini advisor<br/>Questionnaire prompt"]
+    Collector["aws_collector<br/>CollectorRunner + collectors<br/>Background thread sync"]
+  end
+
+  DB[("SQLite<br/>data/cloud_optimizer.db<br/>WAL, 30 tables")]
+  Synthetic["data_generation.synthetic<br/>Seed CLI, demo fixtures"]
+  Streamlit["Streamlit UI :8501<br/>profile full only<br/>Calls Python directly"]
+  AWS["AWS<br/>Cost Explorer + CloudWatch<br/>boto3"]
+  Gemini["Google Gemini<br/>gemini-2.5-flash"]
+
+  Browser -->|"HTTP JSON<br/>browser-side"| NextUI
+  NextUI -->|"HTTP JSON<br/>in-network via host URL"| API
+  API --> Storage
+  API --> Optimizer
+  API --> ML
+  API --> AImod
+  API --> Collector
+  Streamlit --> Storage
+  Streamlit --> Optimizer
+  Streamlit --> ML
+  Streamlit --> AImod
+  Optimizer --> Storage
+  ML --> Storage
+  AImod --> Storage
+  Collector --> Storage
+  Storage --> DB
+  API -.->|"Route-specific direct SQL<br/>forecast, recommendations, connections"| DB
+  Synthetic -.->|"Demo seed<br/>INSERT OR REPLACE"| Storage
+  Collector -.->|"Real mode<br/>Stored keys or role"| AWS
+  AImod -.->|"Advisor calls<br/>GOOGLE_API_KEY"| Gemini
+
+  classDef ext stroke-dasharray:5 5,stroke:#888,color:#444;
+  class AWS,Gemini,Synthetic ext;

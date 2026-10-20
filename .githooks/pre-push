@@ -1,0 +1,11 @@
+#!/bin/sh
+# Pre-push hook — push protection for secrets (local side of check:secrets).
+# Install once per clone: git config core.hooksPath .githooks
+# Blocks the push when gitleaks finds a leak.
+set -eu
+if ! command -v gitleaks >/dev/null 2>&1; then
+  echo "pre-push: missing tool gitleaks (see .github/workflows/verify.yml pinned install)"
+  exit 2
+fi
+echo "pre-push: running gitleaks (history)…"
+gitleaks detect --source . --config .gitleaks.toml --verbose

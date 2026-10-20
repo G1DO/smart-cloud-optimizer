@@ -8,6 +8,7 @@ Part of the Smart Cloud Optimizer graduation project.
 """
 import logging
 import os
+import sys
 from pathlib import Path
 from typing import NamedTuple
 
@@ -125,14 +126,39 @@ SERVICE_NAME_MAP: dict[str, str] = {
 }
 
 
-def setup_logging(level: str = "INFO") -> None:
-    """Configure project-wide logging.
+def _resolve_level(level: str | None = None) -> int:
+    """Resolve a level name to a logging level, defaulting to env/INFO."""
+    name = (level or os.getenv("LOG_LEVEL", "INFO")).upper()
+    return getattr(logging, name, logging.INFO)
+
+
+def setup_logging(level: str | None = None, service: str | None = None) -> None:
+    """Configure project-wide JSON single-line logging to stdout.
+
+    Starter §Service standards Logging: single-line JSON to stdout with
+    ``timestamp``/``level``/``service``/``msg``/``trace``, secret/PII
+    redaction, no secrets in logs.
 
     Args:
         level: Logging level name (DEBUG, INFO, WARNING, ERROR, CRITICAL).
+            Defaults to ``LOG_LEVEL`` env or ``INFO``.
+        service: Service name for the ``service`` field. Defaults to
+            ``SERVICE_NAME`` env or ``"api"``.
     """
-    logging.basicConfig(
-        level=getattr(logging, level.upper()),
-        format="%(asctime)s | %(name)s | %(levelname)s | %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-    )
+    from cloud_optimizer.logging_json import JsonFormatter
+
+    svc = service or os.getenv("SERVICE_NAME", "api")
+    lvl = _resolve_level(level)
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setFormatter(JsonFormatter(service=svc))
+    root = logging.getLogger()
+    # Drop the legacy non-JSON basicConfig handlers so output is JSON-only.
+    for h in list(root.handlers):
+        root.removeHandler(h)
+    root.addHandler(handler)
+    root.setLevel(lvl)
+    # Keep uvicorn/fastapi loggers on the same JSON handler.
+    for name in ("uvicorn", "uvicorn.error", "uvicorn.access", "fastapi"):
+        lg = logging.getLogger(name)
+        lg.handlers = []
+        lg.propagate = True

@@ -64,3 +64,14 @@ backups/
 
 # Per-user runtime settings, including temporary and corrupt recovery copies
 backend_api/runtime_settings.json*
+
+# Paper + support — never on main (paper lives on release/paper branch)
+paper/
+support_info/
+*.Zone.Identifier
+# Local runtime artifacts
+backend_api/runtime_settings.json
+backend_api/runtime_settings.json.corrupt
+data/*.backup
+data/*.db-shm
+data/*.db-wal

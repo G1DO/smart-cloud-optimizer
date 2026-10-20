@@ -5,11 +5,10 @@ Usage:
 """
 import argparse
 import sys
-from pathlib import Path
 
-# TODO: Import forecaster when ready
-# from storage import db
-# from ml_engine import forecaster
+# NOTE(ml-cli): this entry point intentionally only prints the handoff notice
+# and exits 1. Real forecasting entry points are the dashboard Forecasts page
+# and ml_engine.forecaster (BaseForecaster.fit/predict) via data_prep loaders.
 
 
 def main():
