@@ -1,0 +1,62 @@
+%% C3 — Components inside the FastAPI backend on main.
+%% Sources: backend_api/main.py, backend_api/routers/*,
+%% storage/db.py, optimizer/engine.py, ml_engine/forecaster.py,
+%% ai_module/recommender.py, aws_collector/runner.py,
+%% docs/architecture/README.md, docs/architecture/engines/*
+flowchart TB
+  nextui["Next.js UI<br/>(:3000, HTTP client)"]
+  streamlit["Streamlit UI<br/>(:8501, direct Python calls)"]
+
+  subgraph api["FastAPI routers (backend_api/routers/)"]
+    auth["auth"]
+    conn["connections<br/>(test / save / sync)"]
+    costs["costs + dashboard"]
+    forecast["forecast<br/>(+ compare)"]
+    recs["recommendations"]
+    onboard["on_boarding<br/>(Gemini questionnaire)"]
+    settings["settings<br/>(runtime_settings.json)"]
+  end
+
+  subgraph engines["Engines"]
+    collector["aws_collector<br/>(CollectorRunner + service collectors)"]
+    opt["optimizer<br/>(PuLP LP + rules)"]
+    ml["ml_engine<br/>(forecast / anomaly)"]
+    aimod["ai_module<br/>(prompt + Gemini client)"]
+  end
+
+  storage["storage facade<br/>(schema, connections, data APIs)"]
+  db[("SQLite DB<br/>(data/cloud_optimizer.db)")]
+  aws["AWS APIs"]
+  gemini["Google Gemini"]
+  settingsfile[("runtime_settings.json<br/>(per-user prefs, backend only)")]
+
+  nextui --> auth
+  nextui --> conn
+  nextui --> costs
+  nextui --> forecast
+  nextui --> recs
+  nextui --> onboard
+  nextui --> settings
+
+  conn --> collector
+  conn --> storage
+  costs --> storage
+  forecast --> ml
+  recs --> opt
+  recs --> storage
+  onboard --> aimod
+  settings --> settingsfile
+
+  collector --> storage
+  opt --> storage
+  ml --> storage
+  aimod --> storage
+  storage --> db
+  forecast -->|"route-specific direct SQL"| db
+
+  collector -->|"boto3"| aws
+  aimod -->|"generate_content"| gemini
+  streamlit --> storage
+  streamlit --> opt
+  streamlit --> ml
+  streamlit --> aimod

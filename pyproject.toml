@@ -9,3 +9,59 @@ omit = ["tests/*"]
 [tool.coverage.report]
 show_missing = true
 fail_under = 0
+
+# Task verbs (Starter §Task verbs, §CI Same checks locally).
+# Short shell steps calling standard tools directly, no glue scripts.
+# Absent suites omitted, never stubs; missing tool fails closed (set -eu, no || true).
+# Omitted (absent in repo, never stubbed):
+# - test:contract: no versioned external contract (no contracts/openapi.yaml; docs/api/http.md states no versioned contract).
+#   Frontend/backend contract tests in tests/test_frontend_backend_contract.py run as part of `test`.
+# - check:sast: no pinned SAST rules/config in repo (no bandit/ruff/mypy/semgrep config).
+# - check:audit: no audit tool/config in repo (no pip-audit; only `pip check` consistency).
+# Secrets history scan runs in CI (verify.yml → secrets-history via gitleaks +
+# .gitleaks.toml allowlisting synthetic placeholders only); no poe task needed.
+
+[tool.poe]
+executor = "simple"
+
+[tool.poe.tasks.dev]
+help = "Start the system locally with dependencies"
+cmd = "docker compose up --build"
+
+[tool.poe.tasks.test]
+help = "Full suite via the stack's runner"
+cmd = "python -m pytest tests/ -v"
+
+[tool.poe.tasks.migrate]
+help = "Migration gate: ensure_schema on disposable DB (real DB migrates on backend startup)"
+shell = """
+set -eu
+python -c "import sqlite3; from storage import ensure_schema; c=sqlite3.connect(':memory:'); ensure_schema(c); c.close(); print('migrate ok')"
+"""
+
+[tool.poe.tasks.build]
+help = "Build the repeatable delivery artifact"
+cmd = "docker compose build"
+
+[tool.poe.tasks."check:hygiene"]
+help = "Hygiene check: no placeholders or swallowed failures"
+shell = """
+set -eu
+git diff --check
+python -m compileall -q backend_api cloud_optimizer aws_collector storage data_generation ml_engine optimizer ai_module dashboard
+test -d frontend/node_modules || exit 1
+npm --prefix frontend run lint
+if grep -Rni --include='*.py' -E 'not yet implemented|TODO: Import forecaster' ml_engine backend_api storage optimizer aws_collector cloud_optimizer data_generation dashboard; then echo "stub markers found" >&2; exit 1; fi
+"""
+
+[tool.poe.tasks.diagrams]
+help = "Mermaid-cli validation of .mmd sources; fails on pasted blocks"
+shell = """
+set -eu
+if grep -Rq '```mermaid' docs/architecture docs/api docs/development docs/operations docs/reference docs/security; then echo "pasted mermaid blocks found (canonical is .mmd)" >&2; exit 1; fi
+for f in docs/architecture/*.mmd; do mmdc --puppeteerConfigFile ./puppeteer.json -i "$f" -o "/tmp/$(basename "$f" .mmd).svg"; done
+"""
+
+[tool.poe.tasks.verify]
+help = "Full local gate combining present checks"
+sequence = ["test", "migrate", "build", "check:hygiene", "diagrams"]

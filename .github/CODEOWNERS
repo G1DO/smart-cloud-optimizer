@@ -1,0 +1,21 @@
+# CODEOWNERS — main only.
+# Every path has an owner (no unowned files). Real owner + wildcard fallback.
+# Default branch remains release/ccpe-v1.0; this file governs `main`.
+
+# Fallback: everything owned by the maintainer.
+* @G1DO
+
+# Explicit ownership (same maintainer, explicit for audit clarity).
+/docs/ @G1DO
+/.github/ @G1DO
+/backend_api/ @G1DO
+/frontend/ @G1DO
+/storage/ @G1DO
+/ml_engine/ @G1DO
+/optimizer/ @G1DO
+/aws_collector/ @G1DO
+/cloud_optimizer/ @G1DO
+/ai_module/ @G1DO
+/dashboard/ @G1DO
+/data_generation/ @G1DO
+/tests/ @G1DO

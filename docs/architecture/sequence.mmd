@@ -1,0 +1,39 @@
+%% Sequence — primary flows on main.
+%% Sources: backend_api/routers/connections.py (prefix /api/connections),
+%% backend_api/routers/forecast.py (prefix /api), aws_collector/runner.py,
+%% docs/architecture/README.md, docs/architecture/data-pipeline.md,
+%% docs/architecture/engines/forecasting.md
+sequenceDiagram
+  participant B as Browser (Next.js UI :3000)
+  participant API as FastAPI (:8000, connections router)
+  participant F as FastAPI (:8000, forecast router)
+  participant DB as SQLite (storage)
+  participant W as Sync daemon thread (CollectorRunner)
+  participant AWS as AWS APIs
+  participant M as ml_engine
+
+  %% Flow 1: test, save, then sync a connection
+  B->>API: POST /api/connections/test (keys)
+  API->>AWS: STS resolve account for keys
+  AWS-->>API: account id (or error)
+  API-->>B: account id + validity
+  B->>API: POST /api/connections (keys + optional account_id)
+  API->>DB: store connection (workspace aws-account_id)
+  API-->>B: connection saved (switches active workspace)
+  B->>API: POST /api/connections/{id}/sync
+  API->>DB: sync_status = in_progress (409 if already syncing)
+  API->>W: start daemon thread (returns HTTP 202)
+  API-->>B: 202 in_progress (polls status separately)
+  W->>DB: clear previous data for account
+  W->>AWS: collect costs, inventory, metrics (newest month first, 12 months)
+  AWS-->>W: observations + pricing
+  W->>DB: insert via storage.insert_* (incremental commits)
+  W->>DB: sync_status = success (or failed + error, max 500 chars)
+  Note over W,DB: failure can leave partial data (not atomic)
+
+  %% Flow 2: forecast request (separate example)
+  B->>F: GET /api/forecast (user, horizon 1-180, default Prophet/30d)
+  F->>DB: load latest 365 daily observations
+  F->>M: anomaly filter (keep original if under 30 left) + forecast
+  M-->>F: forecast series (never saved to SQLite)
+  F-->>B: forecast JSON (in-process cache)
