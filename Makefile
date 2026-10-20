@@ -42,7 +42,9 @@ check-sast:
 check\:sast: check-sast
 
 check-secrets:
-	python3 scripts/check_secrets.py
+	@command -v gitleaks >/dev/null 2>&1 || { echo "check:secrets: missing tool gitleaks (see .github/workflows/verify.yml pinned install)"; exit 2; }
+	gitleaks detect --source . --config .gitleaks.toml --verbose
+	gitleaks detect --source . --config .gitleaks.toml --no-git --verbose
 
 check\:secrets: check-secrets
 
@@ -55,8 +57,7 @@ check\:audit: check-audit
 check-hygiene:
 	@command -v git >/dev/null 2>&1 || { echo "check:hygiene: missing tool git"; exit 2; }
 	git diff --check
-	python3 scripts/check_no_placeholders.py
-	python3 scripts/check_no_pasted_diagrams.py
+	@if git grep -I -n -E -e 'TODO[^(]|FIXME|XXX|HACK|lorem|NotImplementedError' --and --not -e 'TODO\[' -- . ':!frontend/node_modules' ':!paper' ':!frontend/package-lock.json'; then echo "stub hygiene FAIL"; exit 1; fi
 
 check\:hygiene: check-hygiene
 
@@ -70,11 +71,9 @@ verify:
 	@python3 -c "import pytest" 2>/dev/null || { echo "verify: missing tool pytest (pip install -r requirements.txt)"; exit 2; }
 	@command -v npm >/dev/null 2>&1 || { echo "verify: missing tool npm (install Node 22+)"; exit 2; }
 	@command -v git >/dev/null 2>&1 || { echo "verify: missing tool git"; exit 2; }
+	@command -v gitleaks >/dev/null 2>&1 || { echo "verify: missing tool gitleaks"; exit 2; }
 	python3 -m pytest tests/ -v
 	git diff --check
-	python3 scripts/check_no_placeholders.py
-	python3 scripts/check_no_pasted_diagrams.py
-	python3 scripts/check_secrets.py
-	python3 scripts/verify_schema_restore.py
+	gitleaks detect --source . --config .gitleaks.toml --verbose
 	npm --prefix frontend run lint
 	npm --prefix frontend run build

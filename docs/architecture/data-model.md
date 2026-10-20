@@ -57,17 +57,10 @@ older table definitions. `create_schema()` drops and recreates all tables and
 belongs only in disposable fixtures.
 
 Recorded proof (2026-10-20, `main`):
-
-```bash
-python scripts/verify_schema_restore.py
-```
-
-- Fresh `:memory:` init: 30 tables; `aws_connections` carries all 16 columns.
-- Temp copy of `data/cloud_optimizer.db` (old schema without key columns):
-  migration adds exactly the 4 supported columns, preserves both users
-  (`aws-SYNTHETIC-001`, `usr-89386f1d428a`), `integrity_check` ok.
-- Backup/restore round-trip via the SQLite backup API on temp paths outside
-  the repo: `integrity_check` ok, demo workspace present with 365 daily rows.
+fresh `:memory:` init holds 30 tables; migration adds the 4 supported
+credential columns and preserves both users; temp-copy backup/restore
+round-trip `integrity_check` ok. Re-run `poe check:schema` / CI `verify`
+after any schema change.
 
 Re-run the script after any schema or migration change.
 

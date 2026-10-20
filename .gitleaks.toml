@@ -1,6 +1,6 @@
 # Gitleaks config — Smart Cloud Optimizer (main).
-# Full-history + working-tree secrets scan runs via scripts/check_secrets.py
-# (poe check:secrets) and .github/workflows/secrets.yml.
+# Full-history + working-tree scan runs via `poe check:secrets` / `make check-secrets`
+# and .github/workflows/secrets.yml + verify.yml (pinned gitleaks).
 # Fail-closed: extends default rules; allowlists cover only synthetic demo
 # placeholders and AWS documentation example keys, plus build-artifact paths.
 # Real leaks fail the scan. Do not add real-key patterns here.

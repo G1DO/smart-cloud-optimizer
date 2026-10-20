@@ -32,5 +32,4 @@ Delete: `docs/README.md`, `arch/README.md`, `api/http.md`, `api/storage.md`, `da
 ## Verification
 
 - `git ls-files docs/` = 9 files above.
-- `python3 scripts/check_no_pasted_diagrams.py` green (no fences).
-- `python3 scripts/check_secrets.py` + `verify_schema_restore.py` green.
+- `git diff --check` + `gitleaks detect` green; `poe verify` / CI `verify` green.

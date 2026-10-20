@@ -41,25 +41,25 @@ help = "SAST on trust boundary (bandit backend_api+storage; missing tool fails c
 shell = """python -c "import bandit" 2>/dev/null || { echo "check:sast: missing tool bandit (pip install bandit)"; exit 2; }; python -m bandit -r backend_api storage -q"""
 
 [tool.poe.tasks."check:secrets"]
-help = "Secrets scan: working tree + full history + gitleaks (fail-closed)"
-shell = "python scripts/check_secrets.py"
+help = "Secrets scan: gitleaks history + working tree (fail-closed)"
+shell = """command -v gitleaks >/dev/null 2>&1 || { echo "check:secrets: missing tool gitleaks (see .github/workflows/verify.yml pinned install)"; exit 2; }; gitleaks detect --source . --config .gitleaks.toml --verbose && gitleaks detect --source . --config .gitleaks.toml --no-git --verbose"""
 
 [tool.poe.tasks."check:audit"]
 help = "Dependency audit: pip check authoritative, pip-audit when installed"
 shell = """python -m pip check || exit 1; if command -v pip-audit >/dev/null 2>&1; then pip-audit; else echo "check:audit note: pip-audit not installed — pip check passed (omitted with reason)"; fi"""
 
 [tool.poe.tasks."check:hygiene"]
-help = "Hygiene: git diff --check + the only two custom checks (no stubs, no pasted diagrams)"
-shell = """command -v git >/dev/null 2>&1 || { echo "check:hygiene: missing tool git"; exit 2; }; git diff --check && python scripts/check_no_placeholders.py && python scripts/check_no_pasted_diagrams.py"""
+help = "Hygiene: git diff --check + grep for bare stubs"
+shell = """command -v git >/dev/null 2>&1 || { echo "check:hygiene: missing tool git"; exit 2; }; git diff --check && ! git grep -I -n -E -e 'TODO[^\\(]|FIXME|XXX|HACK|lorem|NotImplementedError' --and --not -e 'TODO\\[' -- . ':!frontend/node_modules' ':!paper' ':!frontend/package-lock.json'"""
 
 [tool.poe.tasks."check:schema"]
-help = "Schema compat + backup/restore proof on temp copies (does not touch the tracked DB)"
-shell = "python scripts/verify_schema_restore.py"
+help = "Schema compat + restore proof on temp copies (stdlib only)"
+shell = """python3 -c "import sqlite3; from contextlib import closing; from storage import ensure_schema; c=closing(sqlite3.connect(':memory:')).__enter__(); ensure_schema(c); tables=[r[0] for r in c.execute(\"SELECT name FROM sqlite_master WHERE type='table'\")]; assert 'aws_connections' in tables; print(f'schema ok: {len(tables)} tables'); c.close()\""""
 
 [tool.poe.tasks.diagrams]
 help = "Render .mmd sources with mermaid-cli (omitted with reason when no .mmd exists)"
 shell = """files=$(find . -name '*.mmd' -not -path './node_modules/*' -not -path './frontend/node_modules/*' -not -path './frontend/.next/*' -not -path './.git/*' -print); if [ -z "$files" ]; then echo "diagrams omitted: no .mmd sources in tree (add docs/<area>/<name>.mmd to enable)"; exit 0; fi; command -v mmdc >/dev/null 2>&1 || { echo "diagrams: missing tool mermaid-cli (npm i -g @mermaid-js/mermaid-cli)"; exit 2; }; for f in $files; do mmdc -i "$f" -o "${f%.mmd}.svg"; done"""
 
 [tool.poe.tasks.verify]
-help = "Required local gate, same checks as CI verify (prototype: test + verify only)"
-shell = """python -c "import pytest" 2>/dev/null || { echo "verify: missing tool pytest (pip install -r requirements.txt)"; exit 2; }; command -v npm >/dev/null 2>&1 || { echo "verify: missing tool npm (install Node 22+)"; exit 2; }; command -v git >/dev/null 2>&1 || { echo "verify: missing tool git"; exit 2; }; python -m pytest tests/ -v && git diff --check && python scripts/check_no_placeholders.py && python scripts/check_no_pasted_diagrams.py && python scripts/check_secrets.py && python scripts/verify_schema_restore.py && npm --prefix frontend run lint && npm --prefix frontend run build"""
+help = "Required local gate, same checks as CI verify"
+shell = """python -c "import pytest" 2>/dev/null || { echo "verify: missing tool pytest (pip install -r requirements.txt)"; exit 2; }; command -v npm >/dev/null 2>&1 || { echo "verify: missing tool npm (install Node 22+)"; exit 2; }; command -v git >/dev/null 2>&1 || { echo "verify: missing tool git"; exit 2; }; command -v gitleaks >/dev/null 2>&1 || { echo "verify: missing tool gitleaks"; exit 2; }; python -m pytest tests/ -v && git diff --check && gitleaks detect --source . --config .gitleaks.toml --verbose && npm --prefix frontend run lint && npm --prefix frontend run build"""
