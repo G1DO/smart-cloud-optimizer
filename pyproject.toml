@@ -17,8 +17,9 @@ fail_under = 0
 # - test:contract: no versioned external contract (no contracts/openapi.yaml; docs/api/http.md states no versioned contract).
 #   Frontend/backend contract tests in tests/test_frontend_backend_contract.py run as part of `test`.
 # - check:sast: no pinned SAST rules/config in repo (no bandit/ruff/mypy/semgrep config).
-# - check:secrets: no scan config/baseline in repo (no .gitleaks.toml).
 # - check:audit: no audit tool/config in repo (no pip-audit; only `pip check` consistency).
+# Secrets history scan runs in CI (verify.yml → secrets-history via gitleaks +
+# .gitleaks.toml allowlisting synthetic placeholders only); no poe task needed.
 
 [tool.poe]
 executor = "simple"
@@ -58,7 +59,7 @@ help = "Mermaid-cli validation of .mmd sources; fails on pasted blocks"
 shell = """
 set -eu
 if grep -Rq '```mermaid' docs/architecture docs/api docs/development docs/operations docs/reference docs/security; then echo "pasted mermaid blocks found (canonical is .mmd)" >&2; exit 1; fi
-for f in docs/architecture/*.mmd; do mmdc -i "$f" -o "/tmp/$(basename "$f" .mmd).svg"; done
+for f in docs/architecture/*.mmd; do mmdc --puppeteerConfigFile ./puppeteer.json -i "$f" -o "/tmp/$(basename "$f" .mmd).svg"; done
 """
 
 [tool.poe.tasks.verify]
